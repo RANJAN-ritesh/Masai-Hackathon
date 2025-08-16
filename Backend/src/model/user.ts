@@ -25,7 +25,7 @@ const UserSchema = new Schema<IUser>({
     phoneNumber: {type:String, required:true, unique:true},
     email: {type:String, required:true, unique:true, lowercase:true},
     password: {type:String, required:true},
-    teamId: {type:String, required:true},
+    teamId: {type:String, required:false}, // Make teamId optional
     isVerified: {type:Boolean, required:true, default:false},
     role: {type:String, enum:["admin", "leader", "member"],required:true, default:"member"}
 }, 
