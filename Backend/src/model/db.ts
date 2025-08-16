@@ -3,8 +3,14 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const MONGO_URI = process.env.MONGO_URI || "mongodb+srv://HarshitBatra:hb@masai-curriculum.ajiej.mongodb.net/?retryWrites=true&w=majority&appName=Masai-Curriculum";
-const DB_NAME = process.env.DB_NAME || "xTo10x";
+// Validate required environment variables
+if (!process.env.MONGO_URI) {
+    console.error("❌ MONGO_URI environment variable is required");
+    process.exit(1);
+}
+
+const MONGO_URI = process.env.MONGO_URI;
+const DB_NAME = process.env.DB_NAME || "hackathon_db";
 
 export const connectDB = async () => {
     try {

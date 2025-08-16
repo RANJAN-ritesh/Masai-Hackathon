@@ -13,4 +13,10 @@ services:
       - key: DB_NAME
         value: hackathon_db
       - key: CORS_ORIGIN
-        value: https://your-frontend-domain.com 
+        value: "*"
+      - key: PORT
+        value: 10000
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "900000"
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: "100" 

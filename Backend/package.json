@@ -6,7 +6,9 @@
     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon --ext ts --exec ts-node src/app.ts",
-    "start": "node dist/app.js"
+    "start": "node dist/app.js",
+    "start:prod": "NODE_ENV=production node dist/app.js",
+    "postinstall": "npm run build"
   },
   "keywords": [],
   "author": "",

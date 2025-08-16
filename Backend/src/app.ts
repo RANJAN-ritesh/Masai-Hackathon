@@ -20,6 +20,7 @@ const requiredEnvVars = ['MONGO_URI'];
 for (const envVar of requiredEnvVars) {
     if (!process.env[envVar]) {
         console.error(`❌ Missing required environment variable: ${envVar}`);
+        console.error(`Please set ${envVar} in your environment or .env file`);
         process.exit(1);
     }
 }
@@ -43,7 +44,8 @@ const corsOptions = {
         : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5000'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
-    optionsSuccessStatus: 200
+    optionsSuccessStatus: 200,
+    allowedHeaders: ['Content-Type', 'Authorization']
 };
 
 app.use(cors(corsOptions));
@@ -83,6 +85,28 @@ app.get("/",(req, res)=>{
     res.send("health check")
 })
 
+// Global error handling middleware
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    console.error('Unhandled error:', err);
+    res.status(500).json({ 
+        message: 'Internal server error',
+        error: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong'
+    });
+});
+
+// Graceful shutdown handling
+process.on('SIGTERM', () => {
+    console.log('SIGTERM received, shutting down gracefully');
+    process.exit(0);
+});
+
+process.on('SIGINT', () => {
+    console.log('SIGINT received, shutting down gracefully');
+    process.exit(0);
+});
+
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`🚀 Server is running on port ${PORT}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`📊 Health check: http://localhost:${PORT}/health`);
 })
