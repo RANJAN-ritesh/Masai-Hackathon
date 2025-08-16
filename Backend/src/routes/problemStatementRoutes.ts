@@ -31,13 +31,46 @@ const mockProblemStatements = [
   }
 ];
 
-// Hackathon routes
+// GET all hackathons
 router.get("/hackathons", (req, res) => {
   res.json([mockHackathon]);
 });
 
+// GET specific hackathon by ID
 router.get("/hackathons/:id", (req, res) => {
-  res.json(mockHackathon);
+  const { id } = req.params;
+  if (id === "hackathon_001") {
+    res.json(mockHackathon);
+  } else {
+    res.status(404).json({ message: "Hackathon not found" });
+  }
+});
+
+// POST - Create new hackathon
+router.post("/hackathons", (req, res) => {
+  try {
+    const hackathonData = req.body;
+    console.log("Creating hackathon:", hackathonData);
+    
+    // For now, just return success - you can implement actual database saving later
+    const newHackathon = {
+      _id: `hackathon_${Date.now()}`,
+      ...hackathonData,
+      createdAt: new Date().toISOString(),
+      status: "active"
+    };
+    
+    res.status(201).json({
+      message: "Hackathon created successfully",
+      hackathon: newHackathon
+    });
+  } catch (error) {
+    console.error("Error creating hackathon:", error);
+    res.status(500).json({ 
+      message: "Error creating hackathon", 
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
 });
 
 // Problem statement routes
