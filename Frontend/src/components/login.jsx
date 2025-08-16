@@ -51,7 +51,9 @@ function Login() {
 
       const data = await response.json();
       // console.log("This is users ID: ", data.user.userType);
-      localStorage.setItem("userId", data.user.id);
+      localStorage.setItem("userId", data.user._id); // Use MongoDB _id
+      localStorage.setItem("userData", JSON.stringify(data.user)); // Store full user data
+      setUserData(data.user); // Set user data in context
       setIsAuth(true);
       toast.success("User logged in successfully", {
         position: "top-right",

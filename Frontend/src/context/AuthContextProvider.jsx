@@ -77,7 +77,7 @@ const AuthContextProvider = ({ children }) => {
         // console.log("Data after login", userData);
         localStorage.setItem("userData", JSON.stringify(userData));
         setUserData(userData);
-        setRole(userData.userType?.toLowerCase() || "member");
+        setRole(userData.role || "member"); // Use 'role' field from backend, not 'userType'
         setIsAuth(true);
       } catch (err) {
         console.error("Error fetching user data", err);
