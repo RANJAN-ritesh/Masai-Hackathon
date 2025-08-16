@@ -12,7 +12,7 @@ export interface IUser extends Document{
     password: string;
     teamId?: string; 
     isVerified: boolean;
-    role: "leader" | "member"; 
+    role: "admin" | "leader" | "member"; 
 }
 
 const UserSchema = new Schema<IUser>({
@@ -27,7 +27,7 @@ const UserSchema = new Schema<IUser>({
     password: {type:String, required:true},
     teamId: {type:String, required:true},
     isVerified: {type:Boolean, required:true, default:false},
-    role: {type:String, enum:["leader", "member"],required:true, default:"member"}
+    role: {type:String, enum:["admin", "leader", "member"],required:true, default:"member"}
 }, 
 { timestamps: true})
 

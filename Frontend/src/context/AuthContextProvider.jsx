@@ -29,19 +29,27 @@ const AuthContextProvider = ({ children }) => {
         const response = await fetch(
           `${baseURL}/hackathons/${currentHackathon}`
         );
+        
+        if (!response.ok) {
+          throw new Error("Hackathon API not available");
+        }
+        
         const data = await response.json();
         // console.log("current id", currentHackathon);
         // console.log("Current hack data", data);
         setHackathon(data);
       } catch (error) {
-        console.error("Error fetching hackathons:", error);
+        console.error("Error fetching hackathons, using fallback:", error);
         // Set default hackathon data if fetch fails
         setHackathon({
           _id: "hackathon_001",
           title: "Masai Hackathon 2024",
+          description: "Build innovative solutions with your team",
           eventType: "Team Hackathon",
           maxTeamSize: 4,
-          status: "active"
+          status: "active",
+          startDate: new Date().toISOString(),
+          endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
         });
       } finally {
         setLoading(false);
