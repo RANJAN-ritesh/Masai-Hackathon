@@ -82,7 +82,7 @@ app.get("/health",(req, res)=>{
 })
 
 app.get("/",(req, res)=>{
-    res.send("health check")
+    res.send("health check - backend is live!")
 })
 
 // Global error handling middleware
