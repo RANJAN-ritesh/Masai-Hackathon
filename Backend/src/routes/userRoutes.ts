@@ -35,6 +35,66 @@ router.get("/registrations/user/:userId", async (req, res) => {
   }
 });
 
+// Upload participants via CSV
+router.post("/upload-participants", async (req, res) => {
+  try {
+    const { participants, hackathonId } = req.body;
+    
+    if (!participants || !Array.isArray(participants)) {
+      return res.status(400).json({ message: "Invalid participants data" });
+    }
+
+    let uploadedCount = 0;
+    let errors = [];
+
+    for (const participant of participants) {
+      try {
+        // Generate unique userId
+        const userId = `USER${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Hash default password
+        const hashedPassword = await bcrypt.hash("password123", 10);
+        
+        // Create user
+        const newUser = await User.create({
+          userId,
+          name: `${participant["First Name"]} ${participant["Last Name"]}`,
+          code: userId,
+          course: participant["Course"],
+          skills: participant["Skills"].split(", "),
+          vertical: participant["Vertical"],
+          phoneNumber: participant["Phone"],
+          email: participant["Email"].toLowerCase(),
+          password: hashedPassword,
+          teamId: "",
+          isVerified: true,
+          role: participant["Role"] || "member"
+        });
+        
+        uploadedCount++;
+      } catch (error) {
+        errors.push({
+          email: participant["Email"],
+          error: error.message
+        });
+      }
+    }
+
+    res.status(200).json({
+      message: `Successfully uploaded ${uploadedCount} participants`,
+      uploadedCount,
+      errorCount: errors.length,
+      errors: errors.length > 0 ? errors : undefined
+    });
+  } catch (error) {
+    console.error("Error uploading participants:", error);
+    res.status(500).json({ 
+      message: "Error uploading participants", 
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+});
+
 // Route to create test users - ONLY for development/testing
 router.post("/create-test-users", async (req, res) => {
   try {
