@@ -11,6 +11,16 @@ router.post("/verify-user", validateUserInput, verifyUser);
 router.get("/get-user/:userId", getUserById);
 router.post("/leave-team", leaveTeam);
 
+// Registration routes that frontend expects
+router.get("/registrations/user/:userId", async (req, res) => {
+  try {
+    // For now, return empty array - can be implemented later
+    res.status(200).json([]);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching registrations", error });
+  }
+});
+
 // Route to create test users - ONLY for development/testing
 router.post("/create-test-users", async (req, res) => {
   try {

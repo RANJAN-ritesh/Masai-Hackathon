@@ -21,6 +21,53 @@ const AuthContextProvider = ({ children }) => {
   const navigate = useNavigate();
   const [role, setRole] = useState("");
 
+  // Effect to fetch user details when userId changes
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      // Get fresh userId from localStorage
+      const currentUserId = localStorage.getItem("userId");
+      
+      if (!currentUserId || currentUserId === "null" || currentUserId === "undefined") {
+        console.log("No valid userId found");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`${baseURL}/users/get-user/${currentUserId}`);
+        const contentType = response.headers.get("Content-Type");
+        // console.log("Content-Type:", contentType);
+
+        if (!response.ok) throw new Error("Failed to fetch user data");
+
+        const userData = await response.json();
+        // console.log("Data after login", userData);
+        localStorage.setItem("userData", JSON.stringify(userData));
+        setUserData(userData);
+        setRole(userData.role || "member"); // Use 'role' field from backend, not 'userType'
+        setIsAuth(true);
+      } catch (err) {
+        console.error("Error fetching user data", err);
+        // If user fetch fails, try to get from localStorage
+        const storedUserData = localStorage.getItem("userData");
+        if (storedUserData) {
+          try {
+            const userData = JSON.parse(storedUserData);
+            setUserData(userData);
+            setRole(userData.role || "member");
+            setIsAuth(true);
+          } catch (e) {
+            console.error("Error parsing stored user data", e);
+          }
+        }
+      } finally {
+        setLoading(false); // Stop loading in any case
+      }
+    };
+
+    fetchUserDetails();
+  }, [isAuth]); // Depend on isAuth instead of userId
+
   const [hackathon, setHackathon] = useState([]);
   useEffect(() => {
     const fetchHackathons = async () => {
@@ -58,36 +105,6 @@ const AuthContextProvider = ({ children }) => {
 
     fetchHackathons();
   }, [userId, baseURL, currentHackathon]);
-
-  useEffect(() => {
-    const fetchUserDetails = async () => {
-      try {
-        if (!userId) {
-          setLoading(false); // No userId, stop loading
-          return;
-        }
-
-        const response = await fetch(`${baseURL}/users/get-user/${userId}`);
-        const contentType = response.headers.get("Content-Type");
-        // console.log("Content-Type:", contentType);
-
-        if (!response.ok) throw new Error("Failed to fetch user data");
-
-        const userData = await response.json();
-        // console.log("Data after login", userData);
-        localStorage.setItem("userData", JSON.stringify(userData));
-        setUserData(userData);
-        setRole(userData.role || "member"); // Use 'role' field from backend, not 'userType'
-        setIsAuth(true);
-      } catch (err) {
-        console.error("Error fetching user data", err);
-      } finally {
-        setLoading(false); // Stop loading in any case
-      }
-    };
-
-    fetchUserDetails();
-  }, [userId]);
 
   return (
     <MyContext.Provider
