@@ -45,7 +45,7 @@ router.post("/upload-participants", async (req, res) => {
     }
 
     let uploadedCount = 0;
-    let errors = [];
+    let errors: Array<{email: string, error: string}> = [];
 
     for (const participant of participants) {
       try {
@@ -75,7 +75,7 @@ router.post("/upload-participants", async (req, res) => {
       } catch (error) {
         errors.push({
           email: participant["Email"],
-          error: error.message
+          error: error instanceof Error ? error.message : "Unknown error"
         });
       }
     }

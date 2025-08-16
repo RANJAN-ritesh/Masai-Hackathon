@@ -34,36 +34,45 @@ const mockProblemStatements = [
 ];
 
 // GET all hackathons
-router.get("/hackathons", (req, res) => {
+router.get("/", (req, res) => {
   res.json(mockHackathons);
 });
 
 // GET specific hackathon by ID
-router.get("/hackathons/:id", (req, res) => {
-  const { id } = req.params;
-  const hackathon = mockHackathons.find(h => h._id === id);
-  if (hackathon) {
+router.get("/:id", (req, res) => {
+  try {
+    const { id } = req.params;
+    const hackathon = mockHackathons.find(h => h._id === id);
+    
+    if (!hackathon) {
+      return res.status(404).json({ message: "Hackathon not found" });
+    }
+    
     res.json(hackathon);
-  } else {
-    res.status(404).json({ message: "Hackathon not found" });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching hackathon" });
   }
 });
 
 // POST - Create new hackathon
-router.post("/hackathons", (req, res) => {
+router.post("/", (req, res) => {
   try {
     const hackathonData = req.body;
-    console.log("Creating hackathon:", hackathonData);
     
-    // For now, just return success - you can implement actual database saving later
+    // Validate required fields
+    if (!hackathonData.title || !hackathonData.startDate || !hackathonData.endDate) {
+      return res.status(400).json({ message: "Title, start date, and end date are required" });
+    }
+    
+    // Generate unique ID
+    const newId = `hackathon_${Date.now()}`;
+    
     const newHackathon = {
-      _id: `hackathon_${Date.now()}`,
+      _id: newId,
       ...hackathonData,
-      createdAt: new Date().toISOString(),
-      status: "active"
+      createdAt: new Date().toISOString()
     };
     
-    // Add to our mock array
     mockHackathons.push(newHackathon);
     
     res.status(201).json({
@@ -71,16 +80,12 @@ router.post("/hackathons", (req, res) => {
       hackathon: newHackathon
     });
   } catch (error) {
-    console.error("Error creating hackathon:", error);
-    res.status(500).json({ 
-      message: "Error creating hackathon", 
-      error: error instanceof Error ? error.message : "Unknown error"
-    });
+    res.status(500).json({ message: "Error creating hackathon" });
   }
 });
 
 // PUT - Update hackathon
-router.put("/hackathons/:id", (req, res) => {
+router.put("/:id", (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
@@ -90,24 +95,19 @@ router.put("/hackathons/:id", (req, res) => {
       return res.status(404).json({ message: "Hackathon not found" });
     }
     
-    // Update the hackathon
     mockHackathons[hackathonIndex] = { ...mockHackathons[hackathonIndex], ...updateData };
     
-    res.status(200).json({
+    res.status(200).json({ 
       message: "Hackathon updated successfully",
       hackathon: mockHackathons[hackathonIndex]
     });
   } catch (error) {
-    console.error("Error updating hackathon:", error);
-    res.status(500).json({ 
-      message: "Error updating hackathon", 
-      error: error instanceof Error ? error.message : "Unknown error"
-    });
+    res.status(500).json({ message: "Error updating hackathon" });
   }
 });
 
 // DELETE - Delete hackathon
-router.delete("/hackathons/:id", (req, res) => {
+router.delete("/:id", (req, res) => {
   try {
     const { id } = req.params;
     
@@ -116,19 +116,14 @@ router.delete("/hackathons/:id", (req, res) => {
       return res.status(404).json({ message: "Hackathon not found" });
     }
     
-    // Remove the hackathon
     const deletedHackathon = mockHackathons.splice(hackathonIndex, 1)[0];
     
-    res.status(200).json({
+    res.status(200).json({ 
       message: "Hackathon deleted successfully",
-      hackathon: deletedHackathon
+      deletedHackathon
     });
   } catch (error) {
-    console.error("Error deleting hackathon:", error);
-    res.status(500).json({ 
-      message: "Error deleting hackathon", 
-      error: error instanceof Error ? error.message : "Unknown error"
-    });
+    res.status(500).json({ message: "Error deleting hackathon" });
   }
 });
 

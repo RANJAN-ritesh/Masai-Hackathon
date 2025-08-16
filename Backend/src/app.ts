@@ -70,7 +70,7 @@ problemStatement.createCollection()
 app.use("/users", userRoutes);
 app.use("/team", teamRoutes);
 app.use("/team-request", teamRequestRoutes);
-app.use("/", problemStatementRoutes); // Mount hackathon routes at root level
+app.use("/hackathons", problemStatementRoutes); // Mount hackathon routes at /hackathons level
 
 app.get("/health",(req, res)=>{
     res.status(200).json({
