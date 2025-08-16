@@ -24,45 +24,58 @@ export const getTeams = async (req: Request, res: Response): Promise<void> => {
 
 
 
-export const createTeams = async( req:Request<{}, {}, {teamName: string, createdBy: mongoose.Schema.Types.ObjectId}>, res:Response) : Promise<void> => {
+export const createTeams = async( req:Request<{}, {}, {teamName: string, createdBy?: mongoose.Schema.Types.ObjectId, hackathonId?: string, maxMembers?: number, description?: string}>, res:Response) : Promise<void> => {
     try {
-        const { teamName, createdBy } = req.body;
+        const { teamName, createdBy, hackathonId, maxMembers, description } = req.body;
 
-        if (!teamName || !createdBy) {
-            res.status(400).json({ message: "Team Creation failed!!! Incomplete information" });
+        if (!teamName) {
+            res.status(400).json({ message: "Team Creation failed!!! Team name is required" });
             return;
         }
 
-        const userExists = await user.findById(createdBy);
-
-        if (!userExists) {
-            res.status(400).json({ message: "User not found" });
-            return;
+        // For admin team creation, createdBy is optional
+        let teamCreator = createdBy;
+        if (!teamCreator) {
+            // If no creator specified, use a default admin user or create without creator
+            teamCreator = undefined;
         }
 
-        if (userExists.teamId) {
-            res.status(400).json({ message: "User is already in a team" });
-            return;
+        // Check if user exists if createdBy is provided
+        if (teamCreator) {
+            const userExists = await user.findById(teamCreator);
+            if (!userExists) {
+                res.status(400).json({ message: "User not found" });
+                return;
+            }
+            if (userExists.teamId) {
+                res.status(400).json({ message: "User is already in a team" });
+                return;
+            }
         }
 
-        const existingTeam = await team.findOne({ teamName, createdBy });
+        // Check for existing team with same name
+        const existingTeam = await team.findOne({ teamName });
         if (existingTeam) {
-            res.status(400).json({ message: "You have already created a team with this name!" });
+            res.status(400).json({ message: "A team with this name already exists!" });
             return;
         }
 
         // Create the team
         const newTeam = await team.create({
             teamName,
-            createdBy,
-            teamMembers: [createdBy]
+            createdBy: teamCreator,
+            teamMembers: teamCreator ? [teamCreator] : [],
+            hackathonId: hackathonId || undefined,
+            maxMembers: maxMembers || 4,
+            description: description || ""
         });
 
         if (newTeam) {
-            // Update user with teamId
-            await user.findByIdAndUpdate(createdBy, { teamId: newTeam._id });
-
-            await teamRequests.deleteMany({ userId: createdBy });
+            // Update user with teamId if creator exists
+            if (teamCreator) {
+                await user.findByIdAndUpdate(teamCreator, { teamId: newTeam._id });
+                await teamRequests.deleteMany({ userId: teamCreator });
+            }
 
             res.status(201).json({ message: "Team created successfully", team: newTeam });
         }
@@ -75,8 +88,8 @@ export const deleteTeam = async (req: Request, res: Response): Promise<void> => 
     try {
         const { teamId, userId } = req.body;
 
-        if (!teamId || !userId) {
-            res.status(400).json({ message: "Team ID and User ID are required" });
+        if (!teamId) {
+            res.status(400).json({ message: "Team ID is required" });
             return;
         }
 
@@ -87,9 +100,20 @@ export const deleteTeam = async (req: Request, res: Response): Promise<void> => 
             return;
         }
 
-        // ✅ Check if the user is the creator
-        if (existingTeam.createdBy.toString() !== userId) {
-            res.status(403).json({ message: "Only the team creator can delete the team" });
+        // ✅ Check if user is admin or team creator
+        let isAuthorized = false;
+        
+        if (userId) {
+            const userDoc = await user.findById(userId);
+            if (userDoc && userDoc.role === 'admin') {
+                isAuthorized = true; // Admin can delete any team
+            } else if (existingTeam.createdBy && existingTeam.createdBy.toString() === userId) {
+                isAuthorized = true; // Team creator can delete their team
+            }
+        }
+
+        if (!isAuthorized) {
+            res.status(403).json({ message: "You are not authorized to delete this team" });
             return;
         }
 
