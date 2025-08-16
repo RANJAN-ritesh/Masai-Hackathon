@@ -1,0 +1,88 @@
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import rateLimit from "express-rate-limit";
+import { connectDB } from "./model/db";
+import user from "./model/user";
+import team from "./model/team";
+import teamRequests from "./model/teamRequests";
+import problemStatement from "./model/problemStatement";
+import userRoutes from "./routes/userRoutes";
+import teamRoutes from "./routes/teamRoutes";
+import teamRequestRoutes from "./routes/teamRequestRoutes";
+import problemStatementRoutes from "./routes/problemStatementRoutes";
+
+// Load environment variables
+dotenv.config();
+
+// Validate required environment variables
+const requiredEnvVars = ['MONGO_URI'];
+for (const envVar of requiredEnvVars) {
+    if (!process.env[envVar]) {
+        console.error(`❌ Missing required environment variable: ${envVar}`);
+        process.exit(1);
+    }
+}
+
+const app = express();
+const PORT = process.env.PORT || 5009;
+app.use(express.json());
+
+// Rate limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.'
+});
+app.use(limiter);
+
+// CORS configuration
+const corsOptions = {
+    origin: process.env.NODE_ENV === 'production' 
+        ? [process.env.CORS_ORIGIN || 'https://yourdomain.com'] 
+        : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5000'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+    optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+
+connectDB();
+user.createCollection()
+    .then( () => console.log("user Collection created"))
+    .catch( (error) => console.error("Error creating user collection", error));
+
+team.createCollection()
+    .then( () => console.log("team collection created"))
+    .catch( (error) => console.error("Error creating team collection", error));
+
+teamRequests.createCollection()
+    .then( () => console.log("teamRequest collection created"))
+    .catch( (error) => console.error("Error creating teamRequest collection", error));
+
+problemStatement.createCollection()
+    .then( () => console.log("problemStatement collection created"))
+    .catch( (error) => console.error("Error creating problemStatement collection"));
+
+app.use("/users", userRoutes);
+app.use("/team", teamRoutes);
+app.use("/team-request", teamRequestRoutes);
+app.use("/problemStatementRoutes", problemStatementRoutes);
+
+app.get("/health",(req, res)=>{
+    res.status(200).json({
+        status: "ok",
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        environment: process.env.NODE_ENV || 'development'
+    })
+})
+
+app.get("/",(req, res)=>{
+    res.send("health check")
+})
+
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+})
