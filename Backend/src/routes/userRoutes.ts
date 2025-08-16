@@ -88,7 +88,10 @@ router.post("/create-test-users", async (req, res) => {
     });
   } catch (error) {
     console.error("Error creating test users:", error);
-    res.status(500).json({ message: "Error creating test users", error: error.message });
+    res.status(500).json({ 
+      message: "Error creating test users", 
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
   }
 });
 
