@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { MyContext } from "../context/AuthContextProvider";
 import {
   ArrowRight,
@@ -31,6 +31,11 @@ const EligibleHackathons = () => {
   const [modalConfig, setModalConfig] = useState({});
   const [csvModalOpen, setCsvModalOpen] = useState(false);
   const [selectedHackathonId, setSelectedHackathonId] = useState(null);
+  const location = useLocation(); // Add this line
+
+  // Add state for tracking hackathon count changes
+  const [hackathonCount, setHackathonCount] = useState(0);
+  const [previousCount, setPreviousCount] = useState(0);
 
   const handleCSVUploadClick = (hackathonId) => {
     setSelectedHackathonId(hackathonId);
@@ -38,7 +43,19 @@ const EligibleHackathons = () => {
   };
 
   const handleRefresh = () => {
-    fetchHackathons(userData);
+    console.log("🔄 Manual refresh triggered");
+    setLoading(true);
+    fetchHackathons(userData).then(() => {
+      // Show success message after refresh
+      toast.success("Hackathon list refreshed successfully!", {
+        position: "top-center",
+        autoClose: 2000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+    });
   };
 
   const fetchHackathons = async (user) => {
@@ -55,13 +72,31 @@ const EligibleHackathons = () => {
       console.log("Hackathons Data: ", data);
       
       if (data && Array.isArray(data)) {
+        // Track count changes for visual feedback
+        setPreviousCount(hackathonCount);
+        setHackathonCount(data.length);
+        
         setHackathons(data);
+        
+        // Show notification if count increased (new hackathon detected)
+        if (data.length > previousCount && previousCount > 0) {
+          toast.info(`🎉 New hackathon detected! Total: ${data.length}`, {
+            position: "top-center",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
+        }
       } else {
         setHackathons([]);
+        setHackathonCount(0);
       }
     } catch (error) {
       console.error("Error fetching hackathons:", error);
       setHackathons([]);
+      setHackathonCount(0);
     } finally {
       setLoading(false);
     }
@@ -81,6 +116,28 @@ const EligibleHackathons = () => {
     // Refresh hackathons when component mounts (useful when navigating back from create/edit)
     fetchHackathons(userData);
   }, []); // Empty dependency array means it runs once when component mounts
+
+  // Add new useEffect to handle refresh after navigation
+  useEffect(() => {
+    if (location.state?.refreshHackathons) {
+      console.log("🔄 Refreshing hackathons after creation...");
+      fetchHackathons(userData);
+      // Clear the state to prevent infinite refreshes
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, userData]);
+
+  // Add timestamp-based refresh to ensure fresh data
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (userData && userData.role === "admin") {
+        console.log("🔄 Auto-refreshing hackathons every 30 seconds...");
+        fetchHackathons(userData);
+      }
+    }, 30000); // Refresh every 30 seconds for admins
+
+    return () => clearInterval(interval);
+  }, [userData]);
 
   const handleDelete = async (id) => {
     const response = await fetch(`${baseURL}/hackathons/${id}`, {
@@ -185,33 +242,38 @@ const EligibleHackathons = () => {
           <div className="relative mb-12">
             <div className="absolute inset-0 bg-indigo-600 opacity-5 rounded-xl"></div>
             <div className="relative z-10 flex flex-col md:flex-row justify-between items-center p-6 bg-white bg-opacity-80 backdrop-blur-sm rounded-xl shadow-lg">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800 mb-2">Your Hackathons</h1>
-                <p className="text-gray-500 max-w-xl">
-                  {role === "admin" 
-                    ? "Manage your hackathon events and participant teams" 
-                    : "View your registered hackathons and team details"}
-                </p>
-              </div>
-              {role === "admin" && (
-                <div className="flex items-center space-x-3">
-                  <button 
-                    onClick={handleRefresh}
-                    className="mt-6 md:mt-0 bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center shadow-md"
-                    title="Refresh hackathons list"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                  </button>
-                  <Link to="/create-hackathon">
-                    <button className="mt-6 md:mt-0 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center shadow-md">
-                      <Sparkles className="w-5 h-5 mr-2" />
-                      Create New Hackathon
-                    </button>
-                  </Link>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Eligible Hackathons</h1>
+                  <p className="text-gray-600">
+                    {loading ? "Loading..." : `Found ${hackathonCount} hackathon${hackathonCount !== 1 ? 's' : ''}`}
+                  </p>
                 </div>
-              )}
+                {role === "admin" && (
+                  <div className="flex items-center space-x-3">
+                    <button 
+                      onClick={handleRefresh} 
+                      disabled={loading}
+                      className="mt-6 md:mt-0 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center shadow-md" 
+                      title="Refresh hackathons list"
+                    >
+                      {loading ? (
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      ) : (
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                      )}
+                      <span className="ml-2">{loading ? 'Refreshing...' : 'Refresh'}</span>
+                    </button>
+                    <Link to="/create-hackathon">
+                      <button className="mt-6 md:mt-0 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center shadow-md">
+                        <Sparkles className="w-5 h-5 mr-2" />Create New Hackathon
+                      </button>
+                    </Link>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 

@@ -344,8 +344,12 @@ const CreateHackathon = () => {
       // Validate required fields
       if (!eventData.title || !eventData.startDate || !eventData.endDate) {
         toast.error("Please fill in all required fields (Title, Start Date, End Date)", {
-          position: "top-right",
+          position: "top-center",
           autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
         });
         return;
       }
@@ -374,19 +378,50 @@ const CreateHackathon = () => {
 
       const response = await fetch(`${baseURL}/hackathons`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(submissionData),
       });
-      
+
       if (response.ok) {
         const result = await response.json();
+        console.log("Hackathon created successfully:", result);
+        
+        // Show success message
         toast.success("Hackathon Created Successfully", {
-          position: "top-right",
+          position: "top-center",
           autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
         });
-        navigate("/");
+
+        // Clear form data
+        setEventData({
+          title: "Test Hackathon 1",
+          version: "1.0",
+          description: "A two-week interactive coding hackathon for real world grooming",
+          startDate: "",
+          endDate: "",
+          eventType: "Team Hackathon",
+          maxTeamSize: 4,
+          minTeamSize: 2,
+          status: "upcoming",
+          submissionStart: "",
+          submissionEnd: "",
+          allowedEmails: [],
+          schedule: [
+            {
+              date: "",
+              activity: "Opening Ceremony",
+              time: "10:00 AM",
+              description: "Welcome and introduction"
+            }
+          ]
+        });
+
+        // Navigate back to dashboard with a flag to trigger refresh
+        navigate("/", { state: { refreshHackathons: true } });
       } else {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to create event");
@@ -394,8 +429,12 @@ const CreateHackathon = () => {
     } catch (error) {
       console.error("Error creating hackathon:", error);
       toast.error(error.message || "Failed to create event", {
-        position: "top-right",
+        position: "top-center",
         autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
       });
     }
   };
