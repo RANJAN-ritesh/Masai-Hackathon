@@ -168,30 +168,45 @@ const EligibleHackathons = () => {
       }
       
       const users = await usersResponse.json();
+      
+      // Filter participants who are not already in teams
       const participants = users.filter(user => 
-        user.role === 'member' || user.role === 'leader'
+        (user.role === 'member' || user.role === 'leader') && 
+        (!user.teamId || user.teamId === '')
       );
       
       if (participants.length === 0) {
-        toast.error('No participants found to create teams');
+        toast.error('No available participants found to create teams');
         return;
       }
       
       // Calculate team size and number of teams
       const minTeamSize = hackathon.minTeamSize || 2;
       const maxTeamSize = hackathon.maxTeamSize || 4;
-      const targetTeamSize = Math.ceil((minTeamSize + maxTeamSize) / 2);
+      
+      // Ensure team size doesn't exceed backend limits
+      const targetTeamSize = Math.min(
+        Math.ceil((minTeamSize + maxTeamSize) / 2),
+        10 // Backend limit
+      );
+      
       const numTeams = Math.ceil(participants.length / targetTeamSize);
       
       // Create teams
       const createdTeams = [];
       for (let i = 0; i < numTeams; i++) {
-        const teamMembers = participants.slice(i * targetTeamSize, (i + 1) * targetTeamSize);
+        const startIndex = i * targetTeamSize;
+        const endIndex = Math.min(startIndex + targetTeamSize, participants.length);
+        const teamMembers = participants.slice(startIndex, endIndex);
+        
+        if (teamMembers.length === 0) break;
+        
         const teamName = `Team ${i + 1}`;
+        const teamLeader = teamMembers[0]; // First member becomes team leader
         
         const teamData = {
           teamName: teamName,
-          createdBy: participants[0]._id, // First participant as team leader
+          createdBy: teamLeader._id,
           memberLimit: targetTeamSize,
           teamMembers: teamMembers.map(p => p._id)
         };
@@ -205,13 +220,35 @@ const EligibleHackathons = () => {
         if (teamResponse.ok) {
           const newTeam = await teamResponse.json();
           createdTeams.push(newTeam);
+          
+          // Update user teamId in localStorage and context
+          teamMembers.forEach(member => {
+            const storedUserData = localStorage.getItem('userData');
+            if (storedUserData) {
+              try {
+                const userData = JSON.parse(storedUserData);
+                if (userData._id === member._id) {
+                  userData.teamId = newTeam._id;
+                  localStorage.setItem('userData', JSON.stringify(userData));
+                }
+              } catch (e) {
+                console.error('Error updating user data:', e);
+              }
+            }
+          });
+        } else {
+          const errorData = await teamResponse.json();
+          console.error(`Failed to create ${teamName}:`, errorData);
         }
       }
       
-      toast.success(`Successfully created ${createdTeams.length} teams for ${hackathon.title}!`);
-      
-      // Refresh hackathons to show updated data
-      fetchHackathons(userData);
+      if (createdTeams.length > 0) {
+        toast.success(`Successfully created ${createdTeams.length} teams for ${hackathon.title}!`);
+        // Refresh hackathons to show updated data
+        fetchHackathons(userData);
+      } else {
+        toast.error('Failed to create any teams. Please check the console for errors.');
+      }
       
     } catch (error) {
       console.error('Error creating teams:', error);

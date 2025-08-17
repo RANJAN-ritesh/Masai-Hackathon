@@ -11,7 +11,7 @@ export interface ITeam extends Document{
 const teamSchema = new Schema<ITeam>({
             createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // Links to User
             teamName: { type: String, required: true, unique: true },
-            memberLimit: { type: Number, required: false, max: 3 },
+            memberLimit: { type: Number, required: false, max: 10 },
             teamMembers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User"}]
 },
 {
