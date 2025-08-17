@@ -40,8 +40,11 @@ app.use(limiter);
 // CORS configuration
 const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
-        ? [process.env.CORS_ORIGIN || 'https://yourdomain.com'] 
-        : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5000', 'http://localhost:5173'],
+        ? [
+            process.env.CORS_ORIGIN || 'https://masai-hackathon.netlify.app',
+            'https://masai-hackathon.netlify.app'
+          ] 
+        : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5000', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
     optionsSuccessStatus: 200,
