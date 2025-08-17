@@ -127,7 +127,14 @@ function App() {
               </AdminRoute>
             }
           />
-          {/* <Route path="/eligible-hackathons" element={<ProtectedRoute><EligibleHackathons/></ProtectedRoute>}/> */}
+          <Route 
+            path="/eligible-hackathons" 
+            element={
+              <ProtectedRoute>
+                <EligibleHackathons />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/create-users"
             element={
