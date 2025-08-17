@@ -21,7 +21,7 @@ const CreateHackathon = () => {
   const navigate = useNavigate();
   const userId = localStorage.getItem("userId");
   const [eventData, setEventData] = useState({
-    name: "Test Hackathon 1",
+    title: "Test Hackathon 1",
     version: "1.0",
     description:
       "A two-week interactive coding hackathon for real world grooming",
@@ -340,26 +340,53 @@ const CreateHackathon = () => {
   };
 
   const handleSubmit = async () => {
-    // console.log(eventData);
     try {
+      // Validate required fields
+      if (!eventData.title || !eventData.startDate || !eventData.endDate) {
+        toast.error("Please fill in all required fields (Title, Start Date, End Date)", {
+          position: "top-right",
+          autoClose: 3000,
+        });
+        return;
+      }
+
+      // Format dates properly for backend
+      const submissionData = {
+        ...eventData,
+        startDate: new Date(eventData.startDate).toISOString(),
+        endDate: new Date(eventData.endDate).toISOString(),
+        submissionStart: eventData.submissionStart ? new Date(eventData.submissionStart).toISOString() : undefined,
+        submissionEnd: eventData.submissionEnd ? new Date(eventData.submissionEnd).toISOString() : undefined,
+        schedule: eventData.schedule.map(item => ({
+          ...item,
+          date: item.date ? new Date(item.date).toISOString() : undefined
+        }))
+      };
+
+      console.log("Submitting hackathon data:", submissionData);
+
       const response = await fetch(`${baseURL}/hackathons`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(eventData),
+        body: JSON.stringify(submissionData),
       });
+      
       if (response.ok) {
-        toast.success("Hackathon Created Sucessfully", {
+        const result = await response.json();
+        toast.success("Hackathon Created Successfully", {
           position: "top-right",
           autoClose: 3000,
         });
         navigate("/");
       } else {
-        throw new Error("Failed to create event");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to create event");
       }
     } catch (error) {
-      toast.error(error.message, {
+      console.error("Error creating hackathon:", error);
+      toast.error(error.message || "Failed to create event", {
         position: "top-right",
         autoClose: 3000,
       });
@@ -463,7 +490,17 @@ const CreateHackathon = () => {
   };
 
   function toIst(isoDateString) {
+    // Check if the date string is valid
+    if (!isoDateString || isoDateString === "" || isoDateString === "Invalid Date") {
+      return "";
+    }
+    
     const date = new Date(isoDateString);
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+      return "";
+    }
 
     // Get the year, month, day, hour, and minutes in IST
     const year = date.getFullYear();
@@ -477,8 +514,18 @@ const CreateHackathon = () => {
   }
 
   function convertUtcToIst(utcDateString) {
+    // Check if the date string is valid
+    if (!utcDateString || utcDateString === "" || utcDateString === "Invalid Date") {
+      return "";
+    }
+    
     // Convert UTC string to Date object
     const date = new Date(utcDateString);
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+      return "";
+    }
 
     // Convert to IST using toLocaleString
     const istDate = date.toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
@@ -563,16 +610,16 @@ const CreateHackathon = () => {
                   <option value="Regular Hackathon">Regular Hackathon</option>
                 </select>
               </div>
-              {/* Event Tilte */}
+              {/* Event Title */}
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Event Name
+                  Event Title
                 </label>
                 <input
                   type="text"
                   required
-                  value={eventData.name}
-                  onChange={(e) => handleInputChange("name", e.target.value)}
+                  value={eventData.title}
+                  onChange={(e) => handleInputChange("title", e.target.value)}
                   className="mt-1 block w-full rounded-lg focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border border-gray-200"
                 />
               </div>
