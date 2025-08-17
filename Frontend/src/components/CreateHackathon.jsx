@@ -770,7 +770,7 @@ const CreateHackathon = () => {
                 className="mt-1 block w-full rounded-lg p-2 border border-gray-200 sm:text-sm"
               >
                 <option value="">Select Hackathon</option>
-                {hackathons.map((hackathon) => (
+                {hackathons?.map((hackathon) => (
                   <option key={hackathon._id} value={hackathon._id}>
                     {hackathon.name}
                   </option>
@@ -938,7 +938,7 @@ const CreateHackathon = () => {
                         <strong>{eventData.allowedEmails.length} emails loaded:</strong>
                       </p>
                       <div className="max-h-20 overflow-y-auto">
-                        {eventData.allowedEmails.slice(0, 5).map((email, index) => (
+                        {eventData.allowedEmails?.slice(0, 5).map((email, index) => (
                           <span key={index} className="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded mr-1 mb-1">
                             {email}
                           </span>
@@ -969,7 +969,7 @@ const CreateHackathon = () => {
                   <div className="mt-2 p-2 bg-gray-50 rounded border max-h-24 overflow-y-auto">
                     <p className="text-xs text-gray-600 mb-2">Email preview:</p>
                     <div className="space-y-1">
-                      {eventData.allowedEmails.map((email, index) => (
+                      {eventData.allowedEmails?.map((email, index) => (
                         <div key={index} className="flex items-center space-x-2">
                           <span className={`text-xs px-2 py-1 rounded ${
                             isValidEmail(email) 
@@ -1115,7 +1115,7 @@ const CreateHackathon = () => {
               Problem Statements
             </h2>
             <div className="space-y-4">
-              {eventData.problemStatements.map((statement, index) => (
+              {eventData.problemStatements?.map((statement, index) => (
                 <div key={index} className="bg-gray-50 rounded-lg p-4">
                   <div className="grid grid-cols-2 gap-4 mb-2">
                     {/* <div>
@@ -1223,7 +1223,7 @@ const CreateHackathon = () => {
               Schedule
             </h2>
             <div className="space-y-4">
-              {eventData.schedule.map((event, index) => (
+              {eventData.schedule?.map((event, index) => (
                 <div key={index} className="flex items-center space-x-4">
                   <input
                     type="datetime-local"
@@ -1273,7 +1273,7 @@ const CreateHackathon = () => {
               Event Plan
             </h2>
             <div className="space-y-4">
-              {eventData.eventPlan.map((plan, index) => (
+              {eventData.eventPlan?.map((plan, index) => (
                 <div key={index} className="bg-gray-50 rounded-lg p-4">
                   <div className="grid grid-cols-3 gap-4 mb-2">
                     <div>
@@ -1352,7 +1352,7 @@ const CreateHackathon = () => {
               Prize Details
             </h2>
             <div className="space-y-4">
-              {eventData.prizeDetails.map((prize, index) => (
+              {eventData.prizeDetails?.map((prize, index) => (
                 <div
                   key={index}
                   className="grid grid-cols-3 gap-4 items-center"
