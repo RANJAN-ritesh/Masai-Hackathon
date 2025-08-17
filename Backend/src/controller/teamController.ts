@@ -35,9 +35,9 @@ export const createTeams = async( req:Request<{}, {}, {teamName: string, created
         }
 
         // Convert string ID to ObjectId
-        let createdByObjectId: mongoose.Schema.Types.ObjectId;
+        let createdByObjectId: mongoose.Types.ObjectId;
         try {
-            createdByObjectId = new mongoose.Types.ObjectId(createdBy);
+            createdByObjectId = new mongoose.Types.ObjectId(createdBy) as mongoose.Types.ObjectId;
         } catch (error) {
             res.status(400).json({ message: "Invalid user ID format" });
             return;
@@ -78,7 +78,7 @@ export const createTeams = async( req:Request<{}, {}, {teamName: string, created
         }
     } catch (error) {
         console.error("Team creation error:", error);
-        res.status(500).json({ message: "Error creating team", error: error.message });
+        res.status(500).json({ message: "Error creating team", error: error instanceof Error ? error.message : "Unknown error" });
     }
 }
 
