@@ -158,8 +158,67 @@ const EligibleHackathons = () => {
   };
 
   const handleCreateTeam = async (hackathon) => {
-    // Implementation for creating teams
-    console.log("Creating team for hackathon:", hackathon);
+    try {
+      setLoading(true);
+      
+      // Get all users for this hackathon
+      const usersResponse = await fetch(`${baseURL}/users/getAllUsers`);
+      if (!usersResponse.ok) {
+        throw new Error('Failed to fetch users');
+      }
+      
+      const users = await usersResponse.json();
+      const participants = users.filter(user => 
+        user.role === 'member' || user.role === 'leader'
+      );
+      
+      if (participants.length === 0) {
+        toast.error('No participants found to create teams');
+        return;
+      }
+      
+      // Calculate team size and number of teams
+      const minTeamSize = hackathon.minTeamSize || 2;
+      const maxTeamSize = hackathon.maxTeamSize || 4;
+      const targetTeamSize = Math.ceil((minTeamSize + maxTeamSize) / 2);
+      const numTeams = Math.ceil(participants.length / targetTeamSize);
+      
+      // Create teams
+      const createdTeams = [];
+      for (let i = 0; i < numTeams; i++) {
+        const teamMembers = participants.slice(i * targetTeamSize, (i + 1) * targetTeamSize);
+        const teamName = `Team ${i + 1}`;
+        
+        const teamData = {
+          teamName: teamName,
+          createdBy: participants[0]._id, // First participant as team leader
+          memberLimit: targetTeamSize,
+          teamMembers: teamMembers.map(p => p._id)
+        };
+        
+        const teamResponse = await fetch(`${baseURL}/team/create-team`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(teamData)
+        });
+        
+        if (teamResponse.ok) {
+          const newTeam = await teamResponse.json();
+          createdTeams.push(newTeam);
+        }
+      }
+      
+      toast.success(`Successfully created ${createdTeams.length} teams for ${hackathon.title}!`);
+      
+      // Refresh hackathons to show updated data
+      fetchHackathons(userData);
+      
+    } catch (error) {
+      console.error('Error creating teams:', error);
+      toast.error('Failed to create teams: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleEditHackathon = (hackathon) => {
