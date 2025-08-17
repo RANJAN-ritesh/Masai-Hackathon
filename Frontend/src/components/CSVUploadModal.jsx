@@ -83,8 +83,9 @@ const CSVUploadModal = ({ isOpen, onClose, hackathonId, baseURL }) => {
   const downloadTemplate = () => {
     const templateData = [
       ["First Name", "Last Name", "Email", "Course", "Skills", "Vertical", "Phone", "Role"],
-      ["John", "Doe", "john.doe@example.com", "Software Engineering", "JavaScript, React", "Tech", "123-456-7890", "Participant"],
-      ["Jane", "Smith", "jane.smith@example.com", "Data Science", "Python, SQL", "Business", "987-654-3210", "Participant"]
+      ["John", "Doe", "john.doe@example.com", "Software Engineering", "JavaScript, React", "Tech", "123-456-7890", "member"],
+      ["Jane", "Smith", "jane.smith@example.com", "Data Science", "Python, SQL", "Business", "987-654-3210", "leader"],
+      ["Alice", "Admin", "alice.admin@example.com", "Administration", "Management, Leadership", "Admin", "555-123-4567", "admin"]
     ];
 
     const csvContent = Papa.unparse(templateData);
