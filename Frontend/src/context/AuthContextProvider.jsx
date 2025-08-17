@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 export const MyContext = createContext();
 
 const AuthContextProvider = ({ children }) => {
-  const baseURL = import.meta.env.VITE_BASE_URL;
+  const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
   const [isAuth, setIsAuth] = useState(false);
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true); // Track loading state
