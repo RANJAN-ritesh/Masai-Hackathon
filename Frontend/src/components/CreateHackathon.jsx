@@ -6,6 +6,10 @@ import {
   LogOut,
   Plus,
   Trash2,
+  Download,
+  Upload,
+  FileText,
+  Info,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -87,6 +91,124 @@ const CreateHackathon = () => {
   const [notification, setNotification] = useState(null);
   const [hackathons, setHackathons] = useState([]);
   const [selectedHackathon, setSelectedHackathon] = useState(null);
+
+  // CSV Upload State
+  const [csvData, setCsvData] = useState([]);
+  const [csvFileName, setCsvFileName] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+
+  // Sample CSV template
+  const sampleCSVData = [
+    {
+      "First Name": "John",
+      "Last Name": "Doe",
+      "Email": "john.doe@example.com",
+      "Phone": "+91-9876543210",
+      "Course": "Computer Science",
+      "Skills": "React, Node.js, Python",
+      "Vertical": "Full Stack",
+      "Role": "member"
+    },
+    {
+      "First Name": "Jane",
+      "Last Name": "Smith", 
+      "Email": "jane.smith@example.com",
+      "Phone": "+91-9876543211",
+      "Course": "Data Science",
+      "Skills": "Python, Machine Learning, SQL",
+      "Vertical": "Data Science",
+      "Role": "leader"
+    }
+  ];
+
+  // Download sample CSV template
+  const downloadSampleCSV = () => {
+    const csv = Papa.unparse(sampleCSVData);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "hackathon_participants_template.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Handle CSV file upload
+  const handleCSVUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setCsvFileName(file.name);
+    setIsUploading(true);
+
+    Papa.parse(file, {
+      header: true,
+      complete: (results) => {
+        setCsvData(results.data);
+        setIsUploading(false);
+        toast.success(`CSV uploaded successfully! ${results.data.length} participants found.`);
+      },
+      error: (error) => {
+        setIsUploading(false);
+        toast.error(`Error parsing CSV: ${error.message}`);
+      }
+    });
+  };
+
+  // Validate CSV data
+  const validateCSVData = () => {
+    if (csvData.length === 0) {
+      toast.error("Please upload a CSV file first");
+      return false;
+    }
+
+    const requiredFields = ["First Name", "Last Name", "Email", "Phone", "Course", "Skills", "Vertical", "Role"];
+    const firstRow = csvData[0];
+    
+    for (const field of requiredFields) {
+      if (!firstRow[field]) {
+        toast.error(`Missing required field: ${field}`);
+        return false;
+      }
+    }
+
+    return true;
+  };
+
+  // Upload participants to backend
+  const uploadParticipants = async () => {
+    if (!validateCSVData()) return;
+
+    setIsUploading(true);
+    try {
+      const response = await fetch(`${baseURL}/users/upload-participants`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          participants: csvData,
+          hackathonId: eventData._id || 'new'
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success(`Successfully uploaded ${result.uploadedCount} participants!`);
+        setCsvData([]);
+        setCsvFileName("");
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Upload failed");
+      }
+    } catch (error) {
+      toast.error("Network error during upload");
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   // Fetch Hackathon List
   useEffect(() => {
@@ -932,6 +1054,127 @@ const CreateHackathon = () => {
               ))}
             </div>
           </div>
+
+          {/* CSV Upload Section */}
+            <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+              <h3 className="text-lg font-semibold mb-4 flex items-center">
+                <FileText className="w-5 h-5 mr-2 text-blue-600" />
+                Upload Participants (CSV)
+              </h3>
+              
+              <div className="mb-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-start">
+                  <Info className="w-5 h-5 mr-2 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-blue-800">
+                    <p className="font-medium mb-2">How to upload participants:</p>
+                    <ol className="list-decimal list-inside space-y-1">
+                      <li>Download the sample CSV template below</li>
+                      <li>Fill in participant details following the format</li>
+                      <li>Upload your completed CSV file</li>
+                      <li>Review the data and submit</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Download Sample Template
+                  </label>
+                  <button
+                    onClick={downloadSampleCSV}
+                    className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex items-center justify-center"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Template
+                  </button>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Upload CSV File
+                  </label>
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={handleCSVUpload}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={isUploading}
+                  />
+                </div>
+              </div>
+
+              {csvFileName && (
+                <div className="mb-4 p-3 bg-gray-50 rounded-lg border">
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium">File:</span> {csvFileName}
+                    {csvData.length > 0 && (
+                      <span className="ml-2 text-green-600">
+                        • {csvData.length} participants loaded
+                      </span>
+                    )}
+                  </p>
+                </div>
+              )}
+
+              {csvData.length > 0 && (
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium text-gray-700">Preview ({csvData.length} participants)</h4>
+                    <button
+                      onClick={uploadParticipants}
+                      disabled={isUploading}
+                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 flex items-center"
+                    >
+                      {isUploading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="w-4 h-4 mr-2" />
+                          Upload Participants
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full bg-white border border-gray-200 rounded-lg">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          {Object.keys(csvData[0] || {}).map((header) => (
+                            <th key={header} className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-b">
+                              {header}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {csvData.slice(0, 3).map((row, index) => (
+                          <tr key={index} className="hover:bg-gray-50">
+                            {Object.values(row).map((value, cellIndex) => (
+                              <td key={cellIndex} className="px-3 py-2 text-sm text-gray-900 border-b">
+                                {String(value)}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                        {csvData.length > 3 && (
+                          <tr>
+                            <td colSpan={Object.keys(csvData[0] || {}).length} className="px-3 py-2 text-sm text-gray-500 text-center">
+                              ... and {csvData.length - 3} more participants
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
 
           {/* Submit Button */}
           <div className="flex justify-end">

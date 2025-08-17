@@ -39,37 +39,27 @@ const EligibleHackathons = () => {
 
   const fetchHackathons = async (user) => {
     setLoading(true);
-    if (role === "admin") {
-      // console.log("Going here");
-      try {
-        const response = await fetch(`${baseURL}/hackathons`);
-        const data = await response.json();
-        // console.log("Hackathons Data: ", data);
-        if (data?.message === "No Hackathons Found") {
-          setHackathons([]);
-        } else {
-          setHackathons(data);
-        }
-      } catch (error) {
-        console.error("Error fetching hackathons:", error);
-      } finally {
-        setLoading(false);
+    try {
+      // Fetch all hackathons for all users
+      const response = await fetch(`${baseURL}/hackathons`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    } else {
-      try {
-        const response = await fetch(`${baseURL}/registrations/user/${userId}`);
-        const data = await response.json();
-        console.log("Hackathons Data for member: ", data);
-        if (data?.message === "No registrations found for this user") {
-          setHackathons([]);
-        } else {
-          setHackathons(data);
-        }
-      } catch (error) {
-        console.error("Error fetching hackathons:", error);
-      } finally {
-        setLoading(false);
+      
+      const data = await response.json();
+      console.log("Hackathons Data: ", data);
+      
+      if (data && Array.isArray(data)) {
+        setHackathons(data);
+      } else {
+        setHackathons([]);
       }
+    } catch (error) {
+      console.error("Error fetching hackathons:", error);
+      setHackathons([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -101,36 +91,15 @@ const EligibleHackathons = () => {
   };
 
   const handleCreateTeam = async (hackathon) => {
-    try {
-      const response = await fetch(`${baseURL}/team/auto`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          minSize: hackathon.minTeamSize,
-          maxSize: hackathon.maxTeamSize,
-          hackathonId: `${hackathon._id}`,
-        }),
-      });
-      if (response.ok) {
-        toast.success("Teams created successfully!", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      } else {
-        toast.warning("Failed to create teams. Please try again.", {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      }
-    } catch (error) {
-      console.error("Error creating team:", error);
-      toast.error("An error occurred while creating the teams.", {
-        position: "top-right",
-        autoClose: 3000,
-      });
-    }
+    // Implementation for creating teams
+    console.log("Creating team for hackathon:", hackathon);
+  };
+
+  const handleEditHackathon = (hackathon) => {
+    // Navigate to edit page with hackathon data
+    navigate(`/edit-hackathon/${hackathon._id}`, { 
+      state: { hackathonData: hackathon } 
+    });
   };
 
   const handleCardClick = (hackathonId) => {

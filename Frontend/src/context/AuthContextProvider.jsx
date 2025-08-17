@@ -73,18 +73,32 @@ const AuthContextProvider = ({ children }) => {
     const fetchHackathons = async () => {
       setLoading(true);
       try {
-        const response = await fetch(
-          `${baseURL}/hackathons/${currentHackathon}`
-        );
+        // First try to get all hackathons
+        const allHackathonsResponse = await fetch(`${baseURL}/hackathons`);
         
-        if (!response.ok) {
-          throw new Error("Hackathon API not available");
+        if (allHackathonsResponse.ok) {
+          const allHackathons = await allHackathonsResponse.json();
+          
+          if (allHackathons && allHackathons.length > 0) {
+            // Use the first available hackathon
+            const firstHackathon = allHackathons[0];
+            setHackathon(firstHackathon);
+            
+            // Update localStorage with the actual hackathon ID
+            localStorage.setItem("currentHackathon", firstHackathon._id);
+            return;
+          }
         }
         
-        const data = await response.json();
-        // console.log("current id", currentHackathon);
-        // console.log("Current hack data", data);
-        setHackathon(data);
+        // If no hackathons found, try to fetch the specific one
+        const response = await fetch(`${baseURL}/hackathons/${currentHackathon}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setHackathon(data);
+        } else {
+          throw new Error("Hackathon API not available");
+        }
       } catch (error) {
         console.error("Error fetching hackathons, using fallback:", error);
         // Set default hackathon data if fetch fails

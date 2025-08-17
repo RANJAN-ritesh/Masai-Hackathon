@@ -28,7 +28,10 @@ router.get("/getAllUsers", async (req, res) => {
 // Registration routes that frontend expects
 router.get("/registrations/user/:userId", async (req, res) => {
   try {
-    // For now, return empty array - can be implemented later
+    const { userId } = req.params;
+    
+    // For now, return empty array - can be implemented later with actual registrations
+    // This endpoint should return hackathon registrations for a specific user
     res.status(200).json([]);
   } catch (error) {
     res.status(500).json({ message: "Error fetching registrations", error });
