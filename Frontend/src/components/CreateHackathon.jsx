@@ -10,6 +10,8 @@ import {
   Upload,
   FileText,
   Info,
+  Link as LinkIcon,
+  Zap,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -30,6 +32,15 @@ const CreateHackathon = () => {
     allowedEmails: [],
     minTeamSize: 2,
     maxTeamSize: 4,
+    socialLinks: {
+      zoom: "",
+      youtube: "",
+      slack: "",
+      github: "",
+      instagram: "",
+      twitter: "",
+      linkedin: ""
+    },
     problemStatements: [
       {
         track: "ML",
@@ -276,6 +287,69 @@ const CreateHackathon = () => {
       ...prev,
       [field]: value,
     }));
+  };
+
+  // Fill demo data for testing
+  const fillDemoData = () => {
+    const now = new Date();
+    const startDate = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Tomorrow
+    const endDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // Next week
+    
+    setEventData({
+      title: `Demo Hackathon ${Date.now()}`,
+      version: "2.0",
+      description: "This is a demo hackathon created for testing purposes. It includes all necessary fields and sample data.",
+      startDate: startDate.toISOString().slice(0, 16),
+      endDate: endDate.toISOString().slice(0, 16),
+      allowedEmails: ["demo1@example.com", "demo2@example.com", "test@masai.com"],
+      minTeamSize: 2,
+      maxTeamSize: 5,
+      socialLinks: {
+        zoom: "https://us06web.zoom.us/j/82747654356",
+        youtube: "https://www.youtube.com/channel/UCENOACKQiqejXP-bb9sCnMg",
+        slack: "https://masaischool.slack.com",
+        github: "https://github.com/masai-course",
+        instagram: "https://instagram.com/masaischool",
+        twitter: "https://twitter.com/masaischool",
+        linkedin: "https://linkedin.com/company/masaischool"
+      },
+      problemStatements: [
+        {
+          track: "Full Stack",
+          description: "Build a complete e-commerce platform with React frontend and Node.js backend",
+          difficulty: "Hard",
+        },
+        {
+          track: "Data Science",
+          description: "Analyze customer behavior data and create predictive models",
+          difficulty: "Medium",
+        },
+        {
+          track: "Mobile App",
+          description: "Create a cross-platform mobile app for task management",
+          difficulty: "Medium",
+        }
+      ],
+      schedule: [
+        {
+          activity: "Hackathon Kickoff & Team Formation",
+          date: startDate.toISOString(),
+        },
+        {
+          activity: "Problem Statement Release",
+          date: new Date(startDate.getTime() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours later
+        },
+        {
+          activity: "Mid-point Check-in",
+          date: new Date(startDate.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days later
+        },
+        {
+          activity: "Final Submissions & Presentations",
+          date: endDate.toISOString(),
+        }
+      ]
+    });
+    toast.success("Demo data filled! Ready for testing.");
   };
 
   const handleProblemStatementChange = (index, field, value) => {
@@ -964,6 +1038,76 @@ const CreateHackathon = () => {
             </div>
           </div>
 
+          {/* Social Media Links */}
+          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center mb-6">
+              <LinkIcon className="h-5 w-5 mr-2 text-blue-500" />
+              Social Media & Connect Links
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Zoom Meeting</label>
+                <input
+                  type="url"
+                  placeholder="https://zoom.us/j/..."
+                  value={eventData.socialLinks?.zoom || ""}
+                  onChange={(e) => handleInputChange("socialLinks", {...eventData.socialLinks, zoom: e.target.value})}
+                  className="mt-1 block w-full rounded-lg focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border border-gray-200"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">YouTube Channel</label>
+                <input
+                  type="url"
+                  placeholder="https://youtube.com/..."
+                  value={eventData.socialLinks?.youtube || ""}
+                  onChange={(e) => handleInputChange("socialLinks", {...eventData.socialLinks, youtube: e.target.value})}
+                  className="mt-1 block w-full rounded-lg focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border border-gray-200"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Slack Workspace</label>
+                <input
+                  type="url"
+                  placeholder="https://workspace.slack.com"
+                  value={eventData.socialLinks?.slack || ""}
+                  onChange={(e) => handleInputChange("socialLinks", {...eventData.socialLinks, slack: e.target.value})}
+                  className="mt-1 block w-full rounded-lg focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border border-gray-200"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">GitHub Repository</label>
+                <input
+                  type="url"
+                  placeholder="https://github.com/..."
+                  value={eventData.socialLinks?.github || ""}
+                  onChange={(e) => handleInputChange("socialLinks", {...eventData.socialLinks, github: e.target.value})}
+                  className="mt-1 block w-full rounded-lg focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border border-gray-200"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Instagram</label>
+                <input
+                  type="url"
+                  placeholder="https://instagram.com/..."
+                  value={eventData.socialLinks?.instagram || ""}
+                  onChange={(e) => handleInputChange("socialLinks", {...eventData.socialLinks, instagram: e.target.value})}
+                  className="mt-1 block w-full rounded-lg focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border border-gray-200"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Twitter</label>
+                <input
+                  type="url"
+                  placeholder="https://twitter.com/..."
+                  value={eventData.socialLinks?.twitter || ""}
+                  onChange={(e) => handleInputChange("socialLinks", {...eventData.socialLinks, twitter: e.target.value})}
+                  className="mt-1 block w-full rounded-lg focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border border-gray-200"
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Problem Statements */}
           <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center mb-6">
@@ -1393,8 +1537,16 @@ const CreateHackathon = () => {
               )}
             </div>
 
-          {/* Submit Button */}
-          <div className="flex justify-end">
+          {/* Demo Button & Submit Button */}
+          <div className="flex justify-between items-center">
+            <button
+              type="button"
+              onClick={fillDemoData}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+            >
+              <Zap className="h-4 w-4 mr-2" />
+              Fill Demo Data
+            </button>
             <button
               onClick={handleSubmit}
               className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"

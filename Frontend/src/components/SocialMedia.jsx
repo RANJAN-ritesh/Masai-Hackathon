@@ -9,7 +9,17 @@ import {
   Linkedin,
 } from "lucide-react";
 
-const SocialMedia = () => {
+const SocialMedia = ({ hackathonData }) => {
+  // Use hackathon-specific links if available, otherwise use defaults
+  const socialLinks = hackathonData?.socialLinks || {
+    zoom: "https://us06web.zoom.us/j/82747654356",
+    youtube: "https://www.youtube.com/channel/UCENOACKQiqejXP-bb9sCnMg?view_as=subscriber",
+    slack: "https://masaischool.slack.com",
+    github: "https://github.com/masai-course",
+    instagram: "https://instagram.com/masaischool",
+    twitter: "https://twitter.com/masaischool",
+    linkedin: "https://linkedin.com/company/masaischool"
+  };
   return (
     <>
       {/* Social Media & Connect */}
@@ -18,38 +28,46 @@ const SocialMedia = () => {
           Connect With Us
         </h2>
         <div className="grid grid-cols-2 gap-4 mb-6">
-          <a
-            href="https://us06web.zoom.us/j/82747654356"
-            target="_blank"
-            className="flex items-center justify-center gap-2 bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 transition"
-          >
-            <Video size={20}  className="text-white"/>
-            <span className="text-white">Zoom</span>
-          </a>
-          <a
-            href="https://www.youtube.com/channel/UCENOACKQiqejXP-bb9sCnMg?view_as=subscriber"
+          {socialLinks.zoom && (
+            <a
+              href={socialLinks.zoom}
+              target="_blank"
+              className="flex items-center justify-center gap-2 bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 transition"
+            >
+              <Video size={20}  className="text-white"/>
+              <span className="text-white">Zoom</span>
+            </a>
+          )}
+          {socialLinks.youtube && (
+            <a
+              href={socialLinks.youtube}
             target="_blank"
             className="flex items-center justify-center gap-2 bg-red-600 text-white p-3 rounded-lg hover:bg-red-700 transition"
           >
             <Youtube size={20}  className="text-white"/>
             <span className="text-white">YouTube</span>
           </a>
-          <a
-            href="https://bit.ly/Xto10X_Hackathon_4"
-            target="_blank"
-            className="flex items-center justify-center gap-2 bg-purple-600 text-white p-3 rounded-lg hover:bg-purple-700 transition"
-          >
-            <Slack size={20}  className="text-white"/>
-            <span className="text-white">Slack</span>
-          </a>
-          <a
-            href="https://github.com/masai-course"
-            target="_blank"
-            className="flex items-center justify-center gap-2 bg-gray-800 text-white p-3 rounded-lg hover:bg-gray-900 transition"
-          >
-            <Github size={20}  className="text-white"/>
-            <span className="text-white">GitHub</span>
-          </a>
+          )}
+          {socialLinks.slack && (
+            <a
+              href={socialLinks.slack}
+              target="_blank"
+              className="flex items-center justify-center gap-2 bg-purple-600 text-white p-3 rounded-lg hover:bg-purple-700 transition"
+            >
+              <Slack size={20}  className="text-white"/>
+              <span className="text-white">Slack</span>
+            </a>
+          )}
+          {socialLinks.github && (
+            <a
+              href={socialLinks.github}
+              target="_blank"
+              className="flex items-center justify-center gap-2 bg-gray-800 text-white p-3 rounded-lg hover:bg-gray-900 transition"
+            >
+              <Github size={20}  className="text-white"/>
+              <span className="text-white">GitHub</span>
+            </a>
+          )}
         </div>
 
         <h3 className="font-medium text-gray-700 mb-3">Follow Us</h3>
