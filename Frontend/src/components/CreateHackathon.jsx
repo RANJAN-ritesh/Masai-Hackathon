@@ -350,6 +350,13 @@ const CreateHackathon = () => {
         return;
       }
 
+      // Validate emails if any are provided
+      if (eventData.allowedEmails.length > 0) {
+        if (!validateEmails(eventData.allowedEmails)) {
+          return; // Stop submission if emails are invalid
+        }
+      }
+
       // Format dates properly for backend
       const submissionData = {
         ...eventData,
@@ -401,16 +408,28 @@ const CreateHackathon = () => {
   };
 
   const handleAllowedEmailsChange = (value) => {
-    // Split by commas and clean up each email
+    // Allow typing by not filtering immediately - just split and store
     const emails = value
       .split(",")
       .map(email => email.trim())
-      .filter(email => email !== "" && isValidEmail(email));
+      .filter(email => email !== ""); // Don't filter by validation here
 
     setEventData(prev => ({
       ...prev,
       allowedEmails: emails
     }));
+  };
+
+  // Separate validation function for form submission
+  const validateEmails = (emails) => {
+    const validEmails = emails.filter(email => isValidEmail(email));
+    const invalidEmails = emails.filter(email => !isValidEmail(email));
+    
+    if (invalidEmails.length > 0) {
+      toast.error(`Invalid email format: ${invalidEmails.join(", ")}`);
+      return false;
+    }
+    return true;
   };
 
   const handleEmailCSVUpload = (e) => {
@@ -822,7 +841,7 @@ const CreateHackathon = () => {
                 </div>
                 <div className="mt-3 flex items-center justify-between">
                   <span className="text-sm text-gray-600">
-                    <strong>{eventData.allowedEmails.length} valid emails</strong> currently loaded
+                    <strong>{eventData.allowedEmails.length} emails</strong> currently loaded
                   </span>
                   {eventData.allowedEmails.length > 0 && (
                     <button
@@ -833,6 +852,27 @@ const CreateHackathon = () => {
                     </button>
                   )}
                 </div>
+                {eventData.allowedEmails.length > 0 && (
+                  <div className="mt-2 p-2 bg-gray-50 rounded border max-h-24 overflow-y-auto">
+                    <p className="text-xs text-gray-600 mb-2">Email preview:</p>
+                    <div className="space-y-1">
+                      {eventData.allowedEmails.map((email, index) => (
+                        <div key={index} className="flex items-center space-x-2">
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            isValidEmail(email) 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {email}
+                          </span>
+                          {!isValidEmail(email) && (
+                            <span className="text-xs text-red-600">Invalid format</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <textarea
                   value={eventData.allowedEmails.join(", ")}
                   onChange={(e) => handleAllowedEmailsChange(e.target.value)}
