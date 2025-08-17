@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import HeroSection from "./HeroSection";
 import ProblemStatement from "./ProblemStatement";
 import EventSchedule from "./EventSchedule";
-import LeaderBoard from "./LeaderBoard";
+import LeaderBoard from "./Leaderboard";
 import SocialMedia from "./SocialMedia";
 import { useNavigate } from "react-router-dom";
 
