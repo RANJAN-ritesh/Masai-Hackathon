@@ -37,6 +37,10 @@ const EligibleHackathons = () => {
     setCsvModalOpen(true);
   };
 
+  const handleRefresh = () => {
+    fetchHackathons(userData);
+  };
+
   const fetchHackathons = async (user) => {
     setLoading(true);
     try {
@@ -71,6 +75,12 @@ const EligibleHackathons = () => {
       setLoading(false); // fallback if no user is found
     }
   }, [userData]);
+
+  // Add another useEffect to refresh hackathons when component mounts
+  useEffect(() => {
+    // Refresh hackathons when component mounts (useful when navigating back from create/edit)
+    fetchHackathons(userData);
+  }, []); // Empty dependency array means it runs once when component mounts
 
   const handleDelete = async (id) => {
     const response = await fetch(`${baseURL}/hackathons/${id}`, {
@@ -147,7 +157,7 @@ const EligibleHackathons = () => {
     if (actionType === "create") {
       setModalConfig({
         title: "Confirm Create Teams",
-        message: `Are you sure you want to create the teams for ${hackathon.name}.`,
+        message: `Are you sure you want to create the teams for ${hackathon.title || hackathon.name || "this hackathon"}.`,
         onConfirm: () => {
           handleCreateTeam(hackathon);
           setIsModalOpen(false);
@@ -184,12 +194,23 @@ const EligibleHackathons = () => {
                 </p>
               </div>
               {role === "admin" && (
-                <Link to="/create-hackathon">
-                  <button className="mt-6 md:mt-0 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center shadow-md">
-                    <Sparkles className="w-5 h-5 mr-2" />
-                    Create New Hackathon
+                <div className="flex items-center space-x-3">
+                  <button 
+                    onClick={handleRefresh}
+                    className="mt-6 md:mt-0 bg-gray-600 hover:bg-gray-700 text-white px-4 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center shadow-md"
+                    title="Refresh hackathons list"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
                   </button>
-                </Link>
+                  <Link to="/create-hackathon">
+                    <button className="mt-6 md:mt-0 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center shadow-md">
+                      <Sparkles className="w-5 h-5 mr-2" />
+                      Create New Hackathon
+                    </button>
+                  </Link>
+                </div>
               )}
             </div>
           </div>
@@ -238,7 +259,7 @@ const EligibleHackathons = () => {
                             onClick={() => handleCardClick(registration._id)}
                           >
                             <h3 className="text-xl font-bold text-gray-800 leading-tight group-hover:text-indigo-600 transition-colors">
-                              {registration.name}
+                              {registration.title || registration.name || "Untitled Hackathon"}
                             </h3>
                             <span
                               className={`flex items-center text-xs font-medium px-3 py-1 rounded-full ${status.color}`}
