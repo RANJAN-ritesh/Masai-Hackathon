@@ -85,7 +85,7 @@ app.get("/health",(req, res)=>{
 })
 
 app.get("/",(req, res)=>{
-    res.send("health check - backend is live! CRUD operations fixed! 🎯")
+    res.send("health check - backend is live! CRUD operations fixed! Team routes added! 🎯🚀")
 })
 
 // Global error handling middleware
