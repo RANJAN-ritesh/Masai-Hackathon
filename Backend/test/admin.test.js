@@ -113,6 +113,7 @@ describe('Admin Functionality Tests', () => {
     try {
       const teamData = {
         teamName: 'Test Team Alpha',
+        createdBy: adminToken, // Admin user ID
         hackathonId: createdHackathonId,
         maxMembers: 4,
         description: 'Test team for admin functionality'

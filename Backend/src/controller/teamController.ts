@@ -33,24 +33,20 @@ export const createTeams = async( req:Request<{}, {}, {teamName: string, created
             return;
         }
 
-        // For admin team creation, createdBy is optional
-        let teamCreator = createdBy;
-        if (!teamCreator) {
-            // If no creator specified, use a default admin user or create without creator
-            teamCreator = undefined;
+        if (!createdBy) {
+            res.status(400).json({ message: "Team Creation failed!!! CreatedBy is required" });
+            return;
         }
 
-        // Check if user exists if createdBy is provided
-        if (teamCreator) {
-            const userExists = await user.findById(teamCreator);
-            if (!userExists) {
-                res.status(400).json({ message: "User not found" });
-                return;
-            }
-            if (userExists.teamId) {
-                res.status(400).json({ message: "User is already in a team" });
-                return;
-            }
+        // Check if user exists
+        const userExists = await user.findById(createdBy);
+        if (!userExists) {
+            res.status(400).json({ message: "User not found" });
+            return;
+        }
+        if (userExists.teamId) {
+            res.status(400).json({ message: "User is already in a team" });
+            return;
         }
 
         // Check for existing team with same name
@@ -63,19 +59,15 @@ export const createTeams = async( req:Request<{}, {}, {teamName: string, created
         // Create the team
         const newTeam = await team.create({
             teamName,
-            createdBy: teamCreator,
-            teamMembers: teamCreator ? [teamCreator] : [],
-            hackathonId: hackathonId || undefined,
-            maxMembers: maxMembers || 4,
-            description: description || ""
+            createdBy: createdBy,
+            memberLimit: maxMembers || 4,
+            teamMembers: [createdBy]
         });
 
         if (newTeam) {
-            // Update user with teamId if creator exists
-            if (teamCreator) {
-                await user.findByIdAndUpdate(teamCreator, { teamId: newTeam._id });
-                await teamRequests.deleteMany({ userId: teamCreator });
-            }
+            // Update user with teamId
+            await user.findByIdAndUpdate(createdBy, { teamId: newTeam._id });
+            await teamRequests.deleteMany({ userId: createdBy });
 
             res.status(201).json({ message: "Team created successfully", team: newTeam });
         }
