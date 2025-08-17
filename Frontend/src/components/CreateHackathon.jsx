@@ -400,13 +400,16 @@ const CreateHackathon = () => {
     }));
   };
 
-  const handleAllowedEmailsChange = (input) => {
-    // Split by comma, space, or both, and remove any extra spaces
-    const emails = input.split(/[\s,]+/).filter((email) => email.trim() !== ""); // Remove empty values
+  const handleAllowedEmailsChange = (value) => {
+    // Split by commas and clean up each email
+    const emails = value
+      .split(",")
+      .map(email => email.trim())
+      .filter(email => email !== "" && isValidEmail(email));
 
-    setEventData((prev) => ({
+    setEventData(prev => ({
       ...prev,
-      allowedEmails: emails,
+      allowedEmails: emails
     }));
   };
 
@@ -817,6 +820,19 @@ const CreateHackathon = () => {
                     </div>
                   )}
                 </div>
+                <div className="mt-3 flex items-center justify-between">
+                  <span className="text-sm text-gray-600">
+                    <strong>{eventData.allowedEmails.length} valid emails</strong> currently loaded
+                  </span>
+                  {eventData.allowedEmails.length > 0 && (
+                    <button
+                      onClick={() => setEventData(prev => ({ ...prev, allowedEmails: [] }))}
+                      className="text-xs text-red-600 hover:text-red-800 underline"
+                    >
+                      Clear all
+                    </button>
+                  )}
+                </div>
                 <textarea
                   value={eventData.allowedEmails.join(", ")}
                   onChange={(e) => handleAllowedEmailsChange(e.target.value)}
@@ -824,6 +840,9 @@ const CreateHackathon = () => {
                   placeholder="Or manually enter emails separated by commas (e.g., user1@example.com, user2@example.com)"
                   className="mt-2 block w-full rounded-lg p-2 border border-gray-200 focus:border-red-500 focus:ring-red-500 sm:text-sm"
                 />
+                <p className="mt-1 text-xs text-gray-500">
+                  Type multiple emails separated by commas, or use the CSV upload above for bulk import.
+                </p>
               </div>
 
               {/* Submission Start and End Date */}
