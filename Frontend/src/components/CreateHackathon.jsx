@@ -418,22 +418,64 @@ const CreateHackathon = () => {
       header: true,
       skipEmptyLines: true,
       complete: function (results) {
-        const emails = results.data
-          .map((row) => row.email?.trim())
-          .filter((email) => email && email !== "");
+        try {
+          // Handle different CSV formats
+          let emails = [];
+          
+          if (results.data && results.data.length > 0) {
+            const firstRow = results.data[0];
+            
+            // Check if there's an 'email' column
+            if (firstRow.email) {
+              emails = results.data
+                .map((row) => row.email?.trim())
+                .filter((email) => email && email !== "" && isValidEmail(email));
+            }
+            // Check if there's an 'Email' column (capitalized)
+            else if (firstRow.Email) {
+              emails = results.data
+                .map((row) => row.Email?.trim())
+                .filter((email) => email && email !== "" && isValidEmail(email));
+            }
+            // If no email column found, try to use the first column
+            else {
+              const firstColumnKey = Object.keys(firstRow)[0];
+              emails = results.data
+                .map((row) => row[firstColumnKey]?.trim())
+                .filter((email) => email && email !== "" && isValidEmail(email));
+            }
+          }
 
-        setEventData((prev) => ({
-          ...prev,
-          allowedEmails: emails,
-        }));
+          if (emails.length === 0) {
+            toast.error("No valid emails found in CSV. Please check the format.");
+            return;
+          }
+
+          setEventData((prev) => ({
+            ...prev,
+            allowedEmails: emails,
+          }));
+
+          toast.success(`Successfully loaded ${emails.length} email addresses!`);
+        } catch (error) {
+          console.error("CSV parsing error:", error);
+          toast.error("Error parsing CSV file. Please check the format.");
+        }
       },
       error: function (err) {
         console.error("CSV parsing error:", err.message);
+        toast.error("Error reading CSV file: " + err.message);
       },
     });
 
-    // Optional: Reset the file input so the same file can be re-uploaded
+    // Reset the file input so the same file can be re-uploaded
     e.target.value = "";
+  };
+
+  // Email validation function
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
   };
 
   const handleMinTeamSizeChange = (min) => {
@@ -532,6 +574,19 @@ const CreateHackathon = () => {
 
     return istDate;
   }
+
+  const downloadEmailTemplate = () => {
+    const csv = Papa.unparse([{ email: "user@example.com" }]);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "hackathon_participants_email_template.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -718,40 +773,57 @@ const CreateHackathon = () => {
               {/* Allowed Emails */}
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Allowed Emails
+                  Allowed Emails (Optional)
                 </label>
-                <textarea
-                  value={eventData.allowedEmails}
-                  onChange={(e) => handleAllowedEmailsChange(e.target.value)}
-                  required
-                  rows={3}
-                  className="mt-1 block w-full rounded-lg p-2 border border-gray-200 focus:border-red-500 focus:ring-red-500 sm:text-sm"
-                />
-              </div>
-              {/* <textarea
-                value={eventData.allowedEmails.join(", ")}
-                readOnly
-                rows={3}
-                className="mt-2 block w-full rounded-lg p-2 border border-gray-200 bg-gray-100 text-sm"
-              ></textarea> */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Upload Allowed Emails CSV
-                </label>
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={handleEmailCSVUpload}
-                  className="block w-full text-sm text-gray-900 file:mr-4 file:py-2 file:px-4
-               file:rounded-full file:border-0 file:text-sm file:font-semibold
-               file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
-                />
-
-                {eventData.allowedEmails.length > 0 && (
-                  <div className="mt-2 text-xs text-gray-500">
-                    {eventData.allowedEmails.length} emails added.
+                <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-800 mb-2">
+                    <strong>What this does:</strong> Upload a CSV with participant emails to automatically invite them to your hackathon.
+                  </p>
+                  <p className="text-sm text-blue-700 mb-3">
+                    <strong>Expected CSV format:</strong> Single column with header "email" containing email addresses.
+                  </p>
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={handleEmailCSVUpload}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                    <button
+                      onClick={downloadEmailTemplate}
+                      className="inline-flex items-center px-3 py-2 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      Template
+                    </button>
                   </div>
-                )}
+                  {eventData.allowedEmails.length > 0 && (
+                    <div className="mt-3 p-2 bg-white rounded border">
+                      <p className="text-sm text-gray-600 mb-2">
+                        <strong>{eventData.allowedEmails.length} emails loaded:</strong>
+                      </p>
+                      <div className="max-h-20 overflow-y-auto">
+                        {eventData.allowedEmails.slice(0, 5).map((email, index) => (
+                          <span key={index} className="inline-block bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded mr-1 mb-1">
+                            {email}
+                          </span>
+                        ))}
+                        {eventData.allowedEmails.length > 5 && (
+                          <span className="text-xs text-gray-500">
+                            ... and {eventData.allowedEmails.length - 5} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <textarea
+                  value={eventData.allowedEmails.join(", ")}
+                  onChange={(e) => handleAllowedEmailsChange(e.target.value)}
+                  rows={3}
+                  placeholder="Or manually enter emails separated by commas (e.g., user1@example.com, user2@example.com)"
+                  className="mt-2 block w-full rounded-lg p-2 border border-gray-200 focus:border-red-500 focus:ring-red-500 sm:text-sm"
+                />
               </div>
 
               {/* Submission Start and End Date */}
