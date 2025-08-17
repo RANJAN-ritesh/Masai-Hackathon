@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.post("/create-team", createTeams);
 router.get("/get-teams", getTeams);
+router.get("/", getTeams); // Root route to get all teams
 // Add route that frontend expects - get teams by hackathon ID
 router.get("/:hackathonId", getTeams); // For now, return all teams regardless of hackathon
 router.post("/delete-team", deleteTeam);
