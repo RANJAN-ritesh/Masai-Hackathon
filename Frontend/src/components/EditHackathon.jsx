@@ -13,7 +13,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const EditHackathon = () => {
-  const { hackathonId } = useParams();
+  const { id } = useParams(); // Changed from hackathonId to id to match route
   const location = useLocation();
   const navigate = useNavigate();
   const baseURL = import.meta.env.VITE_BASE_URL;
@@ -33,6 +33,13 @@ const EditHackathon = () => {
   });
 
   useEffect(() => {
+    // Check if we have a valid ID
+    if (!id) {
+      toast.error("Invalid hackathon ID");
+      navigate("/");
+      return;
+    }
+
     if (location.state?.hackathonData) {
       const data = location.state.hackathonData;
       setHackathonData(data);
@@ -51,11 +58,11 @@ const EditHackathon = () => {
       // Fetch hackathon data if not passed via state
       fetchHackathonData();
     }
-  }, [hackathonId, location.state]);
+  }, [id, location.state, navigate]);
 
   const fetchHackathonData = async () => {
     try {
-      const response = await fetch(`${baseURL}/hackathons/${hackathonId}`);
+      const response = await fetch(`${baseURL}/hackathons/${id}`);
       if (response.ok) {
         const data = await response.json();
         setHackathonData(data);
@@ -71,9 +78,12 @@ const EditHackathon = () => {
         });
       } else {
         toast.error("Failed to fetch hackathon data");
+        navigate("/");
       }
     } catch (error) {
+      console.error("Error fetching hackathon:", error);
       toast.error("Error fetching hackathon data");
+      navigate("/");
     } finally {
       setLoading(false);
     }
@@ -92,7 +102,7 @@ const EditHackathon = () => {
     setSaving(true);
 
     try {
-      const response = await fetch(`${baseURL}/hackathons/${hackathonId}`, {
+      const response = await fetch(`${baseURL}/hackathons/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
