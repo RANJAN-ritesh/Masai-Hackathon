@@ -180,24 +180,74 @@ const EligibleHackathons = () => {
         return;
       }
       
-      // Calculate team size and number of teams
+      // Calculate team size and number of teams using SMART ALGORITHM
       const minTeamSize = hackathon.minTeamSize || 2;
       const maxTeamSize = hackathon.maxTeamSize || 4;
+      const totalParticipants = participants.length;
       
-      // Ensure team size doesn't exceed backend limits
-      const targetTeamSize = Math.min(
-        Math.ceil((minTeamSize + maxTeamSize) / 2),
-        10 // Backend limit
-      );
+      // SMART TEAM GENERATION ALGORITHM
+      const calculateOptimalTeams = (total, min, max) => {
+        // Try to create teams with maxTeamSize first
+        let numTeams = Math.floor(total / max);
+        let remainder = total % max;
+        
+        // If remainder is less than minTeamSize, redistribute
+        if (remainder > 0 && remainder < min) {
+          // Try to balance by reducing some teams by 1
+          const shortfall = min - remainder;
+          if (numTeams >= shortfall) {
+            // Reduce some max-size teams by 1 to accommodate the small remainder
+            return {
+              teams: numTeams,
+              sizes: Array(numTeams - shortfall).fill(max).concat(
+                Array(shortfall).fill(max - 1)
+              ).concat([remainder + shortfall])
+            };
+          } else {
+            // Can't balance, create teams of minTeamSize
+            numTeams = Math.ceil(total / min);
+            const baseSize = Math.floor(total / numTeams);
+            const extraMembers = total % numTeams;
+            return {
+              teams: numTeams,
+              sizes: Array(extraMembers).fill(baseSize + 1).concat(
+                Array(numTeams - extraMembers).fill(baseSize)
+              )
+            };
+          }
+        }
+        
+        // Normal case: teams fit within constraints
+        const teamSizes = Array(numTeams).fill(max);
+        if (remainder >= min) {
+          teamSizes.push(remainder);
+          numTeams++;
+        } else if (remainder > 0) {
+          // Distribute remainder among existing teams
+          for (let i = 0; i < remainder; i++) {
+            teamSizes[i]++;
+          }
+        }
+        
+        return { teams: numTeams, sizes: teamSizes };
+      };
       
-      const numTeams = Math.ceil(participants.length / targetTeamSize);
+      const teamPlan = calculateOptimalTeams(totalParticipants, minTeamSize, maxTeamSize);
+      console.log(`🎯 Team Generation Plan:`, {
+        participants: totalParticipants,
+        minSize: minTeamSize,
+        maxSize: maxTeamSize,
+        plan: teamPlan
+      });
       
-      // Create teams
+      // Create teams using SMART ALGORITHM
       const createdTeams = [];
-      for (let i = 0; i < numTeams; i++) {
-        const startIndex = i * targetTeamSize;
-        const endIndex = Math.min(startIndex + targetTeamSize, participants.length);
-        const teamMembers = participants.slice(startIndex, endIndex);
+      let participantIndex = 0;
+      
+      for (let i = 0; i < teamPlan.teams; i++) {
+        const teamSize = teamPlan.sizes[i];
+        const teamMembers = participants.slice(participantIndex, participantIndex + teamSize);
+        participantIndex += teamSize;
         
         if (teamMembers.length === 0) break;
         
@@ -207,9 +257,15 @@ const EligibleHackathons = () => {
         const teamData = {
           teamName: teamName,
           createdBy: teamLeader._id,
-          memberLimit: targetTeamSize,
+          memberLimit: Math.max(teamSize, maxTeamSize), // Allow room for growth
           teamMembers: teamMembers.map(p => p._id)
         };
+        
+        console.log(`🏗️ Creating ${teamName}:`, {
+          size: teamSize,
+          members: teamMembers.map(p => p.name),
+          leader: teamLeader.name
+        });
         
         const teamResponse = await fetch(`${baseURL}/team/create-team`, {
           method: 'POST',
@@ -243,7 +299,19 @@ const EligibleHackathons = () => {
       }
       
       if (createdTeams.length > 0) {
-        toast.success(`Successfully created ${createdTeams.length} teams for ${hackathon.title}!`);
+        const teamSummary = teamPlan.sizes.map((size, i) => `Team ${i + 1}: ${size} members`).join(', ');
+        toast.success(`🎯 Smart Team Generation Complete!\n${createdTeams.length} teams created for ${hackathon.title}\n${teamSummary}`, {
+          position: 'top-right',
+          autoClose: 8000,
+        });
+        
+        console.log(`✅ Team Creation Summary:`, {
+          totalParticipants,
+          teamsCreated: createdTeams.length,
+          teamSizes: teamPlan.sizes,
+          adminSettings: { minTeamSize, maxTeamSize }
+        });
+        
         // Refresh hackathons to show updated data
         fetchHackathons(userData);
       } else {
