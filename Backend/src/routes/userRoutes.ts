@@ -58,16 +58,21 @@ router.post("/upload-participants", async (req, res) => {
         // Hash default password
         const hashedPassword = await bcrypt.hash("password123", 10);
         
-        // Create user
+        // Validate required fields
+        if (!participant["Email"]) {
+          throw new Error("Email is required");
+        }
+        
+        // Create user with safe field access
         const newUser = await User.create({
           userId,
-          name: `${participant["First Name"]} ${participant["Last Name"]}`,
+          name: `${participant["First Name"] || "Unknown"} ${participant["Last Name"] || "User"}`,
           code: userId,
-          course: participant["Course"],
-          skills: participant["Skills"].split(", "),
-          vertical: participant["Vertical"],
-          phoneNumber: participant["Phone"],
-          email: participant["Email"].toLowerCase(),
+          course: participant["Course"] || "Not Specified",
+          skills: participant["Skills"] ? participant["Skills"].split(", ") : ["General"],
+          vertical: participant["Vertical"] || "Not Specified",
+          phoneNumber: participant["Phone"] || "Not Provided",
+          email: participant["Email"].toLowerCase().trim(),
           password: hashedPassword,
           teamId: "",
           isVerified: true,
