@@ -64,12 +64,12 @@
 
 // export default ProblemStatement;
 
-import React, { useContext, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Code, Database, TestTube, ChevronRight, X } from "lucide-react";
-import { MyContext } from "../context/AuthContextProvider";
 
-const ProblemStatement = () => {
-  const { hackathon, role } = useContext(MyContext);
+const ProblemStatement = ({ hackathonData }) => {
+  if (!hackathonData) return null;
+
   const [selectedTrack, setSelectedTrack] = useState(null);
   const [showModal, setShowModal] = useState(false);
   // Countdown timer state
@@ -77,9 +77,9 @@ const ProblemStatement = () => {
 
   // Helper to calculate time left for 2-hour window
   useEffect(() => {
-    if (!showModal || !hackathon?.startDate) return;
+    if (!showModal || !hackathonData?.startDate) return;
     const interval = setInterval(() => {
-      const start = new Date(hackathon.startDate);
+      const start = new Date(hackathonData.startDate);
       const now = new Date();
       const end = new Date(start.getTime() + 2 * 60 * 60 * 1000); // 2 hours after start
       const diff = end - now;
@@ -95,7 +95,7 @@ const ProblemStatement = () => {
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [showModal, hackathon?.startDate]);
+  }, [showModal, hackathonData?.startDate]);
 
   const openModal = (track) => {
     setSelectedTrack(track);
@@ -108,7 +108,7 @@ const ProblemStatement = () => {
   };
 
   const getFilteredProblems = (track) => {
-    return hackathon?.problemStatements?.filter(
+    return hackathonData?.problemStatements?.filter(
       (problem) => problem.track.toLowerCase() === track.toLowerCase()
     );
   };
@@ -149,7 +149,7 @@ const ProblemStatement = () => {
             </h3>
 
             {/* Countdown Timer for all users */}
-            {hackathon?.startDate && (
+            {hackathonData?.startDate && (
               <div className="mb-4 pl-1">
                 {timeLeft && !timeLeft.expired ? (
                   <div className="flex items-center space-x-2 text-red-600 font-semibold">
