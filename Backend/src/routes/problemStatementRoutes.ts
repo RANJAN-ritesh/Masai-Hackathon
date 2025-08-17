@@ -75,10 +75,8 @@ router.post("/", (req, res) => {
     
     mockHackathons.push(newHackathon);
     
-    res.status(201).json({
-      message: "Hackathon created successfully",
-      hackathon: newHackathon
-    });
+    // Return the hackathon data directly (not nested)
+    res.status(201).json(newHackathon);
   } catch (error) {
     res.status(500).json({ message: "Error creating hackathon" });
   }

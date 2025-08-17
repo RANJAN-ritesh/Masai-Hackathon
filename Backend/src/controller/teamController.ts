@@ -11,12 +11,8 @@ export const getTeams = async (req: Request, res: Response): Promise<void> => {
       .populate("createdBy", "name") // Fetch only 'name' from createdBy
       .populate("teamMembers", "name"); // Fetch only 'name' from teamMembers
 
-    if (!teams || teams.length === 0) {
-      res.status(404).json({ message: "No teams found" });
-      return;
-    }
-
-    res.status(200).json(teams);
+    // Return empty array if no teams found (not 404)
+    res.status(200).json(teams || []);
   } catch (error) {
     res.status(500).json({ message: "Error fetching teams", error });
   }
@@ -24,7 +20,7 @@ export const getTeams = async (req: Request, res: Response): Promise<void> => {
 
 
 
-export const createTeams = async( req:Request<{}, {}, {teamName: string, createdBy?: mongoose.Schema.Types.ObjectId, hackathonId?: string, maxMembers?: number, description?: string}>, res:Response) : Promise<void> => {
+export const createTeams = async( req:Request<{}, {}, {teamName: string, createdBy?: string, hackathonId?: string, maxMembers?: number, description?: string}>, res:Response) : Promise<void> => {
     try {
         const { teamName, createdBy, hackathonId, maxMembers, description } = req.body;
 
@@ -38,8 +34,17 @@ export const createTeams = async( req:Request<{}, {}, {teamName: string, created
             return;
         }
 
+        // Convert string ID to ObjectId
+        let createdByObjectId: mongoose.Schema.Types.ObjectId;
+        try {
+            createdByObjectId = new mongoose.Types.ObjectId(createdBy);
+        } catch (error) {
+            res.status(400).json({ message: "Invalid user ID format" });
+            return;
+        }
+
         // Check if user exists
-        const userExists = await user.findById(createdBy);
+        const userExists = await user.findById(createdByObjectId);
         if (!userExists) {
             res.status(400).json({ message: "User not found" });
             return;
@@ -59,20 +64,21 @@ export const createTeams = async( req:Request<{}, {}, {teamName: string, created
         // Create the team
         const newTeam = await team.create({
             teamName,
-            createdBy: createdBy,
+            createdBy: createdByObjectId,
             memberLimit: maxMembers || 4,
-            teamMembers: [createdBy]
+            teamMembers: [createdByObjectId]
         });
 
         if (newTeam) {
             // Update user with teamId
-            await user.findByIdAndUpdate(createdBy, { teamId: newTeam._id });
-            await teamRequests.deleteMany({ userId: createdBy });
+            await user.findByIdAndUpdate(createdByObjectId, { teamId: newTeam._id });
+            await teamRequests.deleteMany({ userId: createdByObjectId });
 
             res.status(201).json({ message: "Team created successfully", team: newTeam });
         }
     } catch (error) {
-        res.status(500).json({ message: "Error creating team", error });
+        console.error("Team creation error:", error);
+        res.status(500).json({ message: "Error creating team", error: error.message });
     }
 }
 
