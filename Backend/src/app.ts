@@ -2,15 +2,15 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
-import { connectDB } from "./model/db";
-import user from "./model/user";
-import team from "./model/team";
-import teamRequests from "./model/teamRequests";
-import problemStatement from "./model/problemStatement";
-import userRoutes from "./routes/userRoutes";
-import teamRoutes from "./routes/teamRoutes";
-import teamRequestRoutes from "./routes/teamRequestRoutes";
-import problemStatementRoutes from "./routes/problemStatementRoutes";
+import { connectDB } from "./model/db.js";
+import user from "./model/user.js";
+import team from "./model/team.js";
+import teamRequests from "./model/teamRequests.js";
+import problemStatement from "./model/problemStatement.js";
+import userRoutes from "./routes/userRoutes.js";
+import teamRoutes from "./routes/teamRoutes.js";
+import teamRequestRoutes from "./routes/teamRequestRoutes.js";
+import problemStatementRoutes from "./routes/problemStatementRoutes.js";
 
 // Load environment variables
 dotenv.config();
@@ -110,6 +110,6 @@ process.on('SIGINT', () => {
 
 app.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
-    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`📊 Health check: http://localhost:${PORT}/health`);
-})
+    console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+});

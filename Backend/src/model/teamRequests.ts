@@ -1,9 +1,9 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose, { Schema, Document } from "mongoose";
 
 export interface ITeamRequest extends Document {
     requestId: string;
-    userId: mongoose.Schema.Types.ObjectId;
-    teamId: mongoose.Schema.Types.ObjectId;
+    userId: mongoose.Types.ObjectId;
+    teamId: mongoose.Types.ObjectId;
     status: "pending" | "approved" | "rejected";
 }
 

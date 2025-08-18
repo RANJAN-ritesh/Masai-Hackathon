@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
-import user from "../model/user";
-import team from "../model/team";
-import teamRequests from "../model/teamRequests";
+import teamRequests from "../model/teamRequests.js";
+import team from "../model/team.js";
+import user from "../model/user.js";
 
 // export const acceptJoinRequest = async(req:Request<{}, {}, {requestId:string; teamId:string; }>)
 
@@ -29,29 +29,12 @@ export const getPendingJoinRequests = async (req: Request, res: Response): Promi
     }
 };
 
-export const sendJoinRequest = async (
-    req: Request<{}, {}, { userId: string; teamId: string }>,
-    res: Response): Promise<void> => {
+export const sendJoinRequest = async (req: Request, res: Response): Promise<void> => {
     try {
         const { userId, teamId } = req.body;
 
-        // ✅ Validate input
         if (!userId || !teamId) {
             res.status(400).json({ message: "User ID and Team ID are required" });
-            return;
-        }
-
-        // ✅ Check if user exists
-        const userExists = await user.findById(userId);
-        if (!userExists) {
-            res.status(404).json({ message: "User not found" });
-            return;
-        }
-
-        // ✅ Check if team exists
-        const teamExists = await team.findById(teamId);
-        if (!teamExists) {
-            res.status(404).json({ message: "Team not found" });
             return;
         }
 

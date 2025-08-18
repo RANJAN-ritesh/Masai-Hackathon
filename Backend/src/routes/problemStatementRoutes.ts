@@ -1,12 +1,12 @@
 import express from "express";
-import Hackathon from "../model/hackathon";
+import Hackathon from "../model/hackathon.js";
 
 const router = express.Router();
 
 // GET all hackathons
 router.get("/", async (req, res) => {
   try {
-    const hackathons = await Hackathon.find({}).sort({ createdAt: -1 });
+    const hackathons = await Hackathon.find();
     res.json(hackathons);
   } catch (error) {
     console.error("Error fetching hackathons:", error);
@@ -100,13 +100,30 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// Problem statement routes
-router.get("/problem-statements", (req, res) => {
-  res.json(mockProblemStatements);
+// Problem statement routes - placeholder for future implementation
+router.get("/problem-statements", async (req, res) => {
+  try {
+    // TODO: Implement actual problem statement logic
+    res.json({ message: "Problem statements feature coming soon", data: [] });
+  } catch (error) {
+    console.error("Error fetching problem statements:", error);
+    res.status(500).json({ message: "Error fetching problem statements" });
+  }
 });
 
-router.get("/problem-statements/:hackathonId", (req, res) => {
-  res.json(mockProblemStatements);
+router.get("/problem-statements/:hackathonId", async (req, res) => {
+  try {
+    const { hackathonId } = req.params;
+    // TODO: Implement actual problem statement logic for specific hackathon
+    res.json({ 
+      message: "Problem statements feature coming soon", 
+      hackathonId,
+      data: [] 
+    });
+  } catch (error) {
+    console.error("Error fetching problem statements:", error);
+    res.status(500).json({ message: "Error fetching problem statements" });
+  }
 });
 
 export default router;
