@@ -52,7 +52,7 @@ const SelectTeamPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalConfig, setModalConfig] = useState({});
   const isInteractive =
-    hackathon.eventType == "Interactive Hackathon" ? true : false;
+    hackathon && hackathon.eventType == "Interactive Hackathon" ? true : false;
 
   const [currentTeamId, setCurrentTeamId] = useState(null);
   const [problemStatements, setProblemStatements] = useState([]);

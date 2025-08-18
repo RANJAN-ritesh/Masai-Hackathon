@@ -37,7 +37,7 @@ const Navbar = () => {
         .toUpperCase()
     : "U"; // Default to "U" if no name available
   const isInteractive =
-    hackathon.eventType == "Interactive Hackathon" ? true : false;
+    hackathon && hackathon.eventType == "Interactive Hackathon" ? true : false;
 
   useEffect(() => {
     const now = new Date();
@@ -104,12 +104,12 @@ const Navbar = () => {
             <div className="hidden md:block">
               <div className="flex justify-center text-xl ">
                 <div className="font-bold">
-                  {hackathon.name ? hackathon.name : "Hackathon"}{" "}
+                  {hackathon && hackathon.name ? hackathon.name : "Hackathon"}{" "}
                 </div>
                 <span className="text-red-500 ml-2">{currentDate}</span>
               </div>
               <div className="text-gray-600 text-sm mt-1 flex justify-center">
-                {hackathon.description
+                {hackathon && hackathon.description
                   ? hackathon.description
                   : "Code, Collaborate, Conquer!"}
               </div>

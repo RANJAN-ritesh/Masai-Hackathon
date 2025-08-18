@@ -39,7 +39,7 @@ function VideoConference() {
           </p>
           <div className="flex gap-4">
             <a
-              href={`https://meet.jit.si/${hackathon.name}`}
+              href={`https://meet.jit.si/${hackathon && hackathon.name ? hackathon.name : 'hackathon'}`}
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -114,7 +114,7 @@ function VideoConference() {
             other students. Join our help room and make a difference!
           </p>
           <a
-            href={`https://meet.jit.si/${hackathon.name}`}
+                          href={`https://meet.jit.si/${hackathon && hackathon.name ? hackathon.name : 'hackathon'}`}
             target="_blank"
             rel="noopener noreferrer"
           >

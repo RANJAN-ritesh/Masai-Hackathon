@@ -49,6 +49,11 @@ function App() {
     }
   };
 
+  // Safe hackathon event type check
+  const getHackathonEventType = () => {
+    return hackathon && hackathon.eventType ? hackathon.eventType : "Team Hackathon";
+  };
+
   return (
     <>
       <ToastContainer />
@@ -58,7 +63,8 @@ function App() {
           !isDashboard &&
           isHackathon &&
           !isMeetingRoom &&
-          hackathon.eventType !== "Interactive Hackathon" && <CountDownTimer />}
+          hackathon &&
+          getHackathonEventType() !== "Interactive Hackathon" && <CountDownTimer />}
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route
@@ -73,7 +79,7 @@ function App() {
             path="/hackathon"
             element={
               <ProtectedRoute>
-                {hackathon.eventType === "Interactive Hackathon" ? (
+                {hackathon && getHackathonEventType() === "Interactive Hackathon" ? (
                   <CSBT />
                 ) : (
                   <MainContent />
@@ -167,7 +173,8 @@ function App() {
           !isDashboard &&
           isAuth &&
           isHackathon &&
-          hackathon.eventType !== "Interactive Hackathon" && (
+          hackathon &&
+          getHackathonEventType() !== "Interactive Hackathon" && (
             <ProtectedRoute>
               <VideoConference />
             </ProtectedRoute>

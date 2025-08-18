@@ -11,10 +11,9 @@ const AuthContextProvider = ({ children }) => {
   const [currentHackathonId, setCurrentHackathonId] = useState("");
   let currentHackathon = localStorage.getItem("currentHackathon");
   
-  // Set default hackathon if none exists
+  // Don't set a default hackathon ID - let the system handle it properly
   if (!currentHackathon) {
-    currentHackathon = "hackathon_001";
-    localStorage.setItem("currentHackathon", currentHackathon);
+    currentHackathon = null;
   }
   
   let userId = localStorage.getItem("userId");
@@ -68,7 +67,7 @@ const AuthContextProvider = ({ children }) => {
     fetchUserDetails();
   }, [isAuth]); // Depend on isAuth instead of userId
 
-  const [hackathon, setHackathon] = useState([]);
+  const [hackathon, setHackathon] = useState(null);
   useEffect(() => {
     const fetchHackathons = async () => {
       setLoading(true);
@@ -90,28 +89,33 @@ const AuthContextProvider = ({ children }) => {
           }
         }
         
-        // If no hackathons found, try to fetch the specific one
-        const response = await fetch(`${baseURL}/hackathons/${currentHackathon}`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          setHackathon(data);
+        // If no hackathons found and we have a currentHackathon ID, try to fetch it
+        if (currentHackathon) {
+          try {
+            const response = await fetch(`${baseURL}/hackathons/${currentHackathon}`);
+            
+            if (response.ok) {
+              const data = await response.json();
+              setHackathon(data);
+            } else {
+              // Invalid hackathon ID, clear it
+              localStorage.removeItem("currentHackathon");
+              setHackathon(null);
+            }
+          } catch (error) {
+            console.error("Error fetching specific hackathon:", error);
+            // Invalid hackathon ID, clear it
+            localStorage.removeItem("currentHackathon");
+            setHackathon(null);
+          }
         } else {
-          throw new Error("Hackathon API not available");
+          // No hackathons available
+          setHackathon(null);
         }
       } catch (error) {
-        console.error("Error fetching hackathons, using fallback:", error);
-        // Set default hackathon data if fetch fails
-        setHackathon({
-          _id: "hackathon_001",
-          title: "Masai Hackathon 2024",
-          description: "Build innovative solutions with your team",
-          eventType: "Team Hackathon",
-          maxTeamSize: 4,
-          status: "active",
-          startDate: new Date().toISOString(),
-          endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
-        });
+        console.error("Error fetching hackathons:", error);
+        // Set hackathon to null if fetch fails
+        setHackathon(null);
       } finally {
         setLoading(false);
       }
