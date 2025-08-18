@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-import Hackathon from './src/model/hackathon.js';
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
+const Hackathon = require('./dist/model/hackathon.js').default;
 
 // Load environment variables
 dotenv.config();

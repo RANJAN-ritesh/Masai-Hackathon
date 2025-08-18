@@ -18,12 +18,12 @@ export interface IUser extends Document{
 
 const UserSchema = new Schema<IUser>({
     userId: { type: String, required: true, unique: true },
-    name: {type:String, required: true, unique: true},
+    name: {type:String, required: true}, // Removed unique constraint - multiple users can have same name
     code: {type:String, required:true},
     course: {type:String, required:true},
     skills: {type:[String], required:true},
     vertical: {type:String, required:true},
-    phoneNumber: {type:String, required:true, unique:true},
+    phoneNumber: {type:String, required:false}, // Removed unique constraint and made optional
     email: {type:String, required:true, unique:true, lowercase:true},
     password: {type:String, required:true},
     teamId: {type:String, required:false}, // Make teamId optional

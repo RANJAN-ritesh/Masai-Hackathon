@@ -73,8 +73,15 @@ router.post("/upload-participants", async (req, res) => {
           if (!existingUser.hackathonIds?.includes(hackathonId)) {
             existingUser.hackathonIds = existingUser.hackathonIds || [];
             existingUser.hackathonIds.push(hackathonId);
-            await existingUser.save();
-            updatedCount++;
+            
+            try {
+              await existingUser.save();
+              updatedCount++;
+            } catch (saveError) {
+              console.error("Error saving existing user:", saveError);
+              // Even if save fails, count as existing
+              existingCount++;
+            }
           } else {
             existingCount++;
           }
@@ -83,27 +90,48 @@ router.post("/upload-participants", async (req, res) => {
           const userId = `USER${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           const hashedPassword = await bcrypt.hash("password123", 10);
           
-          const newUser = await User.create({
-            userId,
-            name: `${participant["First Name"] || "Unknown"} ${participant["Last Name"] || "User"}`,
-            code: userId,
-            course: participant["Course"] || "Not Specified",
-            skills: participant["Skills"] ? participant["Skills"].split(", ") : ["General"],
-            vertical: participant["Vertical"] || "Not Specified",
-            phoneNumber: participant["Phone"] || "Not Provided",
-            email: email,
-            password: hashedPassword,
-            teamId: "",
-            hackathonIds: [hackathonId], // Associate with this hackathon
-            isVerified: true,
-            role: participant["Role"] || "member"
-          });
-          
-          uploadedCount++;
+          try {
+            const newUser = await User.create({
+              userId,
+              name: `${participant["First Name"] || "Unknown"} ${participant["Last Name"] || "User"}`,
+              code: userId,
+              course: participant["Course"] || "Not Specified",
+              skills: participant["Skills"] ? participant["Skills"].split(", ") : ["General"],
+              vertical: participant["Vertical"] || "Not Specified",
+              phoneNumber: participant["Phone"] || undefined, // Phone number is optional
+              email: email,
+              password: hashedPassword,
+              teamId: "",
+              hackathonIds: [hackathonId], // Associate with this hackathon
+              isVerified: true,
+              role: participant["Role"] || "member"
+            });
+            
+            uploadedCount++;
+          } catch (createError) {
+            console.error("Error creating new user:", createError);
+            
+            // Check if it's a duplicate error
+            if (createError && typeof createError === 'object' && 'code' in createError && createError.code === 11000) {
+              // Duplicate key error - user might have been created by another request
+              const duplicateUser = await User.findOne({ email });
+              if (duplicateUser && !duplicateUser.hackathonIds?.includes(hackathonId)) {
+                duplicateUser.hackathonIds = duplicateUser.hackathonIds || [];
+                duplicateUser.hackathonIds.push(hackathonId);
+                await duplicateUser.save();
+                updatedCount++;
+              } else {
+                existingCount++;
+              }
+            } else {
+              throw createError; // Re-throw non-duplicate errors
+            }
+          }
         }
       } catch (error) {
+        console.error("Error processing participant:", participant["Email"], error);
         errors.push({
-          email: participant["Email"],
+          email: participant["Email"] || "Unknown",
           error: error instanceof Error ? error.message : "Unknown error"
         });
       }
@@ -134,7 +162,10 @@ router.post("/upload-participants", async (req, res) => {
     });
   } catch (error) {
     console.error("Error uploading participants:", error);
-    res.status(500).json({ message: "Error uploading participants", error: String(error) });
+    res.status(500).json({ 
+      message: "Error uploading participants", 
+      error: error instanceof Error ? error.message : "Unknown error" 
+    });
   }
 });
 
