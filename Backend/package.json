@@ -9,7 +9,8 @@
     "start": "node dist/app.js",
     "start:prod": "NODE_ENV=production node dist/app.js",
     "postinstall": "npm run build",
-    "create-hackathon": "node create-default-hackathon.js"
+    "create-hackathon": "node create-default-hackathon.js",
+    "fix-database": "node fix-database-indexes.js"
   },
   "keywords": [],
   "author": "",
