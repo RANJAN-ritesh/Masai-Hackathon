@@ -20,7 +20,7 @@ export const getTeams = async (req: Request, res: Response): Promise<void> => {
 
 
 
-export const createTeams = async( req:Request<{}, {}, {teamName: string, createdBy?: string, hackathonId?: string, maxMembers?: number, description?: string}>, res:Response) : Promise<void> => {
+export const createTeams = async (req: Request<{}, {}, {teamName: string, createdBy?: string, hackathonId?: string, maxMembers?: number, description?: string}>, res: Response): Promise<void> => {
     try {
         const { teamName, createdBy, hackathonId, maxMembers, description } = req.body;
 
@@ -54,33 +54,51 @@ export const createTeams = async( req:Request<{}, {}, {teamName: string, created
             return;
         }
 
-        // Check for existing team with same name
-        const existingTeam = await team.findOne({ teamName });
+        // Check for existing team with same name in the same hackathon
+        const existingTeam = await team.findOne({ 
+            teamName,
+            hackathonId: hackathonId || null
+        });
         if (existingTeam) {
-            res.status(400).json({ message: "A team with this name already exists!" });
+            res.status(400).json({ message: "A team with this name already exists in this hackathon!" });
             return;
         }
 
-        // Create the team
+        // Create the team with hackathon association
         const newTeam = await team.create({
             teamName,
             createdBy: createdByObjectId,
             memberLimit: maxMembers || 4,
-            teamMembers: [createdByObjectId]
+            teamMembers: [createdByObjectId],
+            hackathonId: hackathonId || null, // Associate with specific hackathon
+            description: description || "",
+            status: 'active'
         });
 
         if (newTeam) {
             // Update user with teamId
             await user.findByIdAndUpdate(createdByObjectId, { teamId: newTeam._id });
-            await teamRequests.deleteMany({ userId: createdByObjectId });
 
-            res.status(201).json({ message: "Team created successfully", team: newTeam });
+            // Update user role to leader if not already admin
+            if (userExists.role === 'member') {
+                await user.findByIdAndUpdate(createdByObjectId, { role: 'leader' });
+            }
+
+            res.status(201).json({ 
+                message: "Team created successfully", 
+                team: newTeam,
+                _id: newTeam._id,
+                teamName: newTeam.teamName,
+                teamMembers: newTeam.teamMembers
+            });
+        } else {
+            res.status(500).json({ message: "Failed to create team" });
         }
     } catch (error) {
-        console.error("Team creation error:", error);
-        res.status(500).json({ message: "Error creating team", error: error instanceof Error ? error.message : "Unknown error" });
+        console.error("Error creating team:", error);
+        res.status(500).json({ message: "Internal server error", error: String(error) });
     }
-}
+};
 
 export const deleteTeam = async (req: Request, res: Response): Promise<void> => {
     try {

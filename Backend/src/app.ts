@@ -41,17 +41,26 @@ app.use(limiter);
 const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
         ? [
-            process.env.CORS_ORIGIN || 'https://masai-hackathon.netlify.app',
-            'https://masai-hackathon.netlify.app'
+            'https://masai-hackathon.netlify.app',
+            'https://masai-hackathon.netlify.app/',
+            'https://masai-hackathon.netlify.app/*',
+            '*' // Temporarily allow all origins for debugging
           ] 
         : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5000', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,
     optionsSuccessStatus: 200,
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+    preflightContinue: false
 };
 
 app.use(cors(corsOptions));
+
+// Add request logging middleware for debugging
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - Origin: ${req.headers.origin}`);
+    next();
+});
 
 connectDB();
 user.createCollection()
@@ -85,7 +94,7 @@ app.get("/health",(req, res)=>{
 })
 
 app.get("/",(req, res)=>{
-    res.send("health check - backend is live! CRUD operations fixed! Team routes added! Team member limit increased to 10! 🎯🚀")
+    res.send("health check - backend is live! CRUD operations fixed! Team routes added! Team member limit increased to 10! MONGODB INTEGRATION COMPLETE! Hackathons now persist in database! 🎯🚀") // Updated to force redeploy
 })
 
 // Global error handling middleware

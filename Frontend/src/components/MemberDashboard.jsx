@@ -32,51 +32,81 @@ const MemberDashboard = () => {
   const baseURL = import.meta.env.VITE_BASE_URL;
 
   useEffect(() => {
-    fetchMemberData();
+    // Only fetch data if we have a user ID
+    const userId = userData?._id || localStorage.getItem("userId");
+    if (userId) {
+      fetchMemberData();
+    } else {
+      console.log("No user ID available, skipping data fetch");
+      setMemberStats(prev => ({ ...prev, loading: false }));
+    }
   }, [userData]);
 
   const fetchMemberData = async () => {
-    if (!userData?._id) return;
+    // Get userId from either context or localStorage as fallback
+    const userId = userData?._id || localStorage.getItem("userId");
+    
+    if (!userId) {
+      console.log("No user ID available");
+      setMemberStats(prev => ({ ...prev, loading: false }));
+      return;
+    }
 
     try {
       setMemberStats(prev => ({ ...prev, loading: true }));
 
       // Get user's hackathons
-      const userResponse = await fetch(`${baseURL}/users/get-user/${userData._id}`);
-      if (userResponse.ok) {
-        const userInfo = await userResponse.json();
-        
-        // Get hackathons user is part of
-        const hackathonPromises = (userInfo.hackathonIds || []).map(async (hackathonId) => {
-          try {
-            const hackathonResponse = await fetch(`${baseURL}/hackathons/${hackathonId}`);
-            if (hackathonResponse.ok) {
-              return await hackathonResponse.json();
-            }
-          } catch (error) {
-            console.error(`Error fetching hackathon ${hackathonId}:`, error);
+      console.log(`Fetching user data for ID: ${userId}`);
+      const userResponse = await fetch(`${baseURL}/users/get-user/${userId}`);
+      
+      if (!userResponse.ok) {
+        const errorText = await userResponse.text();
+        console.error(`Failed to fetch user data: ${userResponse.status} - ${errorText}`);
+        throw new Error(`Failed to fetch user data: ${userResponse.status}`);
+      }
+      
+      const userInfo = await userResponse.json();
+      console.log("User info received:", userInfo);
+      
+      // Get hackathons user is part of
+      const hackathonPromises = (userInfo.hackathonIds || []).map(async (hackathonId) => {
+        try {
+          const hackathonResponse = await fetch(`${baseURL}/hackathons/${hackathonId}`);
+          if (hackathonResponse.ok) {
+            return await hackathonResponse.json();
           }
-          return null;
-        });
+        } catch (error) {
+          console.error(`Error fetching hackathon ${hackathonId}:`, error);
+        }
+        return null;
+      });
 
-        const hackathons = (await Promise.all(hackathonPromises)).filter(Boolean);
+      const hackathons = (await Promise.all(hackathonPromises)).filter(Boolean);
 
         // Get team information if user has a team
         let currentTeam = null;
         let teamMembers = [];
         if (userInfo.teamId) {
           try {
+            console.log(`Fetching team data for team ID: ${userInfo.teamId}`);
             const teamResponse = await fetch(`${baseURL}/team/get-teams`);
             if (teamResponse.ok) {
               const teams = await teamResponse.json();
               currentTeam = teams.find(team => team._id === userInfo.teamId);
               if (currentTeam) {
                 teamMembers = currentTeam.teamMembers || [];
+                console.log(`Found team: ${currentTeam.teamName} with ${teamMembers.length} members`);
+              } else {
+                console.log(`Team not found for ID: ${userInfo.teamId}`);
               }
+            } else {
+              console.error(`Failed to fetch teams: ${teamResponse.status}`);
             }
           } catch (error) {
             console.error('Error fetching team data:', error);
           }
+        } else {
+          console.log("User has no team ID");
         }
 
         setMemberStats({
