@@ -29,84 +29,84 @@ const SocialMedia = ({ hackathonData }) => {
         </h2>
         <div className="grid grid-cols-2 gap-4 mb-6">
           {socialLinks.zoom && (
-            <a
+          <a
               href={socialLinks.zoom}
-              target="_blank"
-              className="flex items-center justify-center gap-2 bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 transition"
-            >
+            target="_blank"
+            className="flex items-center justify-center gap-2 bg-blue-500 text-white p-3 rounded-lg hover:bg-blue-600 transition"
+          >
               <Video size={20} className="text-white"/>
-              <span className="text-white">Zoom</span>
-            </a>
+            <span className="text-white">Zoom</span>
+          </a>
           )}
           {socialLinks.youtube && (
-            <a
+          <a
               href={socialLinks.youtube}
-              target="_blank"
-              className="flex items-center justify-center gap-2 bg-red-600 text-white p-3 rounded-lg hover:bg-red-700 transition"
-            >
+            target="_blank"
+            className="flex items-center justify-center gap-2 bg-red-600 text-white p-3 rounded-lg hover:bg-red-700 transition"
+          >
               <Youtube size={20} className="text-white"/>
-              <span className="text-white">YouTube</span>
-            </a>
+            <span className="text-white">YouTube</span>
+          </a>
           )}
           {socialLinks.slack && (
-            <a
+          <a
               href={socialLinks.slack}
-              target="_blank"
-              className="flex items-center justify-center gap-2 bg-purple-600 text-white p-3 rounded-lg hover:bg-purple-700 transition"
-            >
+            target="_blank"
+            className="flex items-center justify-center gap-2 bg-purple-600 text-white p-3 rounded-lg hover:bg-purple-700 transition"
+          >
               <Slack size={20} className="text-white"/>
-              <span className="text-white">Slack</span>
-            </a>
+            <span className="text-white">Slack</span>
+          </a>
           )}
           {socialLinks.github && (
-            <a
+          <a
               href={socialLinks.github}
-              target="_blank"
-              className="flex items-center justify-center gap-2 bg-gray-800 text-white p-3 rounded-lg hover:bg-gray-900 transition"
-            >
+            target="_blank"
+            className="flex items-center justify-center gap-2 bg-gray-800 text-white p-3 rounded-lg hover:bg-gray-900 transition"
+          >
               <Github size={20} className="text-white"/>
-              <span className="text-white">GitHub</span>
-            </a>
+            <span className="text-white">GitHub</span>
+          </a>
           )}
         </div>
 
         <h3 className="font-medium text-gray-700 mb-3">Follow Us</h3>
         <div className="flex justify-between">
           {socialLinks.twitter && (
-            <a
+          <a
               href={socialLinks.twitter}
-              target="_blank"
-              className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition"
-            >
-              <Twitter size={20} className="text-blue-800"/>
-            </a>
+            target="_blank"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-100 text-blue-600 hover:bg-blue-200 transition"
+          >
+            <Twitter size={20} className="text-blue-800"/>
+          </a>
           )}
           {socialLinks.instagram && (
-            <a
+          <a
               href={socialLinks.instagram}
-              target="_blank"
-              className="w-10 h-10 flex items-center justify-center rounded-full bg-pink-100 text-pink-600 hover:bg-pink-200 transition"
-            >
-              <Instagram size={20} className="text-pink-800"/>
-            </a>
+            target="_blank"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-pink-100 text-pink-600 hover:bg-pink-200 transition"
+          >
+            <Instagram size={20} className="text-pink-800"/>
+          </a>
           )}
           {socialLinks.linkedin && (
-            <a
+          <a
               href={socialLinks.linkedin}
-              target="_blank"
-              className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-100 text-blue-800 hover:bg-blue-200 transition"
-            >
-              <Linkedin size={20} className="text-blue-800"/>
-            </a>
+            target="_blank"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-100 text-blue-800 hover:bg-blue-200 transition"
+          >
+            <Linkedin size={20} className="text-blue-800"/>
+          </a>
           )}
           {socialLinks.github && (
-            <a
+          <a
               href={socialLinks.github}
-              target="_blank"
-              className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-800 hover:bg-gray-200 transition"
-            >
-              <Github size={20} className="text-gray-800"/>
-            </a>
+            target="_blank"
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-800 hover:bg-gray-200 transition"
+          >
+            <Github size={20} className="text-gray-800"/>
+          </a>
           )}
         </div>
       </div>

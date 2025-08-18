@@ -20,7 +20,7 @@ export const getTeams = async (req: Request, res: Response): Promise<void> => {
 
 
 
-export const createTeams = async (req: Request<{}, {}, {teamName: string, createdBy?: string, hackathonId?: string, maxMembers?: number, description?: string}>, res: Response): Promise<void> => {
+export const createTeams = async( req:Request<{}, {}, {teamName: string, createdBy?: string, hackathonId?: string, maxMembers?: number, description?: string}>, res:Response) : Promise<void> => {
     try {
         const { teamName, createdBy, hackathonId, maxMembers, description } = req.body;
 

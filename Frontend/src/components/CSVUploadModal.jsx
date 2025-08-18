@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import Papa from "papaparse"; // Make sure papaparse is installed
+import { toast } from "react-toastify";
 
 const CSVUploadModal = ({ isOpen, onClose, hackathonId, baseURL }) => {
   const [csvFile, setCsvFile] = useState(null);
@@ -67,7 +68,30 @@ const CSVUploadModal = ({ isOpen, onClose, hackathonId, baseURL }) => {
 
       const result = await response.json();
       if (response.ok) {
-        alert(`CSV uploaded successfully! ${result.uploadedCount} participants created.`);
+        // Show detailed feedback
+        let message = result.message;
+        if (result.summary) {
+          message += `\n\nDetailed Summary:`;
+          message += `\n• Total processed: ${result.summary.total}`;
+          message += `\n• New users created: ${result.summary.newUsers}`;
+          message += `\n• Existing users added: ${result.summary.existingUsersAdded}`;
+          message += `\n• Already in hackathon: ${result.summary.alreadyInHackathon}`;
+          if (result.summary.errors > 0) {
+            message += `\n• Errors: ${result.summary.errors}`;
+          }
+          message += `\n\n💡 All participants have been notified via email with login credentials (password123)`;
+        }
+        
+        // Use toast instead of alert for better UX
+        if (typeof toast !== 'undefined') {
+          toast.success(message, {
+            autoClose: 8000,
+            style: { whiteSpace: 'pre-line', maxWidth: '400px' }
+          });
+        } else {
+          alert(message);
+        }
+        
         onClose();
       } else {
         setError(result.message || "Upload failed.");

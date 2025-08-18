@@ -37,6 +37,9 @@ const EligibleHackathons = () => {
   const [hackathonCount, setHackathonCount] = useState(0);
   const [previousCount, setPreviousCount] = useState(0);
 
+  const [participants, setParticipants] = useState({});
+  const [showParticipants, setShowParticipants] = useState(null);
+
   const handleCSVUploadClick = (hackathonId) => {
     setSelectedHackathonId(hackathonId);
     setCsvModalOpen(true);
@@ -60,15 +63,15 @@ const EligibleHackathons = () => {
 
   const fetchHackathons = async (user) => {
     setLoading(true);
-    try {
+      try {
       // Fetch all hackathons for all users
-      const response = await fetch(`${baseURL}/hackathons`);
+        const response = await fetch(`${baseURL}/hackathons`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const data = await response.json();
+        const data = await response.json();
       console.log("Hackathons Data: ", data);
       
       if (data && Array.isArray(data)) {
@@ -76,7 +79,7 @@ const EligibleHackathons = () => {
         setPreviousCount(hackathonCount);
         setHackathonCount(data.length);
         
-        setHackathons(data);
+          setHackathons(data);
         
         // Show notification if count increased (new hackathon detected)
         if (data.length > previousCount && previousCount > 0) {
@@ -88,17 +91,17 @@ const EligibleHackathons = () => {
             pauseOnHover: true,
             draggable: true,
           });
-        }
-      } else {
-        setHackathons([]);
-        setHackathonCount(0);
       }
-    } catch (error) {
-      console.error("Error fetching hackathons:", error);
+    } else {
+          setHackathons([]);
+        setHackathonCount(0);
+        }
+      } catch (error) {
+        console.error("Error fetching hackathons:", error);
       setHackathons([]);
       setHackathonCount(0);
-    } finally {
-      setLoading(false);
+      } finally {
+        setLoading(false);
     }
   };
 
@@ -161,22 +164,25 @@ const EligibleHackathons = () => {
     try {
       setLoading(true);
       
-      // Get all users for this hackathon
-      const usersResponse = await fetch(`${baseURL}/users/getAllUsers`);
-      if (!usersResponse.ok) {
-        throw new Error('Failed to fetch users');
+      // Get participants for THIS specific hackathon
+      const participantsResponse = await fetch(`${baseURL}/users/hackathon/${hackathon._id}/participants`);
+      if (!participantsResponse.ok) {
+        throw new Error('Failed to fetch hackathon participants');
       }
       
-      const users = await usersResponse.json();
+      const participantsData = await participantsResponse.json();
+      const allParticipants = participantsData.participants || [];
       
       // Filter participants who are not already in teams
-      const participants = users.filter(user => 
+      const participants = allParticipants.filter(user => 
         (user.role === 'member' || user.role === 'leader') && 
         (!user.teamId || user.teamId === '')
       );
       
       if (participants.length === 0) {
-        toast.error('No available participants found to create teams');
+        toast.error(`No available participants found in ${hackathon.title} to create teams. Please add participants first.`, {
+          autoClose: 5000
+        });
         return;
       }
       
@@ -184,6 +190,13 @@ const EligibleHackathons = () => {
       const minTeamSize = hackathon.minTeamSize || 2;
       const maxTeamSize = hackathon.maxTeamSize || 4;
       const totalParticipants = participants.length;
+      
+      console.log(`🎯 Creating teams for ${hackathon.title}:`, {
+        totalParticipants,
+        minTeamSize,
+        maxTeamSize,
+        hackathonId: hackathon._id
+      });
       
       // SMART TEAM GENERATION ALGORITHM
       const calculateOptimalTeams = (total, min, max) => {
@@ -233,8 +246,9 @@ const EligibleHackathons = () => {
       };
       
       const teamPlan = calculateOptimalTeams(totalParticipants, minTeamSize, maxTeamSize);
-      console.log(`🎯 Team Generation Plan:`, {
-        participants: totalParticipants,
+      
+      console.log(`📊 Team Plan for ${hackathon.title}:`, {
+        totalParticipants,
         minSize: minTeamSize,
         maxSize: maxTeamSize,
         plan: teamPlan
@@ -251,20 +265,23 @@ const EligibleHackathons = () => {
         
         if (teamMembers.length === 0) break;
         
-        const teamName = `Team ${i + 1}`;
+        const teamName = `${hackathon.title} - Team ${i + 1}`;
         const teamLeader = teamMembers[0]; // First member becomes team leader
         
         const teamData = {
           teamName: teamName,
           createdBy: teamLeader._id,
+          hackathonId: hackathon._id, // Associate with specific hackathon
           memberLimit: Math.max(teamSize, maxTeamSize), // Allow room for growth
-          teamMembers: teamMembers.map(p => p._id)
+          teamMembers: teamMembers.map(p => p._id),
+          description: `Auto-generated team for ${hackathon.title}`
         };
         
         console.log(`🏗️ Creating ${teamName}:`, {
           size: teamSize,
           members: teamMembers.map(p => p.name),
-          leader: teamLeader.name
+          leader: teamLeader.name,
+          hackathonId: hackathon._id
         });
         
         const teamResponse = await fetch(`${baseURL}/team/create-team`, {
@@ -285,42 +302,73 @@ const EligibleHackathons = () => {
                 const userData = JSON.parse(storedUserData);
                 if (userData._id === member._id) {
                   userData.teamId = newTeam._id;
+                  userData.role = member._id === teamLeader._id ? 'leader' : userData.role;
                   localStorage.setItem('userData', JSON.stringify(userData));
                 }
               } catch (e) {
                 console.error('Error updating user data:', e);
               }
             }
-          });
-        } else {
+        });
+      } else {
           const errorData = await teamResponse.json();
           console.error(`Failed to create ${teamName}:`, errorData);
+          toast.error(`Failed to create ${teamName}: ${errorData.message}`, {
+            autoClose: 5000
+          });
         }
       }
       
       if (createdTeams.length > 0) {
         const teamSummary = teamPlan.sizes.map((size, i) => `Team ${i + 1}: ${size} members`).join(', ');
-        toast.success(`🎯 Smart Team Generation Complete!\n${createdTeams.length} teams created for ${hackathon.title}\n${teamSummary}`, {
+        
+        // Create detailed team information
+        let detailedMessage = `🎯 Smart Team Generation Complete!\n\n`;
+        detailedMessage += `📊 Summary for ${hackathon.title}:\n`;
+        detailedMessage += `• ${createdTeams.length} teams created\n`;
+        detailedMessage += `• ${totalParticipants} participants assigned\n`;
+        detailedMessage += `• Team sizes: ${teamPlan.sizes.join(', ')}\n`;
+        detailedMessage += `• Hackathon: ${hackathon.title}\n\n`;
+        detailedMessage += `💡 Teams are now ready for collaboration!`;
+        
+        toast.success(detailedMessage, {
           position: 'top-right',
-          autoClose: 8000,
+          autoClose: 10000,
+          style: { whiteSpace: 'pre-line', maxWidth: '400px' }
         });
         
-        console.log(`✅ Team Creation Summary:`, {
+        console.log(`✅ Team Creation Summary for ${hackathon.title}:`, {
+          hackathon: hackathon.title,
+          hackathonId: hackathon._id,
           totalParticipants,
           teamsCreated: createdTeams.length,
           teamSizes: teamPlan.sizes,
-          adminSettings: { minTeamSize, maxTeamSize }
+          adminSettings: { minTeamSize, maxTeamSize },
+          createdTeams: createdTeams.map(team => ({
+            name: team.teamName,
+            id: team._id,
+            members: team.teamMembers?.length || 0,
+            hackathonId: hackathon._id
+          }))
         });
+        
+        // Show additional info about viewing teams
+        setTimeout(() => {
+          toast.info(`👥 You can now view the created teams in the "Select Team" page. Teams are specific to ${hackathon.title}.`, {
+            position: 'top-right',
+            autoClose: 6000,
+          });
+        }, 2000);
         
         // Refresh hackathons to show updated data
         fetchHackathons(userData);
       } else {
-        toast.error('Failed to create any teams. Please check the console for errors.');
+        toast.error(`Failed to create any teams for ${hackathon.title}. Please check the console for errors.`);
       }
       
     } catch (error) {
       console.error('Error creating teams:', error);
-      toast.error('Failed to create teams: ' + error.message);
+      toast.error(`Failed to create teams for ${hackathon.title}: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -398,6 +446,36 @@ const EligibleHackathons = () => {
     setIsModalOpen(true);
   };
 
+  // View participants for a hackathon
+  const handleViewParticipants = async (hackathonId) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${baseURL}/users/hackathon/${hackathonId}/participants`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        setParticipants(prev => ({
+          ...prev,
+          [hackathonId]: result.participants
+        }));
+        setShowParticipants(hackathonId);
+        
+        toast.info(`Found ${result.count} participants in this hackathon`, {
+          position: "top-right",
+          autoClose: 3000,
+        });
+      } else {
+        const error = await response.json();
+        toast.error(error.message || "Failed to fetch participants");
+      }
+    } catch (error) {
+      console.error("Error fetching participants:", error);
+      toast.error("Network error while fetching participants");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     hackathons && (
       <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white">
@@ -407,13 +485,13 @@ const EligibleHackathons = () => {
             <div className="absolute inset-0 bg-indigo-600 opacity-5 rounded-xl"></div>
             <div className="relative z-10 flex flex-col md:flex-row justify-between items-center p-6 bg-white bg-opacity-80 backdrop-blur-sm rounded-xl shadow-lg">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                <div>
+              <div>
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">Eligible Hackathons</h1>
                   <p className="text-gray-600">
                     {loading ? "Loading..." : `Found ${hackathonCount} hackathon${hackathonCount !== 1 ? 's' : ''}`}
-                  </p>
-                </div>
-                {role === "admin" && (
+                </p>
+              </div>
+              {role === "admin" && (
                   <div className="flex items-center space-x-3">
                     <button 
                       onClick={handleRefresh} 
@@ -430,13 +508,13 @@ const EligibleHackathons = () => {
                       )}
                       <span className="ml-2">{loading ? 'Refreshing...' : 'Refresh'}</span>
                     </button>
-                    <Link to="/create-hackathon">
-                      <button className="mt-6 md:mt-0 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center shadow-md">
+                <Link to="/create-hackathon">
+                  <button className="mt-6 md:mt-0 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center shadow-md">
                         <Sparkles className="w-5 h-5 mr-2" />Create New Hackathon
-                      </button>
-                    </Link>
+                  </button>
+                </Link>
                   </div>
-                )}
+              )}
               </div>
             </div>
           </div>
@@ -529,6 +607,14 @@ const EligibleHackathons = () => {
                                   <UserPlus className="w-5 h-5" />
                                 </button>
 
+                                <button
+                                  onClick={() => handleViewParticipants(registration._id)}
+                                  className="bg-green-100 hover:bg-green-200 text-green-700 p-2 rounded-lg transition-all duration-300"
+                                  title="View Participants"
+                                >
+                                  <Users className="w-5 h-5" />
+                                </button>
+
                                 <Link to={`/edithackathon/${registration._id}`}>
                                   <button 
                                     className="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-all duration-300"
@@ -563,6 +649,35 @@ const EligibleHackathons = () => {
                                 title={modalConfig.title}
                                 message={modalConfig.message}
                               />
+                              
+                              {/* Participants Display */}
+                              {showParticipants === registration._id && participants[registration._id] && (
+                                <div className="mt-4 p-4 bg-gray-50 rounded-lg border-t">
+                                  <div className="flex justify-between items-center mb-3">
+                                    <h4 className="font-semibold text-gray-700">
+                                      Participants ({participants[registration._id].length})
+                                    </h4>
+                                    <button
+                                      onClick={() => setShowParticipants(null)}
+                                      className="text-xs text-gray-500 hover:text-gray-700 bg-white px-2 py-1 rounded border"
+                                    >
+                                      Hide
+                                    </button>
+                                  </div>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
+                                    {participants[registration._id].map((participant, index) => (
+                                      <div key={participant._id} className="flex items-center space-x-2 text-sm bg-white p-2 rounded border">
+                                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                        <span className="font-medium">{participant.name}</span>
+                                        <span className="text-gray-500 text-xs">({participant.role})</span>
+                                        {participant.teamId && (
+                                          <span className="text-blue-600 text-xs bg-blue-100 px-1 rounded">Team</span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>

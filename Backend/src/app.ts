@@ -41,26 +41,17 @@ app.use(limiter);
 const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
         ? [
-            'https://masai-hackathon.netlify.app',
-            'https://masai-hackathon.netlify.app/',
-            'https://masai-hackathon.netlify.app/*',
-            '*' // Temporarily allow all origins for debugging
+            process.env.CORS_ORIGIN || 'https://masai-hackathon.netlify.app',
+            'https://masai-hackathon.netlify.app'
           ] 
         : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5000', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
     optionsSuccessStatus: 200,
-    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
-    preflightContinue: false
+    allowedHeaders: ['Content-Type', 'Authorization']
 };
 
 app.use(cors(corsOptions));
-
-// Add request logging middleware for debugging
-app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.path} - Origin: ${req.headers.origin}`);
-    next();
-});
 
 connectDB();
 user.createCollection()

@@ -207,7 +207,24 @@ const CreateHackathon = () => {
 
       if (response.ok) {
         const result = await response.json();
-        toast.success(`Successfully uploaded ${result.uploadedCount} participants!`);
+        
+        // Show detailed success message
+        let successMessage = result.message;
+        if (result.summary) {
+          successMessage += `\n\nDetailed Summary:`;
+          successMessage += `\n• New users created: ${result.summary.newUsers}`;
+          successMessage += `\n• Existing users added: ${result.summary.existingUsersAdded}`;
+          successMessage += `\n• Already in hackathon: ${result.summary.alreadyInHackathon}`;
+          if (result.summary.errors > 0) {
+            successMessage += `\n• Errors: ${result.summary.errors}`;
+          }
+        }
+        
+        toast.success(successMessage, {
+          autoClose: 8000, // Longer display time for detailed message
+          style: { whiteSpace: 'pre-line' } // Allow line breaks
+        });
+        
         setCsvData([]);
         setCsvFileName("");
       } else {
@@ -563,7 +580,7 @@ const CreateHackathon = () => {
             // Check if there's an 'email' column
             if (firstRow.email) {
               emails = results.data
-                .map((row) => row.email?.trim())
+          .map((row) => row.email?.trim())
                 .filter((email) => email && email !== "" && isValidEmail(email));
             }
             // Check if there's an 'Email' column (capitalized)
@@ -586,10 +603,10 @@ const CreateHackathon = () => {
             return;
           }
 
-          setEventData((prev) => ({
-            ...prev,
-            allowedEmails: emails,
-          }));
+        setEventData((prev) => ({
+          ...prev,
+          allowedEmails: emails,
+        }));
 
           toast.success(`Successfully loaded ${emails.length} email addresses!`);
         } catch (error) {
@@ -918,10 +935,10 @@ const CreateHackathon = () => {
                     <strong>Expected CSV format:</strong> Single column with header "email" containing email addresses.
                   </p>
                   <div className="flex items-center space-x-3">
-                    <input
-                      type="file"
-                      accept=".csv"
-                      onChange={handleEmailCSVUpload}
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={handleEmailCSVUpload}
                       className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                     />
                     <button
@@ -932,7 +949,7 @@ const CreateHackathon = () => {
                       Template
                     </button>
                   </div>
-                  {eventData.allowedEmails.length > 0 && (
+                {eventData.allowedEmails.length > 0 && (
                     <div className="mt-3 p-2 bg-white rounded border">
                       <p className="text-sm text-gray-600 mb-2">
                         <strong>{eventData.allowedEmails.length} emails loaded:</strong>
@@ -949,8 +966,8 @@ const CreateHackathon = () => {
                           </span>
                         )}
                       </div>
-                    </div>
-                  )}
+                  </div>
+                )}
                 </div>
                 <div className="mt-3 flex items-center justify-between">
                   <span className="text-sm text-gray-600">

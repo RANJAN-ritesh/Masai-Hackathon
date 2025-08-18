@@ -30,8 +30,8 @@ const AuthContextProvider = ({ children }) => {
       if (!currentUserId || currentUserId === "null" || currentUserId === "undefined") {
         console.log("No valid userId found");
         setLoading(false);
-        return;
-      }
+          return;
+        }
 
       try {
         const response = await fetch(`${baseURL}/users/get-user/${currentUserId}`);

@@ -275,3 +275,56 @@ For support and questions:
 ---
 
 **Built with ❤️ for the developer community** 
+
+## 👥 **Enhanced Participant Management**
+
+### 🎯 **Hackathon-Specific User Association**
+- **Smart User Linking**: Users are now properly associated with specific hackathons
+- **Duplicate Handling**: Existing users are automatically added to new hackathons without duplication
+- **Detailed Feedback**: Clear messaging about user creation, updates, and existing participants
+
+### 📊 **Admin Dashboard Features**
+- **View Participants**: Admins can see all participants for each hackathon with a single click
+- **Team Status Tracking**: Visual indicators show which participants are already in teams
+- **Real-time Updates**: Participant lists update automatically after CSV uploads
+- **Role-based Display**: Clear distinction between admin, leader, and member roles
+
+### 🔧 **Improved User Experience**
+- **Enhanced Notifications**: Detailed toast messages with breakdown of upload results
+- **Visual Feedback**: Color-coded status indicators and progress tracking
+- **Better Error Handling**: Specific error messages for troubleshooting
+- **Responsive Design**: Participant viewing works seamlessly on all devices
+
+### 📈 **Team Generation Improvements**
+- **Detailed Team Summary**: Complete breakdown of team creation results
+- **Smart Algorithm Feedback**: Shows optimal team size calculations
+- **Post-Creation Guidance**: Clear instructions on where to view created teams
+- **Console Logging**: Comprehensive logs for debugging and verification
+
+### 🛡️ **Data Protection**
+- **Test Safety**: Automated tests no longer delete production hackathons
+- **Backup-Friendly**: All operations preserve existing data
+- **Rollback Support**: Changes can be easily reversed if needed
+
+## 🔌 **Updated API Endpoints**
+
+### **Enhanced User Management**
+- `POST /users/upload-participants` - Now supports hackathon association and detailed feedback
+- `GET /users/hackathon/:hackathonId/participants` - Get all participants for a specific hackathon
+
+### **Improved Response Format**
+```json
+{
+  "message": "2 new participants created, 1 existing participants added to hackathon, 1 participants already in this hackathon",
+  "uploadedCount": 2,
+  "existingCount": 1,
+  "updatedCount": 1,
+  "summary": {
+    "total": 4,
+    "newUsers": 2,
+    "existingUsersAdded": 1,
+    "alreadyInHackathon": 1,
+    "errors": 0
+  }
+}
+``` 

@@ -10,6 +10,7 @@ import {
   FilePlus,
   UserRoundPlus,
   House,
+  Trophy,
 } from "lucide-react"; // Added icons
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -255,10 +256,24 @@ const Navbar = () => {
 
             {role === "admin" && (
               <>
-                <Link to="/create-hackathon">
+                <Link to="/create-hackathon" onClick={() => setIsMenuOpen(false)}>
                   <button className="w-full flex items-center justify-center space-x-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition mb-2">
                     <FilePlus className="h-5 w-5 mr-2 text-red-500" />
                     Create Hackathon
+                  </button>
+                </Link>
+
+                <Link to="/create-users" onClick={() => setIsMenuOpen(false)}>
+                  <button className="w-full flex items-center justify-center space-x-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition mb-2">
+                    <UserRoundPlus className="h-5 w-5 mr-2 text-red-500" />
+                    Upload Users
+                  </button>
+                </Link>
+
+                <Link to="/eligible-hackathons" onClick={() => setIsMenuOpen(false)}>
+                  <button className="w-full flex items-center justify-center space-x-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition mb-2">
+                    <Trophy className="h-5 w-5 mr-2 text-red-500" />
+                    Manage Hackathons
                   </button>
                 </Link>
               </>

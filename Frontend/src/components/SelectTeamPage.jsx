@@ -188,15 +188,34 @@ const SelectTeamPage = () => {
 
   const fetchTeams = async () => {
     try {
-      const response = await fetch(`${baseURL}/team/${currentHackathon}`);
-      // let res = await response.json()
-      // console.log(res)
+      // Fetch teams specific to the current hackathon
+      const response = await fetch(`${baseURL}/team/hackathon/${currentHackathon}`);
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message);
-      setTeams(data);
-      // console.log("Teams: ", data)
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch teams');
+      }
+      
+      // Use the teams array from the response
+      const teams = data.teams || data || [];
+      setTeams(teams);
+      
+      console.log(`📋 Loaded ${teams.length} teams for hackathon ${currentHackathon}`);
     } catch (err) {
+      console.error('Error fetching teams:', err);
       setError(err.message);
+      
+      // Fallback: try to fetch all teams if hackathon-specific fails
+      try {
+        const fallbackResponse = await fetch(`${baseURL}/team/get-teams`);
+        const fallbackData = await fallbackResponse.json();
+        if (fallbackResponse.ok) {
+          setTeams(fallbackData);
+          console.log('📋 Loaded teams using fallback method');
+        }
+      } catch (fallbackErr) {
+        console.error('Fallback team fetch also failed:', fallbackErr);
+      }
     } finally {
       setLoading(false);
     }

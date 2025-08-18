@@ -11,6 +11,7 @@ export interface IUser extends Document{
     email: string;
     password: string;
     teamId?: string; 
+    hackathonIds?: string[]; // Track which hackathons user is part of
     isVerified: boolean;
     role: "admin" | "leader" | "member"; 
 }
@@ -26,6 +27,7 @@ const UserSchema = new Schema<IUser>({
     email: {type:String, required:true, unique:true, lowercase:true},
     password: {type:String, required:true},
     teamId: {type:String, required:false}, // Make teamId optional
+    hackathonIds: {type:[String], required:false, default:[]}, // Track hackathon associations
     isVerified: {type:Boolean, required:true, default:false},
     role: {type:String, enum:["admin", "leader", "member"],required:true, default:"member"}
 }, 

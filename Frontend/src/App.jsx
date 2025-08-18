@@ -24,9 +24,10 @@ import EligibleHackathons from "./components/EligibleHackathons";
 import CreateUser from "./components/CreateUser";
 import EditHackathon from "./components/EditHackathon";
 import AdminRoute from "./components/AdminRoute";
+import MemberDashboard from "./components/MemberDashboard";
 
 function App() {
-  const { isAuth, hackathon } = useContext(MyContext);
+  const { isAuth, hackathon, role } = useContext(MyContext);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const location = useLocation();
 
@@ -38,6 +39,15 @@ function App() {
   if (isCSBT) {
     return <CSBT />;
   }
+
+  // Role-based dashboard component
+  const DashboardComponent = () => {
+    if (role === "admin") {
+      return <EligibleHackathons />;
+    } else {
+      return <MemberDashboard />;
+    }
+  };
 
   return (
     <>
@@ -55,7 +65,7 @@ function App() {
             path="/"
             element={
               <ProtectedRoute>
-                <EligibleHackathons />
+                <DashboardComponent />
               </ProtectedRoute>
             }
           />
@@ -130,9 +140,9 @@ function App() {
           <Route 
             path="/eligible-hackathons" 
             element={
-              <ProtectedRoute>
+              <AdminRoute>
                 <EligibleHackathons />
-              </ProtectedRoute>
+              </AdminRoute>
             }
           />
           <Route
@@ -173,16 +183,13 @@ function App() {
           )} */}
         {!isMeetingRoom && <Footer />}
         {isAuth && !isMeetingRoom && (
-          <ChatbotButton
-            isOpen={isChatOpen}
-            onClick={() => setIsChatOpen(!isChatOpen)}
-          />
-        )}
-        {isAuth && !isMeetingRoom && (
-          <ChatWindow
-            isOpen={isChatOpen}
-            onClose={() => setIsChatOpen(false)}
-          />
+          <>
+            <ChatbotButton onClick={() => setIsChatOpen(true)} />
+            <ChatWindow
+              isOpen={isChatOpen}
+              onClose={() => setIsChatOpen(false)}
+            />
+          </>
         )}
       </div>
     </>

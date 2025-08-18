@@ -148,12 +148,10 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
 
         // Send back user details (excluding password)
         res.status(200).json({
-            _id: foundUser._id,
             userId: foundUser.userId,
             name: foundUser.name,
             email: foundUser.email,
             teamId: foundUser.teamId,
-            hackathonIds: foundUser.hackathonIds || [],
             role: foundUser.role,
             isVerified: foundUser.isVerified,
             phoneNumber : foundUser.phoneNumber,

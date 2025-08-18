@@ -47,39 +47,60 @@ router.post("/upload-participants", async (req, res) => {
       return res.status(400).json({ message: "Invalid participants data" });
     }
 
+    if (!hackathonId || hackathonId === 'new') {
+      return res.status(400).json({ message: "Valid hackathon ID is required" });
+    }
+
     let uploadedCount = 0;
+    let existingCount = 0;
+    let updatedCount = 0;
     let errors: Array<{email: string, error: string}> = [];
 
     for (const participant of participants) {
       try {
-        // Generate unique userId
-        const userId = `USER${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
-        // Hash default password
-        const hashedPassword = await bcrypt.hash("password123", 10);
-        
         // Validate required fields
         if (!participant["Email"]) {
           throw new Error("Email is required");
         }
         
-        // Create user with safe field access
-        const newUser = await User.create({
-          userId,
-          name: `${participant["First Name"] || "Unknown"} ${participant["Last Name"] || "User"}`,
-          code: userId,
-          course: participant["Course"] || "Not Specified",
-          skills: participant["Skills"] ? participant["Skills"].split(", ") : ["General"],
-          vertical: participant["Vertical"] || "Not Specified",
-          phoneNumber: participant["Phone"] || "Not Provided",
-          email: participant["Email"].toLowerCase().trim(),
-          password: hashedPassword,
-          teamId: "",
-          isVerified: true,
-          role: participant["Role"] || "member"
-        });
+        const email = participant["Email"].toLowerCase().trim();
         
-        uploadedCount++;
+        // Check if user already exists
+        const existingUser = await User.findOne({ email });
+        
+        if (existingUser) {
+          // User exists - add them to this hackathon if not already added
+          if (!existingUser.hackathonIds?.includes(hackathonId)) {
+            existingUser.hackathonIds = existingUser.hackathonIds || [];
+            existingUser.hackathonIds.push(hackathonId);
+            await existingUser.save();
+            updatedCount++;
+          } else {
+            existingCount++;
+          }
+        } else {
+          // Create new user
+          const userId = `USER${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const hashedPassword = await bcrypt.hash("password123", 10);
+          
+          const newUser = await User.create({
+            userId,
+            name: `${participant["First Name"] || "Unknown"} ${participant["Last Name"] || "User"}`,
+            code: userId,
+            course: participant["Course"] || "Not Specified",
+            skills: participant["Skills"] ? participant["Skills"].split(", ") : ["General"],
+            vertical: participant["Vertical"] || "Not Specified",
+            phoneNumber: participant["Phone"] || "Not Provided",
+            email: email,
+            password: hashedPassword,
+            teamId: "",
+            hackathonIds: [hackathonId], // Associate with this hackathon
+            isVerified: true,
+            role: participant["Role"] || "member"
+          });
+          
+          uploadedCount++;
+        }
       } catch (error) {
         errors.push({
           email: participant["Email"],
@@ -88,18 +109,32 @@ router.post("/upload-participants", async (req, res) => {
       }
     }
 
+    // Prepare detailed response message
+    let message = [];
+    if (uploadedCount > 0) message.push(`${uploadedCount} new participants created`);
+    if (updatedCount > 0) message.push(`${updatedCount} existing participants added to hackathon`);
+    if (existingCount > 0) message.push(`${existingCount} participants already in this hackathon`);
+    
+    const finalMessage = message.length > 0 ? message.join(', ') : 'No changes made';
+
     res.status(200).json({
-      message: `Successfully uploaded ${uploadedCount} participants`,
+      message: finalMessage,
       uploadedCount,
+      existingCount,
+      updatedCount,
       errorCount: errors.length,
-      errors: errors.length > 0 ? errors : undefined
+      errors: errors.length > 0 ? errors : undefined,
+      summary: {
+        total: participants.length,
+        newUsers: uploadedCount,
+        existingUsersAdded: updatedCount,
+        alreadyInHackathon: existingCount,
+        errors: errors.length
+      }
     });
   } catch (error) {
     console.error("Error uploading participants:", error);
-    res.status(500).json({ 
-      message: "Error uploading participants", 
-      error: error instanceof Error ? error.message : "Unknown error"
-    });
+    res.status(500).json({ message: "Error uploading participants", error: String(error) });
   }
 });
 
@@ -184,6 +219,31 @@ router.post("/create-test-users", async (req, res) => {
       message: "Error creating test users", 
       error: error instanceof Error ? error.message : "Unknown error"
     });
+  }
+});
+
+// Get participants for a specific hackathon
+router.get("/hackathon/:hackathonId/participants", async (req, res) => {
+  try {
+    const { hackathonId } = req.params;
+    
+    if (!hackathonId) {
+      return res.status(400).json({ message: "Hackathon ID is required" });
+    }
+
+    // Find all users associated with this hackathon
+    const participants = await User.find({ 
+      hackathonIds: { $in: [hackathonId] } 
+    }).select('-password'); // Exclude password field
+
+    res.status(200).json({
+      message: `Found ${participants.length} participants for hackathon`,
+      participants,
+      count: participants.length
+    });
+  } catch (error) {
+    console.error("Error fetching hackathon participants:", error);
+    res.status(500).json({ message: "Error fetching participants", error: String(error) });
   }
 });
 
