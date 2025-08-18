@@ -8,13 +8,14 @@
     "dev": "nodemon --ext ts --exec ts-node src/app.ts",
     "start": "node dist/app.js",
     "start:prod": "NODE_ENV=production node dist/app.js",
-    "postinstall": "npm run build"
+    "postinstall": "npm run build",
+    "create-hackathon": "node create-default-hackathon.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
-  "type": "commonjs",
+  "type": "module",
   "dependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
