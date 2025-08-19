@@ -202,6 +202,13 @@ npm test
 - **User Flow:** Register → Join team → Participate in hackathon
 - **Team Flow:** Create team → Manage members → Submit work
 
+### **Comprehensive Documentation**
+All detailed documentation, test cases, and development guides are available in the [docs/](./docs/) folder:
+- Development workflow and branch strategy
+- Testing procedures and checklists
+- Issue resolution documentation
+- Platform audit reports
+
 ## 📱 **Responsive Design**
 
 - **Mobile First:** Optimized for mobile devices
