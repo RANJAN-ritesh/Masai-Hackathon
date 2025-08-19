@@ -16,7 +16,8 @@ import {
   UserPlus,
   Copy,
   X,
-  Eye
+  Eye,
+  Crown
 } from "lucide-react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -187,6 +188,12 @@ const EligibleHackathons = () => {
         (user.role === 'member' || user.role === 'leader') && 
         (!user.teamId || user.teamId === '')
       );
+
+      console.log(`🔍 Available participants for ${hackathon.title}:`, {
+        total: allParticipants.length,
+        available: availableParticipants.length,
+        participants: availableParticipants.map(p => ({ name: p.name, role: p.role, teamId: p.teamId }))
+      });
       
       // Shuffle participants for fair team distribution
       const participants = [...availableParticipants].sort(() => Math.random() - 0.5);
@@ -295,7 +302,8 @@ const EligibleHackathons = () => {
           size: teamSize,
           members: teamMembers.map(p => p.name),
           leader: teamLeader.name,
-          hackathonId: hackathon._id
+          hackathonId: hackathon._id,
+          teamData: teamData
         });
         
         const teamResponse = await fetch(`${baseURL}/team/create-team`, {
@@ -514,33 +522,67 @@ const EligibleHackathons = () => {
     }
   };
 
-  // Copy individual team to clipboard
+  // Copy team to clipboard in CSV format
   const copyTeamToClipboard = (team) => {
-    const teamText = `Team: ${team.teamName}\nMembers:\n${team.teamMembers.map(member => `- ${member.name} (${member.role})`).join('\n')}\nTeam Size: ${team.teamMembers.length}/${team.memberLimit}`;
+    // CSV header
+    const csvHeader = "First Name\tLast Name\tEmail\tCourse\tSkills\tVertical\tPhone\tRole\n";
     
-    navigator.clipboard.writeText(teamText).then(() => {
-      toast.success("Team information copied to clipboard!", {
-        position: "top-center",
-        autoClose: 2000
-      });
-    }).catch(() => {
-      toast.error("Failed to copy to clipboard");
+    // Process team leader first
+    const leader = team.createdBy;
+    let csvContent = csvHeader;
+    
+    if (leader) {
+      const [firstName = "", lastName = ""] = leader.name ? leader.name.split(' ') : ["Unknown", "User"];
+      csvContent += `${firstName}\t${lastName}\t${leader.email || "N/A"}\t${leader.course || "N/A"}\t${leader.skills ? leader.skills.join(", ") : "N/A"}\t${leader.vertical || "N/A"}\t${leader.phoneNumber || "N/A"}\tleader\n`;
+    }
+    
+    // Process team members
+    team.teamMembers.forEach(member => {
+      // Skip if this member is already the leader
+      if (member._id !== team.createdBy?._id) {
+        const [firstName = "", lastName = ""] = member.name ? member.name.split(' ') : ["Unknown", "User"];
+        csvContent += `${firstName}\t${lastName}\t${member.email || "N/A"}\t${member.course || "N/A"}\t${member.skills ? member.skills.join(", ") : "N/A"}\t${member.vertical || "N/A"}\t${member.phoneNumber || "N/A"}\tmember\n`;
+      }
+    });
+    
+    navigator.clipboard.writeText(csvContent).then(() => {
+      toast.success(`${team.teamName} copied to clipboard in CSV format!`);
+    }).catch(err => {
+      console.error('Failed to copy: ', err);
+      toast.error('Failed to copy team data');
     });
   };
 
-  // Copy all teams to clipboard
+  // Copy all teams to clipboard in CSV format
   const copyAllTeamsToClipboard = () => {
-    const allTeamsText = teamsData.map(team => 
-      `Team: ${team.teamName}\nMembers:\n${team.teamMembers.map(member => `- ${member.name} (${member.role})`).join('\n')}\nTeam Size: ${team.teamMembers.length}/${team.memberLimit}\n`
-    ).join('\n---\n');
+    const csvHeader = "Team Name\tFirst Name\tLast Name\tEmail\tCourse\tSkills\tVertical\tPhone\tRole\n";
+    let csvContent = csvHeader;
     
-    navigator.clipboard.writeText(allTeamsText).then(() => {
-      toast.success("All teams information copied to clipboard!", {
-        position: "top-center",
-        autoClose: 2000
+    teamsData.forEach(team => {
+      const teamName = team.teamName;
+      
+      // Add team leader first
+      const leader = team.createdBy;
+      if (leader) {
+        const [firstName = "", lastName = ""] = leader.name ? leader.name.split(' ') : ["Unknown", "User"];
+        csvContent += `${teamName}\t${firstName}\t${lastName}\t${leader.email || "N/A"}\t${leader.course || "N/A"}\t${leader.skills ? leader.skills.join(", ") : "N/A"}\t${leader.vertical || "N/A"}\t${leader.phoneNumber || "N/A"}\tleader\n`;
+      }
+      
+      // Add team members
+      team.teamMembers.forEach(member => {
+        // Skip if this member is already the leader
+        if (member._id !== team.createdBy?._id) {
+          const [firstName = "", lastName = ""] = member.name ? member.name.split(' ') : ["Unknown", "User"];
+          csvContent += `${teamName}\t${firstName}\t${lastName}\t${member.email || "N/A"}\t${member.course || "N/A"}\t${member.skills ? member.skills.join(", ") : "N/A"}\t${member.vertical || "N/A"}\t${member.phoneNumber || "N/A"}\tmember\n`;
+        }
       });
-    }).catch(() => {
-      toast.error("Failed to copy to clipboard");
+    });
+    
+    navigator.clipboard.writeText(csvContent).then(() => {
+      toast.success(`All ${teamsData.length} teams copied to clipboard in CSV format!`);
+    }).catch(err => {
+      console.error('Failed to copy: ', err);
+      toast.error('Failed to copy all teams data');
     });
   };
 
@@ -837,126 +879,158 @@ const EligibleHackathons = () => {
         </div>
         {/* Teams Display Modal */}
         {teamsModalOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-200">
               {/* Modal Header */}
-              <div className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white p-6">
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 border-b">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h2 className="text-2xl font-bold">Teams Overview</h2>
-                    <p className="text-purple-100 mt-1">
-                      {selectedHackathonForTeams?.title} - {teamsData.length} Teams
+                    <h2 className="text-2xl font-bold flex items-center">
+                      <Users className="w-6 h-6 mr-3" />
+                      Teams Overview
+                    </h2>
+                    <p className="text-blue-100 mt-1">
+                      {selectedHackathonForTeams?.title} - {teamsData.length} Teams Created
                     </p>
                   </div>
                   <div className="flex space-x-3">
                     <button
                       onClick={copyAllTeamsToClipboard}
-                      className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 flex items-center border border-white border-opacity-30"
-                      title="Copy all teams to clipboard"
+                      className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 flex items-center border border-white border-opacity-30 hover:border-opacity-50"
+                      title="Copy all teams to clipboard in CSV format"
                     >
                       <Copy className="w-4 h-4 mr-2" />
-                      Copy All
+                      Export All CSV
                     </button>
                     <button
                       onClick={() => setTeamsModalOpen(false)}
-                      className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-lg transition-all duration-300 border border-white border-opacity-30"
+                      className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-lg transition-all duration-300 border border-white border-opacity-30 hover:border-opacity-50"
                     >
                       <X className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
               </div>
-
+              
               {/* Modal Body */}
-              <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)] bg-gray-50">
                 {teamsLoading ? (
-                  <div className="flex justify-center items-center h-32">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-4 border-purple-600"></div>
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    <span className="ml-4 text-gray-600 font-medium">Loading teams...</span>
                   </div>
                 ) : teamsData.length === 0 ? (
                   <div className="text-center py-12">
-                    <div className="bg-gray-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
-                      <Users className="w-10 h-10 text-gray-400" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-800 mb-2">No Teams Found</h3>
-                    <p className="text-gray-600">Teams haven't been created for this hackathon yet.</p>
+                    <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-600 mb-2">No Teams Found</h3>
+                    <p className="text-gray-500">Create teams first to see them here.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {teamsData.map((team, index) => (
-                      <div key={team._id} className="bg-gradient-to-br from-gray-50 to-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-300">
+                      <div key={team._id} className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
                         {/* Team Header */}
-                        <div className="flex justify-between items-start mb-4">
+                        <div className="bg-gradient-to-r from-gray-50 to-blue-50 p-4 border-b border-gray-200 rounded-t-xl">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h3 className="text-lg font-bold text-gray-800 mb-1">{team.teamName}</h3>
+                              <div className="flex items-center space-x-3">
+                                <span className="text-sm text-gray-600 bg-white px-2 py-1 rounded border">
+                                  {team.teamMembers.length} members
+                                </span>
+                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                                  {team.status || 'Active'}
+                                </span>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => copyTeamToClipboard(team)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition-all duration-300 flex items-center text-sm font-medium shadow-sm"
+                              title="Copy team to clipboard in CSV format"
+                            >
+                              <Copy className="w-4 h-4 mr-1" />
+                              CSV
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {/* Team Content */}
+                        <div className="p-4 space-y-4">
+                          {/* Team Leader Section */}
                           <div>
-                            <h3 className="text-lg font-bold text-gray-800 mb-1">{team.teamName}</h3>
-                            <div className="flex items-center space-x-2">
-                              <span className="text-sm text-gray-600">
-                                {team.teamMembers.length}/{team.memberLimit} members
-                              </span>
-                              <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                                {team.status || 'active'}
-                              </span>
+                            <h4 className="font-bold text-gray-800 text-sm uppercase tracking-wide mb-3 flex items-center">
+                              <Crown className="w-4 h-4 mr-2 text-yellow-500" />
+                              Team Leader
+                            </h4>
+                            {team.createdBy ? (
+                              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-3">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                                    {team.createdBy.name?.charAt(0)?.toUpperCase() || 'L'}
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="font-bold text-gray-800">{team.createdBy.name}</p>
+                                    <p className="text-xs text-orange-600 font-medium">Team Leader</p>
+                                    {team.createdBy.email && (
+                                      <p className="text-xs text-gray-500 mt-1">{team.createdBy.email}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-gray-500 italic">No leader assigned</p>
+                            )}
+                          </div>
+                          
+                          {/* Team Members Section */}
+                          <div>
+                            <h4 className="font-bold text-gray-800 text-sm uppercase tracking-wide mb-3 flex items-center">
+                              <Users className="w-4 h-4 mr-2 text-blue-500" />
+                              Team Members ({team.teamMembers.length})
+                            </h4>
+                            <div className="space-y-2">
+                              {team.teamMembers.length > 0 ? (
+                                team.teamMembers.map((member, memberIndex) => (
+                                  <div key={member._id || memberIndex} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                    <div className="flex items-center space-x-3">
+                                      <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                                        {member.name?.charAt(0)?.toUpperCase() || '?'}
+                                      </div>
+                                      <div className="flex-1">
+                                        <p className="font-medium text-gray-800">{member.name}</p>
+                                        <div className="flex items-center space-x-2 mt-1">
+                                          <span className="text-xs text-gray-500 capitalize bg-white px-2 py-1 rounded border">
+                                            {member.role || 'member'}
+                                          </span>
+                                          {member.email && (
+                                            <span className="text-xs text-gray-400">
+                                              {member.email}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      {/* Leader indicator */}
+                                      {member._id === team.createdBy?._id && (
+                                        <Crown className="w-4 h-4 text-yellow-500" title="Team Leader" />
+                                      )}
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-gray-500 italic text-center py-4">No members in this team</p>
+                              )}
                             </div>
                           </div>
-                          <button
-                            onClick={() => copyTeamToClipboard(team)}
-                            className="bg-purple-100 hover:bg-purple-200 text-purple-700 p-2 rounded-lg transition-all duration-300 border border-purple-200"
-                            title="Copy team to clipboard"
-                          >
-                            <Copy className="w-4 h-4" />
-                          </button>
-                        </div>
-
-                        {/* Team Leader */}
-                        <div className="mb-4">
-                          <h4 className="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-2">Team Leader</h4>
-                          {team.createdBy && (
-                            <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-100">
-                              <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                                {team.createdBy.name?.charAt(0)?.toUpperCase() || 'L'}
-                              </div>
-                              <div className="flex-1">
-                                <p className="font-bold text-gray-800">{team.createdBy.name}</p>
-                                <p className="text-xs text-purple-600 font-medium">Team Leader</p>
-                              </div>
-                              {team.createdBy.email && (
-                                <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded border">
-                                  {team.createdBy.email}
-                                </span>
-                              )}
+                          
+                          {/* Team Description */}
+                          {team.description && (
+                            <div className="mt-4 pt-4 border-t border-gray-100">
+                              <p className="text-sm text-gray-600 italic bg-gray-50 p-3 rounded-lg border">
+                                "{team.description}"
+                              </p>
                             </div>
                           )}
                         </div>
-
-                        {/* Team Members */}
-                        <div className="space-y-3">
-                          <h4 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">All Members</h4>
-                          <div className="space-y-2">
-                            {team.teamMembers.map((member, memberIndex) => (
-                              <div key={member._id || memberIndex} className="flex items-center space-x-3 p-3 bg-white rounded-lg border border-gray-100">
-                                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                                  {member.name?.charAt(0)?.toUpperCase() || '?'}
-                                </div>
-                                <div className="flex-1">
-                                  <p className="font-medium text-gray-800">{member.name}</p>
-                                  <p className="text-xs text-gray-500 capitalize">{member.role}</p>
-                                </div>
-                                {member.email && (
-                                  <span className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded">
-                                    {member.email}
-                                  </span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Team Footer */}
-                        {team.description && (
-                          <div className="mt-4 pt-4 border-t border-gray-100">
-                            <p className="text-sm text-gray-600 italic">"{team.description}"</p>
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
