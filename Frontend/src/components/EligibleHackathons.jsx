@@ -183,10 +183,13 @@ const EligibleHackathons = () => {
       const allParticipants = participantsData.participants || [];
       
       // Filter participants who are not already in teams
-      const participants = allParticipants.filter(user => 
+      const availableParticipants = allParticipants.filter(user => 
         (user.role === 'member' || user.role === 'leader') && 
         (!user.teamId || user.teamId === '')
       );
+      
+      // Shuffle participants for fair team distribution
+      const participants = [...availableParticipants].sort(() => Math.random() - 0.5);
       
       if (participants.length === 0) {
         toast.error(`No available participants found in ${hackathon.title} to create teams. Please add participants first.`, {
@@ -275,7 +278,9 @@ const EligibleHackathons = () => {
         if (teamMembers.length === 0) break;
         
         const teamName = `${hackathon.title} - Team ${i + 1}`;
-        const teamLeader = teamMembers[0]; // First member becomes team leader
+        
+        // Smart leader selection: prefer someone with 'leader' role from CSV, otherwise first member
+        const teamLeader = teamMembers.find(member => member.role === 'leader') || teamMembers[0];
         
         const teamData = {
           teamName: teamName,
@@ -811,10 +816,11 @@ const EligibleHackathons = () => {
                                     e.stopPropagation();
                                     handleViewTeams(registration.hackathonId);
                                   }}
-                                  className="bg-purple-100 hover:bg-purple-200 text-purple-700 p-2 rounded-lg transition-all duration-300"
+                                  className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-2 rounded-lg transition-all duration-300 flex items-center"
                                   title="View Teams"
                                 >
-                                  <Eye className="w-4 h-4" />
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  <span className="text-sm font-medium">Teams</span>
                                 </button>
                                 <div className="bg-indigo-100 hover:bg-indigo-200 p-3 rounded-lg transition-all duration-300">
                                   <ArrowRight className="w-5 h-5 text-indigo-600" />
@@ -845,7 +851,7 @@ const EligibleHackathons = () => {
                   <div className="flex space-x-3">
                     <button
                       onClick={copyAllTeamsToClipboard}
-                      className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 flex items-center"
+                      className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 flex items-center border border-white border-opacity-30"
                       title="Copy all teams to clipboard"
                     >
                       <Copy className="w-4 h-4 mr-2" />
@@ -853,7 +859,7 @@ const EligibleHackathons = () => {
                     </button>
                     <button
                       onClick={() => setTeamsModalOpen(false)}
-                      className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-lg transition-all duration-300"
+                      className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-lg transition-all duration-300 border border-white border-opacity-30"
                     >
                       <X className="w-5 h-5" />
                     </button>
@@ -894,20 +900,41 @@ const EligibleHackathons = () => {
                           </div>
                           <button
                             onClick={() => copyTeamToClipboard(team)}
-                            className="bg-purple-100 hover:bg-purple-200 text-purple-700 p-2 rounded-lg transition-all duration-300"
+                            className="bg-purple-100 hover:bg-purple-200 text-purple-700 p-2 rounded-lg transition-all duration-300 border border-purple-200"
                             title="Copy team to clipboard"
                           >
                             <Copy className="w-4 h-4" />
                           </button>
                         </div>
 
+                        {/* Team Leader */}
+                        <div className="mb-4">
+                          <h4 className="font-semibold text-gray-700 text-sm uppercase tracking-wide mb-2">Team Leader</h4>
+                          {team.createdBy && (
+                            <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg border border-purple-100">
+                              <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                                {team.createdBy.name?.charAt(0)?.toUpperCase() || 'L'}
+                              </div>
+                              <div className="flex-1">
+                                <p className="font-bold text-gray-800">{team.createdBy.name}</p>
+                                <p className="text-xs text-purple-600 font-medium">Team Leader</p>
+                              </div>
+                              {team.createdBy.email && (
+                                <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded border">
+                                  {team.createdBy.email}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
                         {/* Team Members */}
                         <div className="space-y-3">
-                          <h4 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">Members</h4>
+                          <h4 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">All Members</h4>
                           <div className="space-y-2">
                             {team.teamMembers.map((member, memberIndex) => (
                               <div key={member._id || memberIndex} className="flex items-center space-x-3 p-3 bg-white rounded-lg border border-gray-100">
-                                <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
                                   {member.name?.charAt(0)?.toUpperCase() || '?'}
                                 </div>
                                 <div className="flex-1">

@@ -1,5 +1,5 @@
 import express from "express";
-import { createTeams, getTeams, deleteTeam } from "../controller/teamController.js";
+import { createTeams, getTeams, deleteTeam } from "../controller/teamController";
 
 const router = express.Router();
 
@@ -8,7 +8,7 @@ router.get("/get-teams", getTeams); // Get all teams
 router.get("/hackathon/:hackathonId", async (req, res) => {
   try {
     const { hackathonId } = req.params;
-    const Team = (await import("../model/team.js")).default;
+    const Team = (await import("../model/team")).default;
     
     // Get teams for specific hackathon
     const teams = await Team.find({ hackathonId }).populate('teamMembers', 'name email role').populate('createdBy', 'name email');

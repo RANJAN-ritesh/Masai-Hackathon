@@ -1,5 +1,5 @@
 import express from "express";
-import { getPendingJoinRequests, sendJoinRequest, acceptJoinRequest, declineJoinRequest } from "../controller/teamRequestController.js";
+import { getPendingJoinRequests, sendJoinRequest, acceptJoinRequest, declineJoinRequest } from "../controller/teamRequestController";
 
 const router = express.Router();
 

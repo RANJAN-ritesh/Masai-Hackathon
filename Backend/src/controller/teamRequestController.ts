@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
-import teamRequests from "../model/teamRequests.js";
-import team from "../model/team.js";
-import user from "../model/user.js";
+import teamRequests from "../model/teamRequests";
+import team from "../model/team";
+import user from "../model/user";
 
 // export const acceptJoinRequest = async(req:Request<{}, {}, {requestId:string; teamId:string; }>)
 
