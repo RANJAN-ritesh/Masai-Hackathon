@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import user from "../model/user.js";
-import team from "../model/team.js";
+import user from "../model/user";
+import team from "../model/team";
 
 export const leaveTeam = async (req: Request, res: Response): Promise<void> => {
     try {

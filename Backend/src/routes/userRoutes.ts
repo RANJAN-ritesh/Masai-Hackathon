@@ -1,8 +1,8 @@
 import express from "express";
-import { verifyUser, getUserById, leaveTeam, createUser } from "../controller/userController.js";
-import { validateUserInput } from "../middleware/validation.js";
+import { verifyUser, getUserById, leaveTeam, createUser } from "../controller/userController";
+import { validateUserInput } from "../middleware/validation";
 import bcrypt from "bcryptjs";
-import User from "../model/user.js";
+import User from "../model/user";
 
 const router = express.Router();
 

@@ -1,5 +1,5 @@
 import express from "express";
-import Hackathon from "../model/hackathon.js";
+import Hackathon from "../model/hackathon";
 
 const router = express.Router();
 

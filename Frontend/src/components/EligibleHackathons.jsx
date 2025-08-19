@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { MyContext } from "../context/AuthContextProvider";
 import {
@@ -14,6 +14,10 @@ import {
   Trash2,
   Pencil,
   UserPlus,
+  Copy,
+  X,
+  Eye,
+  Crown
 } from "lucide-react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -39,6 +43,12 @@ const EligibleHackathons = () => {
 
   const [participants, setParticipants] = useState({});
   const [showParticipants, setShowParticipants] = useState(null);
+  
+  // Teams display modal state
+  const [teamsModalOpen, setTeamsModalOpen] = useState(false);
+  const [selectedHackathonForTeams, setSelectedHackathonForTeams] = useState(null);
+  const [teamsData, setTeamsData] = useState([]);
+  const [teamsLoading, setTeamsLoading] = useState(false);
 
   const handleCSVUploadClick = (hackathonId) => {
     setSelectedHackathonId(hackathonId);
@@ -174,10 +184,19 @@ const EligibleHackathons = () => {
       const allParticipants = participantsData.participants || [];
       
       // Filter participants who are not already in teams
-      const participants = allParticipants.filter(user => 
+      const availableParticipants = allParticipants.filter(user => 
         (user.role === 'member' || user.role === 'leader') && 
         (!user.teamId || user.teamId === '')
       );
+
+      console.log(`🔍 Available participants for ${hackathon.title}:`, {
+        total: allParticipants.length,
+        available: availableParticipants.length,
+        participants: availableParticipants.map(p => ({ name: p.name, role: p.role, teamId: p.teamId }))
+      });
+      
+      // Shuffle participants for fair team distribution
+      const participants = [...availableParticipants].sort(() => Math.random() - 0.5);
       
       if (participants.length === 0) {
         toast.error(`No available participants found in ${hackathon.title} to create teams. Please add participants first.`, {
@@ -266,7 +285,9 @@ const EligibleHackathons = () => {
         if (teamMembers.length === 0) break;
         
         const teamName = `${hackathon.title} - Team ${i + 1}`;
-        const teamLeader = teamMembers[0]; // First member becomes team leader
+        
+        // Smart leader selection: prefer someone with 'leader' role from CSV, otherwise first member
+        const teamLeader = teamMembers.find(member => member.role === 'leader') || teamMembers[0];
         
         const teamData = {
           teamName: teamName,
@@ -281,7 +302,8 @@ const EligibleHackathons = () => {
           size: teamSize,
           members: teamMembers.map(p => p.name),
           leader: teamLeader.name,
-          hackathonId: hackathon._id
+          hackathonId: hackathon._id,
+          teamData: teamData
         });
         
         const teamResponse = await fetch(`${baseURL}/team/create-team`, {
@@ -476,6 +498,94 @@ const EligibleHackathons = () => {
     }
   };
 
+  // View teams for a hackathon
+  const handleViewTeams = async (hackathon) => {
+    setSelectedHackathonForTeams(hackathon);
+    setTeamsModalOpen(true);
+    setTeamsLoading(true);
+    
+    try {
+      const response = await fetch(`${baseURL}/team/hackathon/${hackathon._id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTeamsData(data.teams || []);
+      } else {
+        toast.error("Failed to fetch teams");
+        setTeamsData([]);
+      }
+    } catch (error) {
+      console.error("Error fetching teams:", error);
+      toast.error("Error fetching teams");
+      setTeamsData([]);
+    } finally {
+      setTeamsLoading(false);
+    }
+  };
+
+  // Copy team to clipboard in CSV format
+  const copyTeamToClipboard = (team) => {
+    // CSV header
+    const csvHeader = "First Name\tLast Name\tEmail\tCourse\tSkills\tVertical\tPhone\tRole\n";
+    
+    // Process team leader first
+    const leader = team.createdBy;
+    let csvContent = csvHeader;
+    
+    if (leader) {
+      const [firstName = "", lastName = ""] = leader.name ? leader.name.split(' ') : ["Unknown", "User"];
+      csvContent += `${firstName}\t${lastName}\t${leader.email || "N/A"}\t${leader.course || "N/A"}\t${leader.skills ? leader.skills.join(", ") : "N/A"}\t${leader.vertical || "N/A"}\t${leader.phoneNumber || "N/A"}\tleader\n`;
+    }
+    
+    // Process team members
+    team.teamMembers.forEach(member => {
+      // Skip if this member is already the leader
+      if (member._id !== team.createdBy?._id) {
+        const [firstName = "", lastName = ""] = member.name ? member.name.split(' ') : ["Unknown", "User"];
+        csvContent += `${firstName}\t${lastName}\t${member.email || "N/A"}\t${member.course || "N/A"}\t${member.skills ? member.skills.join(", ") : "N/A"}\t${member.vertical || "N/A"}\t${member.phoneNumber || "N/A"}\tmember\n`;
+      }
+    });
+    
+    navigator.clipboard.writeText(csvContent).then(() => {
+      toast.success(`${team.teamName} copied to clipboard in CSV format!`);
+    }).catch(err => {
+      console.error('Failed to copy: ', err);
+      toast.error('Failed to copy team data');
+    });
+  };
+
+  // Copy all teams to clipboard in CSV format
+  const copyAllTeamsToClipboard = () => {
+    const csvHeader = "Team Name\tFirst Name\tLast Name\tEmail\tCourse\tSkills\tVertical\tPhone\tRole\n";
+    let csvContent = csvHeader;
+    
+    teamsData.forEach(team => {
+      const teamName = team.teamName;
+      
+      // Add team leader first
+      const leader = team.createdBy;
+      if (leader) {
+        const [firstName = "", lastName = ""] = leader.name ? leader.name.split(' ') : ["Unknown", "User"];
+        csvContent += `${teamName}\t${firstName}\t${lastName}\t${leader.email || "N/A"}\t${leader.course || "N/A"}\t${leader.skills ? leader.skills.join(", ") : "N/A"}\t${leader.vertical || "N/A"}\t${leader.phoneNumber || "N/A"}\tleader\n`;
+      }
+      
+      // Add team members
+      team.teamMembers.forEach(member => {
+        // Skip if this member is already the leader
+        if (member._id !== team.createdBy?._id) {
+          const [firstName = "", lastName = ""] = member.name ? member.name.split(' ') : ["Unknown", "User"];
+          csvContent += `${teamName}\t${firstName}\t${lastName}\t${member.email || "N/A"}\t${member.course || "N/A"}\t${member.skills ? member.skills.join(", ") : "N/A"}\t${member.vertical || "N/A"}\t${member.phoneNumber || "N/A"}\tmember\n`;
+        }
+      });
+    });
+    
+    navigator.clipboard.writeText(csvContent).then(() => {
+      toast.success(`All ${teamsData.length} teams copied to clipboard in CSV format!`);
+    }).catch(err => {
+      console.error('Failed to copy: ', err);
+      toast.error('Failed to copy all teams data');
+    });
+  };
+
   return (
     hackathons && (
       <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white">
@@ -615,6 +725,14 @@ const EligibleHackathons = () => {
                                   <Users className="w-5 h-5" />
                                 </button>
 
+                                <button
+                                  onClick={() => handleViewTeams(registration)}
+                                  className="bg-purple-100 hover:bg-purple-200 text-purple-700 p-2 rounded-lg transition-all duration-300"
+                                  title="View Teams"
+                                >
+                                  <Eye className="w-5 h-5" />
+                                </button>
+
                                 <Link to={`/edithackathon/${registration._id}`}>
                                   <button 
                                     className="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-all duration-300"
@@ -731,12 +849,24 @@ const EligibleHackathons = () => {
                                   {registration.teamId?.teamName || "No Team"}
                                 </p>
                                 <p className="text-xs text-indigo-600 mt-1">
-                                  {console.log(registration)}
                                   Role: <span className="font-medium">{registration?.role}</span>
                                 </p>
                               </div>
-                              <div className="bg-indigo-100 hover:bg-indigo-200 p-3 rounded-lg transition-all duration-300">
-                                <ArrowRight className="w-5 h-5 text-indigo-600" />
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleViewTeams(registration.hackathonId);
+                                  }}
+                                  className="bg-purple-100 hover:bg-purple-200 text-purple-700 px-3 py-2 rounded-lg transition-all duration-300 flex items-center"
+                                  title="View Teams"
+                                >
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  <span className="text-sm font-medium">Teams</span>
+                                </button>
+                                <div className="bg-indigo-100 hover:bg-indigo-200 p-3 rounded-lg transition-all duration-300">
+                                  <ArrowRight className="w-5 h-5 text-indigo-600" />
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -747,6 +877,169 @@ const EligibleHackathons = () => {
             </div>
           )}
         </div>
+        {/* Teams Display Modal */}
+        {teamsModalOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-200">
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 border-b">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-2xl font-bold flex items-center">
+                      <Users className="w-6 h-6 mr-3" />
+                      Teams Overview
+                    </h2>
+                    <p className="text-blue-100 mt-1">
+                      {selectedHackathonForTeams?.title} - {teamsData.length} Teams Created
+                    </p>
+                  </div>
+                  <div className="flex space-x-3">
+                    <button
+                      onClick={copyAllTeamsToClipboard}
+                      className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 flex items-center border border-white border-opacity-30 hover:border-opacity-50"
+                      title="Copy all teams to clipboard in CSV format"
+                    >
+                      <Copy className="w-4 h-4 mr-2" />
+                      Export All CSV
+                    </button>
+                    <button
+                      onClick={() => setTeamsModalOpen(false)}
+                      className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white p-2 rounded-lg transition-all duration-300 border border-white border-opacity-30 hover:border-opacity-50"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Modal Body */}
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)] bg-gray-50">
+                {teamsLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                    <span className="ml-4 text-gray-600 font-medium">Loading teams...</span>
+                  </div>
+                ) : teamsData.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-600 mb-2">No Teams Found</h3>
+                    <p className="text-gray-500">Create teams first to see them here.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {teamsData.map((team, index) => (
+                      <div key={team._id} className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
+                        {/* Team Header */}
+                        <div className="bg-gradient-to-r from-gray-50 to-blue-50 p-4 border-b border-gray-200 rounded-t-xl">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <h3 className="text-lg font-bold text-gray-800 mb-1">{team.teamName}</h3>
+                              <div className="flex items-center space-x-3">
+                                <span className="text-sm text-gray-600 bg-white px-2 py-1 rounded border">
+                                  {team.teamMembers.length} members
+                                </span>
+                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                                  {team.status || 'Active'}
+                                </span>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => copyTeamToClipboard(team)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition-all duration-300 flex items-center text-sm font-medium shadow-sm"
+                              title="Copy team to clipboard in CSV format"
+                            >
+                              <Copy className="w-4 h-4 mr-1" />
+                              CSV
+                            </button>
+                          </div>
+                        </div>
+                        
+                        {/* Team Content */}
+                        <div className="p-4 space-y-4">
+                          {/* Team Leader Section */}
+                          <div>
+                            <h4 className="font-bold text-gray-800 text-sm uppercase tracking-wide mb-3 flex items-center">
+                              <Crown className="w-4 h-4 mr-2 text-yellow-500" />
+                              Team Leader
+                            </h4>
+                            {team.createdBy ? (
+                              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-3">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                                    {team.createdBy.name?.charAt(0)?.toUpperCase() || 'L'}
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="font-bold text-gray-800">{team.createdBy.name}</p>
+                                    <p className="text-xs text-orange-600 font-medium">Team Leader</p>
+                                    {team.createdBy.email && (
+                                      <p className="text-xs text-gray-500 mt-1">{team.createdBy.email}</p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <p className="text-gray-500 italic">No leader assigned</p>
+                            )}
+                          </div>
+                          
+                          {/* Team Members Section */}
+                          <div>
+                            <h4 className="font-bold text-gray-800 text-sm uppercase tracking-wide mb-3 flex items-center">
+                              <Users className="w-4 h-4 mr-2 text-blue-500" />
+                              Team Members ({team.teamMembers.length})
+                            </h4>
+                            <div className="space-y-2">
+                              {team.teamMembers.length > 0 ? (
+                                team.teamMembers.map((member, memberIndex) => (
+                                  <div key={member._id || memberIndex} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                    <div className="flex items-center space-x-3">
+                                      <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                                        {member.name?.charAt(0)?.toUpperCase() || '?'}
+                                      </div>
+                                      <div className="flex-1">
+                                        <p className="font-medium text-gray-800">{member.name}</p>
+                                        <div className="flex items-center space-x-2 mt-1">
+                                          <span className="text-xs text-gray-500 capitalize bg-white px-2 py-1 rounded border">
+                                            {member.role || 'member'}
+                                          </span>
+                                          {member.email && (
+                                            <span className="text-xs text-gray-400">
+                                              {member.email}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                      {/* Leader indicator */}
+                                      {member._id === team.createdBy?._id && (
+                                        <Crown className="w-4 h-4 text-yellow-500" title="Team Leader" />
+                                      )}
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <p className="text-gray-500 italic text-center py-4">No members in this team</p>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Team Description */}
+                          {team.description && (
+                            <div className="mt-4 pt-4 border-t border-gray-100">
+                              <p className="text-sm text-gray-600 italic bg-gray-50 p-3 rounded-lg border">
+                                "{team.description}"
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <CSVUploadModal
           isOpen={csvModalOpen}
           onClose={() => setCsvModalOpen(false)}
@@ -759,376 +1052,3 @@ const EligibleHackathons = () => {
 };
 
 export default EligibleHackathons;
-
-// import React, { useContext, useEffect, useState } from "react";
-// import { Link, useNavigate } from "react-router-dom";
-// import { MyContext } from "../context/AuthContextProvider";
-// import {
-//   ArrowRight,
-//   CalendarRange,
-//   MapPin,
-//   Trophy,
-//   Users,
-//   Frown,
-//   Sparkles,
-// } from "lucide-react";
-// import { toast } from "react-toastify";
-// import "react-toastify/dist/ReactToastify.css";
-// import ConfirmationModal from "./ConfirmationModal";
-
-// const EligibleHackathons = () => {
-//   const baseURL = import.meta.env.VITE_BASE_URL;
-//   const [hackathons, setHackathons] = useState([]);
-//   const [loading, setLoading] = useState(true);
-//   const userId = localStorage.getItem("userId");
-//   const { setCurrentHackathonId, userData } = useContext(MyContext);
-//   const navigate = useNavigate();
-//   const [isModalOpen, setIsModalOpen] = useState(false);
-//   const [modalConfig, setModalConfig] = useState({});
-
-//   // Configure Modal based on Action and Pass Arguments
-//   const openModal = (actionType, hackathon, e) => {
-//     if (actionType === "create") {
-//       setModalConfig({
-//         title: "Confirm Create Teams",
-//         message: `Are you sure you want to create the teams for ${hackathon.name}.`,
-//         onConfirm: () => {
-//           handleCreateTeam(hackathon._id, e);
-//           setIsModalOpen(false);
-//         },
-//       });
-//     } else if (actionType === "delete") {
-//       setModalConfig({
-//         title: "Confirm Deleting Team",
-//         message:
-//           "Are you sure you want to delete the Hackathon? This action is irreversible.",
-//         onConfirm: () => {
-//           handleDelete(hackathon._id, e);
-//           setIsModalOpen(false);
-//         },
-//       });
-//     }
-//     setIsModalOpen(true);
-//   };
-
-//   const fetchHackathons = async (user) => {
-//     setLoading(true);
-//     const role = user?.role;
-//     if (role === "admin") {
-//       try {
-//         const response = await fetch(`${baseURL}/hackathons`);
-//         const data = await response.json();
-//         if (data?.message === "No Hackathons Found") {
-//           setHackathons([]);
-//         } else {
-//           setHackathons(data);
-//         }
-//       } catch (error) {
-//         console.error("Error fetching hackathons:", error);
-//       } finally {
-//         setLoading(false);
-//       }
-//     } else {
-//       try {
-//         const response = await fetch(`${baseURL}/registrations/user/${userId}`);
-//         const data = await response.json();
-//         if (data?.message === "No registrations found for this user") {
-//           setHackathons([]);
-//         } else {
-//           setHackathons(data.registrations);
-//         }
-//       } catch (error) {
-//         console.error("Error fetching hackathons:", error);
-//       } finally {
-//         setLoading(false);
-//       }
-//     }
-//   };
-
-//   useEffect(() => {
-//     if (userData) {
-//       fetchHackathons(userData);
-//     } else {
-//       setLoading(false);
-//     }
-//   }, [userData]);
-
-//   const handleDelete = async (id) => {
-//     const response = await fetch(`${baseURL}/hackathons/${id}`, {
-//       method: "DELETE",
-//     });
-//     fetchHackathons();
-//   };
-
-//   const handleCreateTeam = async (id) => {
-//     try {
-//       const response = await fetch(`${baseURL}/team/auto`, {
-//         method: "POST",
-//         headers: {
-//           "Content-Type": "application/json",
-//         },
-//         body: JSON.stringify({
-//           minSize: 3,
-//           maxSize: 5,
-//           hackathonId: `${id}`,
-//         }),
-//       });
-//       if (response.ok) {
-//         toast.success("Team created successfully!", {
-//           position: "top-right",
-//         });
-//       } else {
-//         toast.warning("Failed to create team. Please try again.", {
-//           position: "top-right",
-//         });
-//       }
-//     } catch (error) {
-//       console.error("Error creating team:", error);
-//       toast.error("An error occurred while creating the team.", {
-//         position: "top-right",
-//       });
-//     }
-//   };
-
-//   const handleCardClick = (hackathonId) => {
-//     setCurrentHackathonId(hackathonId);
-//     localStorage.setItem("currentHackathon", hackathonId);
-//     navigate(`/hackathon`);
-//   };
-
-//   const formatDate = (dateString) => {
-//     const options = { year: "numeric", month: "short", day: "numeric" };
-//     return new Date(dateString).toLocaleDateString(undefined, options);
-//   };
-
-//   const getEventStatus = (startDate, endDate) => {
-//     const now = new Date();
-//     const start = new Date(startDate);
-//     const end = new Date(endDate);
-
-//     if (now < start) {
-//       return {
-//         label: "Upcoming",
-//         color: "bg-blue-100 text-blue-800",
-//         icon: <Sparkles className="w-4 h-4 mr-1" />,
-//       };
-//     } else if (now > end) {
-//       return {
-//         label: "Completed",
-//         color: "bg-gray-100 text-gray-800",
-//         icon: <Trophy className="w-4 h-4 mr-1" />,
-//       };
-//     } else {
-//       return {
-//         label: "Active",
-//         color: "bg-green-100 text-green-800",
-//         icon: <Users className="w-4 h-4 mr-1" />,
-//       };
-//     }
-//   };
-
-//   return (
-//     <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white">
-//       <div className="p-6 max-w-7xl mx-auto">
-//         <div className="flex flex-col md:flex-row justify-between items-center mb-8">
-//           <div>
-//             <h2 className="text-3xl font-bold text-gray-900 mb-2">
-//               Your Hackathons
-//             </h2>
-//             <p className="text-gray-600">
-//               Manage and track your hackathon journey
-//             </p>
-//           </div>
-//           {userData?.role === "admin" && (
-//             <Link to="/create-hackathon">
-//               <button className="mt-4 md:mt-0 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 flex items-center">
-//                 <Sparkles className="w-5 h-5 mr-2" />
-//                 Create New Hackathon
-//               </button>
-//             </Link>
-//           )}
-//         </div>
-
-//         {loading ? (
-//           <div className="flex justify-center items-center h-64">
-//             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
-//           </div>
-//         ) : hackathons.length === 0 ? (
-//           <div className="bg-white rounded-xl shadow-lg p-8 text-center max-w-lg mx-auto border border-gray-100">
-//             <div className="bg-gray-50 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-6">
-//               <Frown className="w-10 h-10 text-gray-400" />
-//             </div>
-//             <h3 className="text-xl font-semibold text-gray-800 mb-2">
-//               No Hackathons Found
-//             </h3>
-//             <p className="text-gray-600 mb-6">
-//               You haven't registered for any hackathons yet.
-//             </p>
-//             <Link to="/browse-hackathons">
-//               <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-200">
-//                 Browse Hackathons
-//               </button>
-//             </Link>
-//           </div>
-//         ) : (
-//           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-//             {userData?.role === "admin"
-//               ? hackathons.map((registration) => {
-//                   console.log(registration);
-//                   const status = getEventStatus(
-//                     registration.startDate,
-//                     registration.endDate
-//                   );
-
-//                   return (
-//                     <div
-//                       key={registration._id}
-//                       className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer transform hover:-translate-y-1"
-//                     >
-//                       <div className="h-2 bg-gradient-to-r from-indigo-600 to-purple-600"></div>
-//                       <div className="p-6">
-//                         <div className="flex justify-between items-start mb-3">
-//                           <h3 className="text-xl font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
-//                             {registration.name}
-//                           </h3>
-//                           <span
-//                             className={`flex items-center text-xs font-medium px-3 py-1 rounded-full ${status.color}`}
-//                           >
-//                             {status.icon}
-//                             {status.label}
-//                           </span>
-//                         </div>
-
-//                         <div className="space-y-2 mb-4">
-//                           <div className="flex items-center text-sm text-gray-600">
-//                             <CalendarRange className="w-4 h-4 mr-2" />
-//                             {formatDate(registration.startDate)} -{" "}
-//                             {formatDate(registration.endDate)}
-//                           </div>
-
-//                           <div className="flex items-center text-sm text-gray-600">
-//                             <MapPin className="w-4 h-4 mr-2" />
-//                             {registration.eventType}
-//                           </div>
-//                         </div>
-
-//                         <div className="pt-4 border-t border-gray-100">
-//                           <div className="flex justify-between items-center ">
-//                             <div>
-//                               <button
-//                                 onClick={() =>
-//                                   handleCreateTeam(registration._id)
-//                                 }
-//                                 className="bg-purple-500 hover:bg-purple-600 text-white px-2 py-2 rounded-md font-bold transition transform hover:scale-105"
-//                               >
-//                                 Create Team
-//                               </button>
-//                             </div>
-
-//                             <div>
-//                               <Link to={`/edithackathon/${registration._id}`}>
-//                                 <button className="bg-blue-500 hover:bg-blue-600 text-white px-2 py-2 rounded-md font-bold transition transform hover:scale-105">
-//                                   Edit
-//                                 </button>
-//                               </Link>
-//                             </div>
-
-//                             <div>
-//                               <button
-//                                 onClick={() => handleDelete(registration._id)}
-//                                 className="bg-red-500 hover:bg-red-600 text-white px-2 py-2 rounded-md font-bold transition transform hover:scale-105"
-//                               >
-//                                 Delete
-//                               </button>
-//                             </div>
-
-//                             <div
-//                               className="bg-indigo-50 p-2 rounded-md"
-//                               onClick={() => handleCardClick(registration._id)}
-//                             >
-//                               <ArrowRight className="w-5 h-5 text-indigo-600" />
-//                             </div>
-//                           </div>
-//                         </div>
-//                       </div>
-//                     </div>
-//                   );
-//                 })
-//               : hackathons.map((registration) => {
-//                   console.log(registration);
-//                   const status = getEventStatus(
-//                     registration.hackathonId.startDate,
-//                     registration.hackathonId.endDate
-//                   );
-
-//                   return (
-//                     <div
-//                       key={registration._id}
-//                       className="group bg-white rounded-xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer transform hover:-translate-y-1"
-//                       onClick={() =>
-//                         handleCardClick(registration.hackathonId._id)
-//                       }
-//                     >
-//                       <div className="h-3 bg-indigo-600"></div>
-//                       <div className="p-6">
-//                         <div className="flex justify-between items-start mb-3">
-//                           <h3 className="text-xl font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
-//                             {registration.hackathonId.name}
-//                           </h3>
-//                           <span
-//                             className={`flex items-center text-xs font-medium px-3 py-1 rounded-full ${status.color}`}
-//                           >
-//                             {status.icon}
-//                             {status.label}
-//                           </span>
-//                         </div>
-
-//                         <div className="space-y-2 mb-4">
-//                           <div className="flex items-center text-sm text-gray-600">
-//                             <CalendarRange className="w-4 h-4 mr-2" />
-//                             {formatDate(
-//                               registration.hackathonId.startDate
-//                             )} - {formatDate(registration.hackathonId.endDate)}
-//                           </div>
-
-//                           <div className="flex items-center text-sm text-gray-600">
-//                             <MapPin className="w-4 h-4 mr-2" />
-//                             {registration.hackathonId.eventType}
-//                           </div>
-//                         </div>
-
-//                         <div className="pt-4 border-t border-gray-100">
-//                           <div className="flex justify-between items-center">
-//                             <div>
-//                               <p className="text-sm font-medium text-gray-900">
-//                                 {registration.teamId?.teamName || "No Team"}
-//                               </p>
-//                               <p className="text-xs text-gray-500">
-//                                 {registration.role}
-//                               </p>
-//                             </div>
-//                             <div className="bg-indigo-50 p-2 rounded-md">
-//                               <ArrowRight className="w-5 h-5 text-indigo-600" />
-//                             </div>
-//                           </div>
-//                         </div>
-//                       </div>
-//                     </div>
-//                   );
-//                 })}
-//           </div>
-//         )}
-//       </div>
-//       {/* Reusable Confirmation Modal */}
-//       <ConfirmationModal
-//         isOpen={isModalOpen}
-//         onClose={() => setIsModalOpen(false)}
-//         onConfirm={modalConfig.onConfirm}
-//         title={modalConfig.title}
-//         message={modalConfig.message}
-//       />
-//     </div>
-//   );
-// };
-
-// export default EligibleHackathons;
