@@ -20,9 +20,9 @@ export const getTeams = async (req: Request, res: Response): Promise<void> => {
 
 
 
-export const createTeams = async( req:Request<{}, {}, {teamName: string, createdBy?: string, hackathonId?: string, maxMembers?: number, description?: string}>, res:Response) : Promise<void> => {
+export const createTeams = async( req:Request<{}, {}, {teamName: string, createdBy?: string, hackathonId?: string, maxMembers?: number, memberLimit?: number, description?: string, teamMembers?: string[]}>, res:Response) : Promise<void> => {
     try {
-        const { teamName, createdBy, hackathonId, maxMembers, description } = req.body;
+        const { teamName, createdBy, hackathonId, maxMembers, memberLimit, description, teamMembers } = req.body;
 
         if (!teamName) {
             res.status(400).json({ message: "Team Creation failed!!! Team name is required" });
@@ -64,22 +64,47 @@ export const createTeams = async( req:Request<{}, {}, {teamName: string, created
             return;
         }
 
+        // Process team members - convert string IDs to ObjectIds
+        let teamMemberIds: mongoose.Types.ObjectId[] = [createdByObjectId]; // Always include creator
+        
+        if (teamMembers && Array.isArray(teamMembers)) {
+            // Convert all team member IDs to ObjectIds and validate them
+            const validMemberIds = [];
+            for (const memberId of teamMembers) {
+                try {
+                    const memberObjectId = new mongoose.Types.ObjectId(memberId);
+                    // Check if user exists
+                    const memberExists = await user.findById(memberObjectId);
+                    if (memberExists) {
+                        validMemberIds.push(memberObjectId);
+                    }
+                } catch (error) {
+                    console.log(`Invalid member ID: ${memberId}`);
+                }
+            }
+            teamMemberIds = validMemberIds;
+        }
+
         // Create the team with hackathon association
         const newTeam = await team.create({
             teamName,
             createdBy: createdByObjectId,
-            memberLimit: maxMembers || 4,
-            teamMembers: [createdByObjectId],
+            memberLimit: memberLimit || maxMembers || 4,
+            teamMembers: teamMemberIds,
             hackathonId: hackathonId || null, // Associate with specific hackathon
             description: description || "",
             status: 'active'
         });
 
         if (newTeam) {
-            // Update user with teamId
-            await user.findByIdAndUpdate(createdByObjectId, { teamId: newTeam._id });
+            // Update all team members with teamId
+            await Promise.all(
+                teamMemberIds.map(memberId => 
+                    user.findByIdAndUpdate(memberId, { teamId: newTeam._id })
+                )
+            );
 
-            // Update user role to leader if not already admin
+            // Update team leader role if not already admin
             if (userExists.role === 'member') {
                 await user.findByIdAndUpdate(createdByObjectId, { role: 'leader' });
             }
