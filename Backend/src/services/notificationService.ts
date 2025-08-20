@@ -147,7 +147,20 @@ class NotificationService {
   }
 }
 
-// Export singleton instance
+// Create notification for auto team creation
+export const createAutoTeamCreationNotification = (
+  userId: string,
+  hackathonId: string,
+  teamsCreated: number
+): NotificationData => ({
+  userId,
+  hackathonId,
+  type: "auto_team_creation",
+  title: "Teams Auto-Created",
+  message: `${teamsCreated} teams have been automatically created for remaining participants. Check your team assignment.`,
+  isRead: false
+});
+
 export const notificationService = new NotificationService();
 
 // Helper functions for common notification types
@@ -175,13 +188,6 @@ export const createRequestReceivedNotification = (userId: string, hackathonId: s
     createdAt: new Date(),
     updatedAt: new Date()
   });
-};
-
-export const createAutoTeamCreationNotification = (hackathonId: string, hackathonTitle: string, teamCount: number) => {
-  notificationService.sendPlatformNotification(hackathonId, "auto_team_creation", 
-    "Auto Team Creation Completed 🤖", 
-    `Auto team creation completed for ${hackathonTitle}. ${teamCount} teams have been automatically created.`
-  );
 };
 
 export const createOwnershipTransferredNotification = (userId: string, hackathonId: string, teamName: string, newOwnerName: string) => {

@@ -139,6 +139,13 @@ const Navbar = () => {
                   </button>
                 </Link>
               )}
+              {role === "member" && !isDashboard && (
+                <Link to="/create-participant-team">
+                  <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition">
+                    Create Team
+                  </button>
+                </Link>
+              )}
               {!isDashboard && (
                 <Link
                   to="/"
@@ -234,6 +241,14 @@ const Navbar = () => {
                 {role === "admin" ? "Check Teams" : "My Team"}
               </button>
             </Link>
+
+            {role === "member" && (
+              <Link to="/create-participant-team" onClick={() => setIsMenuOpen(false)}>
+                <button className="w-full bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition mb-2">
+                  Create Team
+                </button>
+              </Link>
+            )}
 
             {/* {!isInteractive && (
               <Link to="/register-team" onClick={() => setIsMenuOpen(false)}>

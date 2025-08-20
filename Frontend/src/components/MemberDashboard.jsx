@@ -39,7 +39,7 @@ const MemberDashboard = () => {
         }
         return prev;
       });
-    }, 15000); // 15 second fallback
+    }, 10000); // Reduced from 15 to 10 seconds
 
     return () => clearTimeout(fallbackTimeout);
   }, [userData]);
@@ -52,10 +52,10 @@ const MemberDashboard = () => {
 
       // Add timeout to prevent infinite loading
       const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout')), 10000); // 10 second timeout
+        setTimeout(() => reject(new Error('Request timeout')), 8000); // Reduced to 8 seconds
       });
 
-      // Get user's hackathons with timeout
+      // Get user's hackathons with timeout - OPTIMIZED: Parallel requests
       const userResponse = await Promise.race([
         fetch(`${baseURL}/users/get-user/${userData._id}`),
         timeoutPromise
@@ -65,59 +65,73 @@ const MemberDashboard = () => {
         const userInfo = await userResponse.json();
         console.log(`✅ User data loaded for: ${userInfo.name}`);
         
-        // Get hackathons user is part of with timeout
-        const hackathonPromises = (userInfo.hackathonIds || []).map(async (hackathonId) => {
-          try {
-            const hackathonResponse = await Promise.race([
-              fetch(`${baseURL}/hackathons/${hackathonId}`),
-              timeoutPromise
-            ]);
-            if (hackathonResponse.ok) {
-              return await hackathonResponse.json();
-            }
-          } catch (error) {
-            console.error(`Error fetching hackathon ${hackathonId}:`, error);
-          }
-          return null;
-        });
-
-        const hackathons = (await Promise.all(hackathonPromises)).filter(Boolean);
-        console.log(`✅ Loaded ${hackathons.length} hackathons`);
-
-        // Get team information if user has a team
-        let currentTeam = null;
-        let teamMembers = [];
-        if (userInfo.teamId) {
-          try {
-            console.log(`🔍 Fetching team data for user ${userInfo.name} with teamId: ${userInfo.teamId}`);
-            const teamResponse = await Promise.race([
-              fetch(`${baseURL}/team/get-teams`),
-              timeoutPromise
-            ]);
-            
-            if (teamResponse.ok) {
-              const teams = await teamResponse.json();
-              console.log(`📋 Found ${teams.length} total teams`);
-              currentTeam = teams.find(team => team._id === userInfo.teamId);
-              if (currentTeam) {
-                teamMembers = currentTeam.teamMembers || [];
-                console.log(`✅ Found user's team: ${currentTeam.teamName} with ${teamMembers.length} members`);
-              } else {
-                console.warn(`⚠️ Team with ID ${userInfo.teamId} not found in ${teams.length} teams`);
+        // OPTIMIZATION: Make all requests in parallel instead of sequentially
+        const promises = [];
+        
+        // Get hackathons user is part of
+        if (userInfo.hackathonIds && userInfo.hackathonIds.length > 0) {
+          const hackathonPromises = userInfo.hackathonIds.map(async (hackathonId) => {
+            try {
+              const hackathonResponse = await Promise.race([
+                fetch(`${baseURL}/hackathons/${hackathonId}`),
+                timeoutPromise
+              ]);
+              if (hackathonResponse.ok) {
+                return await hackathonResponse.json();
               }
-            } else {
-              console.error(`❌ Failed to fetch teams: ${teamResponse.status}`);
+            } catch (error) {
+              console.error(`Error fetching hackathon ${hackathonId}:`, error);
             }
-          } catch (error) {
-            console.error('❌ Error fetching team data:', error);
-            // Continue without team data rather than failing completely
-          }
+            return null;
+          });
+          promises.push(Promise.all(hackathonPromises));
         } else {
-          console.log(`ℹ️ User ${userInfo.name} has no team assigned`);
+          promises.push(Promise.resolve([]));
         }
 
+        // Get team information if user has a team
+        let teamPromise = Promise.resolve({ currentTeam: null, teamMembers: [] });
+        if (userInfo.teamId) {
+          teamPromise = (async () => {
+            try {
+              console.log(`🔍 Fetching team data for user ${userInfo.name} with teamId: ${userInfo.teamId}`);
+              const teamResponse = await Promise.race([
+                fetch(`${baseURL}/team/get-teams`),
+                timeoutPromise
+              ]);
+              
+              if (teamResponse.ok) {
+                const teams = await teamResponse.json();
+                console.log(`📋 Found ${teams.length} total teams`);
+                const currentTeam = teams.find(team => team._id === userInfo.teamId);
+                if (currentTeam) {
+                  const teamMembers = currentTeam.teamMembers || [];
+                  console.log(`✅ Found user's team: ${currentTeam.teamName} with ${teamMembers.length} members`);
+                  return { currentTeam, teamMembers };
+                } else {
+                  console.warn(`⚠️ Team with ID ${userInfo.teamId} not found in ${teams.length} teams`);
+                  return { currentTeam: null, teamMembers: [] };
+                }
+              } else {
+                console.error(`❌ Failed to fetch teams: ${teamResponse.status}`);
+                return { currentTeam: null, teamMembers: [] };
+              }
+            } catch (error) {
+              console.error('❌ Error fetching team data:', error);
+              return { currentTeam: null, teamMembers: [] };
+            }
+          })();
+        }
+        promises.push(teamPromise);
+
+        // Execute all promises in parallel
+        const [hackathons, teamData] = await Promise.all(promises);
+        const { currentTeam, teamMembers } = teamData;
+        
+        console.log(`✅ Loaded ${hackathons.filter(Boolean).length} hackathons and team data in parallel`);
+
         setMemberStats({
-          hackathons,
+          hackathons: hackathons.filter(Boolean),
           currentTeam,
           teamMembers,
           loading: false,

@@ -71,6 +71,25 @@ router.post("/upload-participants", async (req, res) => {
         if (existingUser) {
           // User exists - add them to this hackathon if not already added
           if (!existingUser.hackathonIds?.includes(hackathonId)) {
+            // VALIDATION: Check if user is already in another ongoing hackathon
+            const otherHackathons = existingUser.hackathonIds || [];
+            if (otherHackathons.length > 0) {
+              // Check if any of the other hackathons are ongoing
+              const Hackathon = require('../model/hackathon').default;
+              const ongoingHackathons = await Hackathon.find({
+                _id: { $in: otherHackathons },
+                status: { $in: ['upcoming', 'active'] }
+              });
+              
+              if (ongoingHackathons.length > 0) {
+                errors.push({
+                  email: email,
+                  error: `User is already part of ongoing hackathon: ${ongoingHackathons[0].title}`
+                });
+                continue; // Skip this user
+              }
+            }
+            
             existingUser.hackathonIds = existingUser.hackathonIds || [];
             existingUser.hackathonIds.push(hackathonId);
             

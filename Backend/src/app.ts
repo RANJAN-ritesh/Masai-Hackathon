@@ -7,11 +7,12 @@ import user from "./model/user";
 import team from "./model/team";
 import teamRequests from "./model/teamRequests";
 import problemStatement from "./model/problemStatement";
+import { autoTeamCreationService } from "./services/autoTeamCreationService";
 import userRoutes from "./routes/userRoutes";
 import teamRoutes from "./routes/teamRoutes";
 import teamRequestRoutes from "./routes/teamRequestRoutes";
 import problemStatementRoutes from "./routes/problemStatementRoutes";
-// import participantTeamRoutes from "./routes/participantTeamRoutes";
+import participantTeamRoutes from "./routes/participantTeamRoutes";
 
 // Load environment variables
 dotenv.config();
@@ -75,17 +76,7 @@ app.use("/users", userRoutes);
 app.use("/team", teamRoutes);
 app.use("/team-request", teamRequestRoutes);
 app.use("/hackathons", problemStatementRoutes); // Mount hackathon routes at /hackathons level
-// app.use("/participant-team", participantTeamRoutes); // New participant team routes - temporarily disabled for debugging
-
-// Test inline route
-app.get("/participant-team/test", (req, res) => {
-  res.json({ message: 'Inline participant team route is working' });
-});
-
-// Test route with different path
-app.get("/test-participant", (req, res) => {
-  res.json({ message: 'Alternative test route is working' });
-});
+app.use("/participant-team", participantTeamRoutes); // Enable participant team routes
 
 app.get("/health",(req, res)=>{
     res.status(200).json({
@@ -130,4 +121,7 @@ app.listen(PORT, () => {
     console.log(`🔗 Health check: http://localhost:${PORT}/health`);
     console.log(`🔧 SCHEMA DEBUG: Hackathon status enum should include 'upcoming'`);
     console.log(`🔧 DEPLOYMENT TIME: ${new Date().toISOString()}`);
+    
+    // Start auto-team creation service
+    autoTeamCreationService.start();
 });

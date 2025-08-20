@@ -31,6 +31,12 @@ const CreateHackathon = () => {
     allowedEmails: [],
     minTeamSize: 2,
     maxTeamSize: 4,
+    teamCreationMode: "admin",
+    allowParticipantTeams: false,
+    teamFinalizationRequired: true,
+    minTeamSizeForFinalization: 2,
+    teamModificationLocked: false,
+    autoTeamCreationEnabled: true,
     socialLinks: {
       zoom: "",
       youtube: "",
@@ -858,6 +864,78 @@ const CreateHackathon = () => {
                     onChange={(e) => handleMaxTeamSizeChange(e.target.value)}
                     className="mt-1 block w-full rounded-lg focus:border-red-500 focus:ring-red-500 sm:text-sm p-2 border border-gray-200"
                   />
+                </div>
+              </div>
+              {/* Team Creation Method */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700">
+                  Team Creation Method
+                </label>
+                <div className="mt-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <p className="text-sm text-green-800 mb-3">
+                    <strong>Choose how teams will be formed:</strong>
+                  </p>
+                  <div className="space-y-3">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="teamCreationMode"
+                        value="admin"
+                        checked={eventData.teamCreationMode === 'admin'}
+                        onChange={(e) => setEventData(prev => ({ 
+                          ...prev, 
+                          teamCreationMode: e.target.value,
+                          allowParticipantTeams: false 
+                        }))}
+                        className="mr-2 text-red-600 focus:ring-red-500"
+                      />
+                      <span className="text-sm text-green-700">
+                        <strong>Admin Creates Teams:</strong> You will manually create teams and assign participants
+                      </span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="teamCreationMode"
+                        value="participant"
+                        checked={eventData.teamCreationMode === 'participant'}
+                        onChange={(e) => setEventData(prev => ({ 
+                          ...prev, 
+                          teamCreationMode: e.target.value,
+                          allowParticipantTeams: true 
+                        }))}
+                        className="mr-2 text-red-600 focus:ring-red-500"
+                      />
+                      <span className="text-sm text-green-700">
+                        <strong>Participants Create Teams:</strong> Members can form their own teams before the hackathon starts
+                      </span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="teamCreationMode"
+                        value="both"
+                        checked={eventData.teamCreationMode === 'both'}
+                        onChange={(e) => setEventData(prev => ({ 
+                          ...prev, 
+                          teamCreationMode: e.target.value,
+                          allowParticipantTeams: true 
+                        }))}
+                        className="mr-2 text-red-600 focus:ring-red-500"
+                      />
+                      <span className="text-sm text-green-700">
+                        <strong>Hybrid Approach:</strong> You can create teams AND participants can form their own
+                      </span>
+                    </label>
+                  </div>
+                  {eventData.teamCreationMode !== 'admin' && (
+                    <div className="mt-3 p-2 bg-blue-50 rounded border">
+                      <p className="text-xs text-blue-800">
+                        <strong>Auto-Team Creation:</strong> If participants haven't formed teams 1 hour before the hackathon starts, 
+                        teams will be automatically created using our algorithm for remaining members.
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
               {/* Allowed Emails */}
