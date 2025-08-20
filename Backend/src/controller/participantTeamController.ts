@@ -106,7 +106,7 @@ export const sendJoinRequest = async (req: Request, res: Response) => {
 
     // Check if user can send requests
     const user = await User.findById(fromUserId);
-    if (!canUserSendRequests(user)) {
+    if (!user || !canUserSendRequests(user)) {
       return res.status(400).json({ message: 'You cannot send join requests at this time' });
     }
 
@@ -138,6 +138,10 @@ export const sendJoinRequest = async (req: Request, res: Response) => {
     }
 
     // Calculate expiry time
+    if (!team.hackathonId) {
+      return res.status(400).json({ message: 'Team is not associated with a hackathon' });
+    }
+    
     const expiresAt = await calculateRequestExpiry(team.hackathonId, Hackathon);
 
     // Create request
@@ -160,12 +164,14 @@ export const sendJoinRequest = async (req: Request, res: Response) => {
 
     // Send notification to team creator
     const fromUser = await User.findById(fromUserId);
-    createRequestReceivedNotification(
-      team.createdBy.toString(),
-      team.hackathonId,
-      fromUser?.name || 'Unknown User',
-      team.teamName
-    );
+    if (fromUser && team.hackathonId) {
+      createRequestReceivedNotification(
+        team.createdBy.toString(),
+        team.hackathonId,
+        fromUser.name || 'Unknown User',
+        team.teamName
+      );
+    }
 
     res.status(201).json({
       message: 'Join request sent successfully',
@@ -201,6 +207,9 @@ export const respondToRequest = async (req: Request, res: Response) => {
 
     // Check if user is the team creator
     const team = await Team.findById(request.teamId);
+    if (!team) {
+      return res.status(404).json({ message: 'Team not found' });
+    }
     if (team.createdBy.toString() !== userId) {
       return res.status(403).json({ message: 'Only team creator can respond to requests' });
     }
@@ -234,7 +243,7 @@ export const respondToRequest = async (req: Request, res: Response) => {
 
       // Check if team is now full
       const updatedTeam = await Team.findById(request.teamId);
-      if (updatedTeam.teamMembers.length >= updatedTeam.memberLimit) {
+      if (updatedTeam && updatedTeam.teamMembers.length >= updatedTeam.memberLimit) {
         updatedTeam.canReceiveRequests = false;
         await updatedTeam.save();
       }
@@ -276,7 +285,15 @@ export const finalizeTeam = async (req: Request, res: Response) => {
     }
 
     // Check if team meets minimum size requirement
+    if (!team.hackathonId) {
+      return res.status(400).json({ message: 'Team is not associated with a hackathon' });
+    }
+    
     const hackathon = await Hackathon.findById(team.hackathonId);
+    if (!hackathon) {
+      return res.status(400).json({ message: 'Hackathon not found' });
+    }
+    
     if (team.teamMembers.length < hackathon.minTeamSizeForFinalization) {
       return res.status(400).json({ 
         message: `Team must have at least ${hackathon.minTeamSizeForFinalization} members to be finalized` 
@@ -311,13 +328,22 @@ export const finalizeTeam = async (req: Request, res: Response) => {
       }
     );
 
+    // Check if team is now full
+    const updatedTeam = await Team.findById(teamId);
+    if (updatedTeam && updatedTeam.teamMembers.length >= updatedTeam.memberLimit) {
+      updatedTeam.canReceiveRequests = false;
+      await updatedTeam.save();
+    }
+
     // Send notifications to all team members
-    for (const memberId of team.teamMembers) {
-      createTeamFinalizedNotification(
-        memberId.toString(),
-        team.hackathonId,
-        team.teamName
-      );
+    if (team.hackathonId) {
+      for (const memberId of team.teamMembers) {
+        createTeamFinalizedNotification(
+          memberId.toString(),
+          team.hackathonId,
+          team.teamName
+        );
+      }
     }
 
     res.json({ 
@@ -369,6 +395,9 @@ export const leaveTeam = async (req: Request, res: Response) => {
 
     // Get updated team
     const team = await Team.findById(teamId);
+    if (!team) {
+      return res.status(404).json({ message: 'Team not found' });
+    }
     
     // If team is now empty, delete it
     if (team.teamMembers.length === 0) {
@@ -382,12 +411,14 @@ export const leaveTeam = async (req: Request, res: Response) => {
         
         // Send notification
         const newOwner = await User.findById(newOwnerId);
-        createOwnershipTransferredNotification(
-          newOwnerId.toString(),
-          team.hackathonId,
-          team.teamName,
-          newOwner?.name || 'Unknown User'
-        );
+        if (team.hackathonId) {
+          createOwnershipTransferredNotification(
+            newOwnerId.toString(),
+            team.hackathonId,
+            team.teamName,
+            newOwner?.name || 'Unknown User'
+          );
+        }
       }
 
       // Re-enable team to receive requests if not finalized
@@ -434,12 +465,14 @@ export const transferOwnership = async (req: Request, res: Response) => {
     const newOwner = await User.findById(newOwnerId);
     const team = await Team.findById(teamId);
     
-    createOwnershipTransferredNotification(
-      newOwnerId,
-      team.hackathonId,
-      team.teamName,
-      newOwner?.name || 'Unknown User'
-    );
+    if (team && team.hackathonId) {
+      createOwnershipTransferredNotification(
+        newOwnerId,
+        team.hackathonId,
+        team.teamName,
+        newOwner?.name || 'Unknown User'
+      );
+    }
 
     res.json({ message: 'Team ownership transferred successfully' });
 

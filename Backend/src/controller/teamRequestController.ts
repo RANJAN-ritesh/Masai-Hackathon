@@ -4,8 +4,6 @@ import teamRequests from "../model/teamRequests";
 import team from "../model/team";
 import user from "../model/user";
 
-// export const acceptJoinRequest = async(req:Request<{}, {}, {requestId:string; teamId:string; }>)
-
 export const getPendingJoinRequests = async (req: Request, res: Response): Promise<void> => {
     try {
         const { teamId } = req.params; // Extract teamId from URL
@@ -16,9 +14,10 @@ export const getPendingJoinRequests = async (req: Request, res: Response): Promi
         }
 
         // ✅ Fetch pending join requests for the team
-        const pendingRequests = await teamRequests.find({ teamId, status: "pending" })
-            .populate("userId", "name email") // Populate user details (name & email)
-            .exec();
+        const pendingRequests = await teamRequests.find({ 
+            teamId, 
+            status: "pending" 
+        }).populate("fromUserId", "name email").exec();
 
         res.status(200).json({
             message: "Pending join requests retrieved successfully",
@@ -31,7 +30,8 @@ export const getPendingJoinRequests = async (req: Request, res: Response): Promi
 
 export const sendJoinRequest = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { userId, teamId } = req.body;
+        const { teamId } = req.body;
+        const userId = req.user?.id;
 
         if (!userId || !teamId) {
             res.status(400).json({ message: "User ID and Team ID are required" });
@@ -39,18 +39,25 @@ export const sendJoinRequest = async (req: Request, res: Response): Promise<void
         }
 
         // ✅ Check if request already exists
-        const existingRequest = await teamRequests.findOne({ userId, teamId });
+        const existingRequest = await teamRequests.findOne({ 
+            fromUserId: userId, 
+            teamId, 
+            status: "pending" 
+        });
         if (existingRequest) {
             res.status(400).json({ message: "You have already sent a request to this team" });
             return;
         }
 
-        // ✅ Create a new request
+        // ✅ Create a new request using new schema
         const newRequest = new teamRequests({
-            requestId: new mongoose.Types.ObjectId().toString(),
-            userId,
+            fromUserId: userId,
+            toUserId: teamId, // This will be updated to actual team creator ID
             teamId,
-            status: "pending"
+            hackathonId: "temp", // This will be updated
+            requestType: "join",
+            status: "pending",
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
         });
 
         await newRequest.save();
@@ -60,8 +67,6 @@ export const sendJoinRequest = async (req: Request, res: Response): Promise<void
         res.status(500).json({ message: "Error sending join request", error });
     }
 };
-
-
 
 export const acceptJoinRequest = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -90,20 +95,22 @@ export const acceptJoinRequest = async (req: Request, res: Response): Promise<vo
             return;
         }
 
-        // ✅ Add user to the team
-        selectedTeam.teamMembers.push(joinRequest.userId);
+        // ✅ Add user to the team using fromUserId
+        selectedTeam.teamMembers.push(joinRequest.fromUserId);
         await selectedTeam.save();
 
-        // update teamId of user using userId
-        await user.findByIdAndUpdate(joinRequest.userId, { teamId: teamId });
+        // update teamId of user using fromUserId
+        await user.findByIdAndUpdate(joinRequest.fromUserId, { teamId: teamId });
 
-
-        // ✅ Mark request as approved
-        joinRequest.status = "approved";
+        // ✅ Mark request as accepted (new schema)
+        joinRequest.status = "accepted";
         await joinRequest.save();
 
         // ✅ Delete all other pending requests from this user
-        await teamRequests.deleteMany({ userId: joinRequest.userId, status: "pending" });
+        await teamRequests.deleteMany({ 
+            fromUserId: joinRequest.fromUserId, 
+            status: "pending" 
+        });
 
         res.status(200).json({ message: "User accepted into the team", team: selectedTeam });
     } catch (error) {
@@ -126,7 +133,7 @@ export const declineJoinRequest = async (req: Request, res: Response): Promise<v
             return;
         }
 
-        // ✅ Mark as rejected instead of deleting
+        // ✅ Mark as rejected (new schema)
         joinRequest.status = "rejected";
         await joinRequest.save();
 

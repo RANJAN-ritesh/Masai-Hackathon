@@ -1,12 +1,26 @@
 import { INotification } from '../model/notification';
 
+// Interface for notification data without Mongoose-specific fields
+interface NotificationData {
+  _id?: string;
+  userId: string;
+  hackathonId: string;
+  type: string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  readAt?: Date;
+}
+
 // In-memory notification store
 class NotificationService {
-  private notifications: Map<string, INotification[]> = new Map();
+  private notifications: Map<string, NotificationData[]> = new Map();
   private maxNotificationsPerUser = 50; // Keep only last 50 notifications per user
 
   // Add notification for a user
-  addNotification(userId: string, notification: Omit<INotification, '_id' | 'createdAt' | 'updatedAt'>): void {
+  addNotification(userId: string, notification: NotificationData): void {
     if (!this.notifications.has(userId)) {
       this.notifications.set(userId, []);
     }
@@ -14,12 +28,12 @@ class NotificationService {
     const userNotifications = this.notifications.get(userId)!;
     
     // Create notification object
-    const newNotification: INotification = {
+    const newNotification = {
       ...notification,
       _id: this.generateId(),
       createdAt: new Date(),
       updatedAt: new Date()
-    } as INotification;
+    };
 
     // Add to beginning of array
     userNotifications.unshift(newNotification);
@@ -34,7 +48,7 @@ class NotificationService {
   }
 
   // Get notifications for a user
-  getNotifications(userId: string, limit: number = 20): INotification[] {
+  getNotifications(userId: string, limit: number = 20): NotificationData[] {
     const userNotifications = this.notifications.get(userId) || [];
     return userNotifications.slice(0, limit);
   }
@@ -95,17 +109,19 @@ class NotificationService {
     const platformKey = `platform_${hackathonId}`;
     
     this.addNotification(platformKey, {
-      userId: null as any, // Will be set when retrieved
-      hackathonId: hackathonId as any,
-      type: type as any,
+      userId: "platform",
+      hackathonId,
+      type,
       title,
       message,
-      isRead: false
+      isRead: false,
+      createdAt: new Date(),
+      updatedAt: new Date()
     });
   }
 
   // Get platform notifications for a specific hackathon
-  getPlatformNotifications(hackathonId: string): INotification[] {
+  getPlatformNotifications(hackathonId: string): NotificationData[] {
     const platformKey = `platform_${hackathonId}`;
     return this.getNotifications(platformKey, 10);
   }
@@ -137,23 +153,27 @@ export const notificationService = new NotificationService();
 // Helper functions for common notification types
 export const createTeamFinalizedNotification = (userId: string, hackathonId: string, teamName: string) => {
   notificationService.addNotification(userId, {
-    userId: userId as any,
-    hackathonId: hackathonId as any,
+    userId,
+    hackathonId,
     type: "team_finalized",
     title: "Team Finalized! 🎉",
     message: `Your team "${teamName}" has been finalized and is now locked for the hackathon.`,
-    isRead: false
+    isRead: false,
+    createdAt: new Date(),
+    updatedAt: new Date()
   });
 };
 
 export const createRequestReceivedNotification = (userId: string, hackathonId: string, fromUserName: string, teamName: string) => {
   notificationService.addNotification(userId, {
-    userId: userId as any,
-    hackathonId: hackathonId as any,
+    userId,
+    hackathonId,
     type: "request_received",
-    title: "New Team Request 📨",
-    message: `${fromUserName} wants to join your team "${teamName}". Check your team requests!`,
-    isRead: false
+    title: "New Team Request! 📨",
+    message: `${fromUserName} wants to join your team "${teamName}". Check your requests to respond.`,
+    isRead: false,
+    createdAt: new Date(),
+    updatedAt: new Date()
   });
 };
 
@@ -166,11 +186,13 @@ export const createAutoTeamCreationNotification = (hackathonId: string, hackatho
 
 export const createOwnershipTransferredNotification = (userId: string, hackathonId: string, teamName: string, newOwnerName: string) => {
   notificationService.addNotification(userId, {
-    userId: userId as any,
-    hackathonId: hackathonId as any,
+    userId,
+    hackathonId,
     type: "ownership_transferred",
     title: "Team Ownership Transferred 🔄",
     message: `Team ownership for "${teamName}" has been transferred to ${newOwnerName}.`,
-    isRead: false
+    isRead: false,
+    createdAt: new Date(),
+    updatedAt: new Date()
   });
 }; 

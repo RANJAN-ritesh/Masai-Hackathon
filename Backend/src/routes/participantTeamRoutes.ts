@@ -13,8 +13,12 @@ import {
   markAllNotificationsAsRead,
   deleteNotification
 } from '../controller/participantTeamController';
+import { authenticateUser } from '../middleware/auth';
 
 const router = express.Router();
+
+// Apply authentication middleware to all routes
+router.use(authenticateUser);
 
 // Participant team creation and management
 router.post('/create-team', createParticipantTeam);

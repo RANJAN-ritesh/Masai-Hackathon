@@ -1,4 +1,6 @@
-import { ITeamRequest, ITeam, IHackathon } from '../model';
+import { ITeamRequest } from '../model/teamRequests';
+import { ITeam } from '../model/team';
+import { IHackathon } from '../model/hackathon';
 
 // Calculate request expiry based on 24 hours OR hackathon start (whichever comes first)
 export const calculateRequestExpiry = async (hackathonId: string, hackathonModel: any): Promise<Date> => {
