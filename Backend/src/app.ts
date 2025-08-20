@@ -75,7 +75,7 @@ app.use("/users", userRoutes);
 app.use("/team", teamRoutes);
 app.use("/team-request", teamRequestRoutes);
 app.use("/hackathons", problemStatementRoutes); // Mount hackathon routes at /hackathons level
-// app.use("/participant-team", participantTeamRoutes); // New participant team routes - temporarily disabled for debugging
+app.use("/participant-team", participantTeamRoutes); // New participant team routes
 
 app.get("/health",(req, res)=>{
     res.status(200).json({
