@@ -41,8 +41,7 @@ const EligibleHackathons = () => {
   const [hackathonCount, setHackathonCount] = useState(0);
   const [previousCount, setPreviousCount] = useState(0);
 
-  const [participants, setParticipants] = useState({});
-  const [showParticipants, setShowParticipants] = useState(null);
+
   
   // Teams display modal state
   const [teamsModalOpen, setTeamsModalOpen] = useState(false);
@@ -468,35 +467,7 @@ const EligibleHackathons = () => {
     setIsModalOpen(true);
   };
 
-  // View participants for a hackathon
-  const handleViewParticipants = async (hackathonId) => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${baseURL}/users/hackathon/${hackathonId}/participants`);
-      
-      if (response.ok) {
-        const result = await response.json();
-        setParticipants(prev => ({
-          ...prev,
-          [hackathonId]: result.participants
-        }));
-        setShowParticipants(hackathonId);
-        
-        toast.info(`Found ${result.count} participants in this hackathon`, {
-          position: "top-right",
-          autoClose: 3000,
-        });
-      } else {
-        const error = await response.json();
-        toast.error(error.message || "Failed to fetch participants");
-      }
-    } catch (error) {
-      console.error("Error fetching participants:", error);
-      toast.error("Network error while fetching participants");
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   // View teams for a hackathon
   const handleViewTeams = async (hackathon) => {
@@ -718,14 +689,6 @@ const EligibleHackathons = () => {
                                 </button>
 
                                 <button
-                                  onClick={() => handleViewParticipants(registration._id)}
-                                  className="bg-green-100 hover:bg-green-200 text-green-700 p-2 rounded-lg transition-all duration-300"
-                                  title="View Participants"
-                                >
-                                  <Users className="w-5 h-5" />
-                                </button>
-
-                                <button
                                   onClick={() => handleViewTeams(registration)}
                                   className="bg-purple-100 hover:bg-purple-200 text-purple-700 p-2 rounded-lg transition-all duration-300"
                                   title="View Teams"
@@ -768,34 +731,7 @@ const EligibleHackathons = () => {
                                 message={modalConfig.message}
                               />
                               
-                              {/* Participants Display */}
-                              {showParticipants === registration._id && participants[registration._id] && (
-                                <div className="mt-4 p-4 bg-gray-50 rounded-lg border-t">
-                                  <div className="flex justify-between items-center mb-3">
-                                    <h4 className="font-semibold text-gray-700">
-                                      Participants ({participants[registration._id].length})
-                                    </h4>
-                                    <button
-                                      onClick={() => setShowParticipants(null)}
-                                      className="text-xs text-gray-500 hover:text-gray-700 bg-white px-2 py-1 rounded border"
-                                    >
-                                      Hide
-                                    </button>
-                                  </div>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
-                                    {participants[registration._id].map((participant, index) => (
-                                      <div key={participant._id} className="flex items-center space-x-2 text-sm bg-white p-2 rounded border">
-                                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                        <span className="font-medium">{participant.name}</span>
-                                        <span className="text-gray-500 text-xs">({participant.role})</span>
-                                        {participant.teamId && (
-                                          <span className="text-blue-600 text-xs bg-blue-100 px-1 rounded">Team</span>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
+
                             </div>
                           </div>
                         </div>
