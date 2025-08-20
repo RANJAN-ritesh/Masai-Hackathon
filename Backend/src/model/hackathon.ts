@@ -2,9 +2,12 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IHackathon extends Document {
   title: string;
+  version?: string;
   description: string;
   startDate: Date;
   endDate: Date;
+  submissionStart?: Date;
+  submissionEnd?: Date;
   eventType: string;
   minTeamSize: number;
   maxTeamSize: number;
@@ -16,17 +19,14 @@ export interface IHackathon extends Document {
     difficulty: string;
   }>;
   schedule: Array<{
-    day: string;
-    events: Array<{
-      time: string;
-      activity: string;
-      description: string;
-    }>;
+    date: string;
+    activity: string;
   }>;
   eventPlan: Array<{
+    week?: number;
     phase: string;
     description: string;
-    duration: string;
+    duration?: string;
   }>;
   prizeDetails: Array<{
     rank: string;
@@ -50,9 +50,12 @@ export interface IHackathon extends Document {
 const HackathonSchema = new Schema<IHackathon>(
   {
     title: { type: String, required: true },
+    version: { type: String },
     description: { type: String, required: true },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
+    submissionStart: { type: Date },
+    submissionEnd: { type: Date },
     eventType: { type: String, required: true, default: "Team Hackathon" },
     minTeamSize: { type: Number, required: true, default: 2 },
     maxTeamSize: { type: Number, required: true, default: 4 },
@@ -64,14 +67,11 @@ const HackathonSchema = new Schema<IHackathon>(
       difficulty: { type: String, enum: ["Easy", "Medium", "Hard"] }
     }],
     schedule: [{
-      day: { type: String },
-      events: [{
-        time: { type: String },
-        activity: { type: String },
-        description: { type: String }
-      }]
+      date: { type: String },
+      activity: { type: String }
     }],
     eventPlan: [{
+      week: { type: Number },
       phase: { type: String },
       description: { type: String },
       duration: { type: String }

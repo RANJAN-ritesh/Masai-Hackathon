@@ -11,7 +11,6 @@ import {
   FileText,
   Info,
   Link as LinkIcon,
-  Zap,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -306,68 +305,7 @@ const CreateHackathon = () => {
     }));
   };
 
-  // Fill demo data for testing
-  const fillDemoData = () => {
-    const now = new Date();
-    const startDate = new Date(now.getTime() + 24 * 60 * 60 * 1000); // Tomorrow
-    const endDate = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); // Next week
-    
-    setEventData({
-      title: `Demo Hackathon ${Date.now()}`,
-      version: "2.0",
-      description: "This is a demo hackathon created for testing purposes. It includes all necessary fields and sample data.",
-      startDate: startDate.toISOString().slice(0, 16),
-      endDate: endDate.toISOString().slice(0, 16),
-      allowedEmails: ["demo1@example.com", "demo2@example.com", "test@masai.com"],
-      minTeamSize: 2,
-      maxTeamSize: 5,
-      socialLinks: {
-        zoom: "https://us06web.zoom.us/j/82747654356",
-        youtube: "https://www.youtube.com/channel/UCENOACKQiqejXP-bb9sCnMg",
-        slack: "https://masaischool.slack.com",
-        github: "https://github.com/masai-course",
-        instagram: "https://instagram.com/masaischool",
-        twitter: "https://twitter.com/masaischool",
-        linkedin: "https://linkedin.com/company/masaischool"
-      },
-      problemStatements: [
-        {
-          track: "Full Stack",
-          description: "Build a complete e-commerce platform with React frontend and Node.js backend",
-          difficulty: "Hard",
-        },
-        {
-          track: "Data Science",
-          description: "Analyze customer behavior data and create predictive models",
-          difficulty: "Medium",
-        },
-        {
-          track: "Mobile App",
-          description: "Create a cross-platform mobile app for task management",
-          difficulty: "Medium",
-        }
-      ],
-      schedule: [
-        {
-          activity: "Hackathon Kickoff & Team Formation",
-          date: startDate.toISOString(),
-        },
-        {
-          activity: "Problem Statement Release",
-          date: new Date(startDate.getTime() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours later
-        },
-        {
-          activity: "Mid-point Check-in",
-          date: new Date(startDate.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days later
-        },
-        {
-          activity: "Final Submissions & Presentations",
-          date: endDate.toISOString(),
-        }
-      ]
-    });
-    toast.success("Demo data filled! Ready for testing.");
-  };
+  // Removed demo data function - no longer needed
 
   const handleProblemStatementChange = (index, field, value) => {
     setEventData((prev) => ({
@@ -1290,7 +1228,7 @@ const CreateHackathon = () => {
               Event Plan
             </h2>
             <div className="space-y-4">
-              {eventData.eventPlan?.map((plan, index) => (
+              {(eventData.eventPlan || []).map((plan, index) => (
                 <div key={index} className="bg-gray-50 rounded-lg p-4">
                   <div className="grid grid-cols-3 gap-4 mb-2">
                     <div>
@@ -1554,16 +1492,8 @@ const CreateHackathon = () => {
               )}
             </div>
 
-          {/* Demo Button & Submit Button */}
-          <div className="flex justify-between items-center">
-            <button
-              type="button"
-              onClick={fillDemoData}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
-            >
-              <Zap className="h-4 w-4 mr-2" />
-              Fill Demo Data
-            </button>
+          {/* Submit Button */}
+          <div className="flex justify-end items-center">
             <button
               onClick={handleSubmit}
               className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
