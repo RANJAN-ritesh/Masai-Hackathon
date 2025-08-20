@@ -36,14 +36,38 @@ router.post("/", async (req, res) => {
   try {
     const hackathonData = req.body;
     
+    // Debug: Log incoming data
+    console.log("🔧 Creating hackathon with data:", JSON.stringify(hackathonData, null, 2));
+    console.log("🔧 Status value:", hackathonData.status, "Type:", typeof hackathonData.status);
+    
     // Validate required fields
     if (!hackathonData.title || !hackathonData.startDate || !hackathonData.endDate) {
       return res.status(400).json({ message: "Title, start date, and end date are required" });
     }
     
+    // Validate status enum
+    const validStatuses = ["upcoming", "active", "inactive", "completed"];
+    if (hackathonData.status && !validStatuses.includes(hackathonData.status)) {
+      console.error("❌ Invalid status value:", hackathonData.status, "Valid values:", validStatuses);
+      return res.status(400).json({ 
+        message: `Invalid status value. Must be one of: ${validStatuses.join(", ")}`,
+        received: hackathonData.status,
+        validValues: validStatuses
+      });
+    }
+    
+    // Ensure status is set to a valid default if not provided
+    if (!hackathonData.status) {
+      hackathonData.status = "upcoming";
+    }
+    
+    console.log("🔧 Final status value before save:", hackathonData.status);
+    
     // Create new hackathon in database
     const newHackathon = new Hackathon(hackathonData);
     const savedHackathon = await newHackathon.save();
+    
+    console.log("✅ Hackathon created successfully with status:", savedHackathon.status);
     
     // Return the saved hackathon
     res.status(201).json(savedHackathon);
