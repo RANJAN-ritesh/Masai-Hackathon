@@ -502,20 +502,41 @@ const EligibleHackathons = () => {
     setTeamsModalOpen(true);
     setTeamsLoading(true);
     
+    // Add loading timeout to prevent infinite loading
+    const loadingTimeout = setTimeout(() => {
+      if (teamsLoading) {
+        console.warn("⚠️ Team loading timeout reached");
+        setTeamsLoading(false);
+        toast.warning("Team loading is taking longer than expected. Please try again.");
+      }
+    }, 10000); // 10 second timeout
+    
     try {
+      console.log(`🔍 Fetching teams for hackathon: ${hackathon._id}`);
       const response = await fetch(`${baseURL}/team/hackathon/${hackathon._id}`);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log(`📋 Teams response:`, data);
         setTeamsData(data.teams || []);
+        
+        if (!data.teams || data.teams.length === 0) {
+          toast.info("No teams found for this hackathon yet. Create teams first!", {
+            autoClose: 4000
+          });
+        }
       } else {
-        toast.error("Failed to fetch teams");
+        const errorData = await response.json();
+        console.error(`❌ Failed to fetch teams: ${response.status}`, errorData);
+        toast.error(`Failed to fetch teams: ${errorData.message || 'Unknown error'}`);
         setTeamsData([]);
       }
     } catch (error) {
       console.error("Error fetching teams:", error);
-      toast.error("Error fetching teams");
+      toast.error("Network error while fetching teams");
       setTeamsData([]);
     } finally {
+      clearTimeout(loadingTimeout);
       setTeamsLoading(false);
     }
   };
@@ -877,15 +898,27 @@ const EligibleHackathons = () => {
               {/* Modal Body */}
               <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)] bg-gray-50">
                 {teamsLoading ? (
-                  <div className="flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                    <span className="ml-4 text-gray-600 font-medium">Loading teams...</span>
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                    <span className="text-gray-600 font-medium mb-2">Loading teams...</span>
+                    <span className="text-sm text-gray-500 text-center max-w-md">
+                      Fetching team information for {selectedHackathonForTeams?.title || 'this hackathon'}
+                    </span>
+                    <div className="mt-4 text-xs text-gray-400">
+                      This may take a few seconds
+                    </div>
                   </div>
                 ) : teamsData.length === 0 ? (
                   <div className="text-center py-12">
                     <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-gray-600 mb-2">No Teams Found</h3>
-                    <p className="text-gray-500">Create teams first to see them here.</p>
+                    <p className="text-gray-500 mb-4">Create teams first to see them here.</p>
+                    <button
+                      onClick={() => handleViewTeams(selectedHackathonForTeams)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                    >
+                      🔄 Refresh Teams
+                    </button>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
