@@ -132,9 +132,9 @@ const Navbar = () => {
           {isAuth && (
             <div className="hidden md:flex items-center space-x-4">
               {!isDashboard && (
-                <Link to="/select-team">
+                <Link to={role === "admin" ? "/select-team" : "/my-team"}>
                   <button className="bg-white border border-red-500 text-red-500 px-4 py-2 rounded-lg hover:bg-red-50 transition">
-                    {role === "admin" ? "Check Teams" : "Team"}
+                    {role === "admin" ? "Check Teams" : "My Team"}
                   </button>
                 </Link>
               )}
@@ -225,9 +225,9 @@ const Navbar = () => {
         {/* Mobile Navigation */}
         {isAuth && isMenuOpen && (
           <div className="md:hidden mt-4 space-y-3">
-            <Link to="/select-team" onClick={() => setIsMenuOpen(false)}>
+            <Link to={role === "admin" ? "/select-team" : "/my-team"} onClick={() => setIsMenuOpen(false)}>
               <button className="w-full bg-white border border-red-500 text-red-500 px-4 py-2 rounded-lg hover:bg-red-50 transition mb-2">
-                Team
+                {role === "admin" ? "Check Teams" : "My Team"}
               </button>
             </Link>
 

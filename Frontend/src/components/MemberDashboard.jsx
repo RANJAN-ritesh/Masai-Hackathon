@@ -196,10 +196,10 @@ const MemberDashboard = () => {
                   {memberStats.currentTeam.teamName}
                 </h3>
                 <button
-                  onClick={() => navigate('/select-team')}
-                  className="flex items-center text-indigo-600 hover:text-indigo-800"
+                  onClick={() => navigate('/my-team')}
+                  className="flex items-center bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
                 >
-                  View Details
+                  View Team Details
                   <ChevronRight className="ml-1 h-4 w-4" />
                 </button>
               </div>

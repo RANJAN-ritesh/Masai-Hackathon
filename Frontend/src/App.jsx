@@ -25,6 +25,7 @@ import CreateUser from "./components/CreateUser";
 import EditHackathon from "./components/EditHackathon";
 import AdminRoute from "./components/AdminRoute";
 import MemberDashboard from "./components/MemberDashboard";
+import MemberTeamView from "./components/MemberTeamView";
 
 function App() {
   const { isAuth, hackathon, role } = useContext(MyContext);
@@ -92,6 +93,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <SelectTeamPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-team"
+            element={
+              <ProtectedRoute>
+                <MemberTeamView />
               </ProtectedRoute>
             }
           />
