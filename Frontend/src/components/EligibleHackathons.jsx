@@ -216,45 +216,72 @@ const EligibleHackathons = () => {
         hackathonId: hackathon._id
       });
       
-      // SMART TEAM GENERATION ALGORITHM
+      // SMART TEAM GENERATION ALGORITHM - Clean & Balanced
       const calculateOptimalTeams = (total, min, max) => {
-        // Try to create teams with maxTeamSize first
+        console.log(`🧮 Calculating teams for ${total} participants (min: ${min}, max: ${max})`);
+        
+        // Strategy: Create more balanced teams instead of always maximizing size
+        let bestSolution = null;
+        let minWaste = Infinity;
+        
+        // Try different numbers of teams from minimum possible to maximum possible
+        const minPossibleTeams = Math.ceil(total / max);
+        const maxPossibleTeams = Math.floor(total / min);
+        
+        for (let numTeams = minPossibleTeams; numTeams <= maxPossibleTeams; numTeams++) {
+          const baseSize = Math.floor(total / numTeams);
+          const remainder = total % numTeams;
+          
+          // Check if this configuration is valid
+          const smallTeamSize = baseSize;
+          const largeTeamSize = baseSize + 1;
+          
+          if (smallTeamSize >= min && largeTeamSize <= max) {
+            // Valid configuration
+            const numLargeTeams = remainder;
+            const numSmallTeams = numTeams - remainder;
+            
+            const sizes = Array(numLargeTeams).fill(largeTeamSize)
+              .concat(Array(numSmallTeams).fill(smallTeamSize));
+            
+            // Calculate "waste" (preference for more balanced teams)
+            const avgSize = total / numTeams;
+            const variance = sizes.reduce((sum, size) => sum + Math.pow(size - avgSize, 2), 0);
+            
+            if (variance < minWaste) {
+              minWaste = variance;
+              bestSolution = { teams: numTeams, sizes: sizes };
+            }
+          }
+        }
+        
+        if (bestSolution) {
+          console.log(`✅ Optimal team distribution:`, bestSolution);
+          return bestSolution;
+        }
+        
+        // Fallback to max-size approach if no balanced solution found
+        console.log(`⚠️ Using fallback approach`);
         let numTeams = Math.floor(total / max);
         let remainder = total % max;
         
-        // If remainder is less than minTeamSize, redistribute
         if (remainder > 0 && remainder < min) {
-          // Try to balance by reducing some teams by 1
           const shortfall = min - remainder;
           if (numTeams >= shortfall) {
-            // Reduce some max-size teams by 1 to accommodate the small remainder
             return {
-              teams: numTeams,
-              sizes: Array(numTeams - shortfall).fill(max).concat(
-                Array(shortfall).fill(max - 1)
-              ).concat([remainder + shortfall])
-            };
-          } else {
-            // Can't balance, create teams of minTeamSize
-            numTeams = Math.ceil(total / min);
-            const baseSize = Math.floor(total / numTeams);
-            const extraMembers = total % numTeams;
-            return {
-              teams: numTeams,
-              sizes: Array(extraMembers).fill(baseSize + 1).concat(
-                Array(numTeams - extraMembers).fill(baseSize)
-              )
+              teams: numTeams + 1,
+              sizes: Array(numTeams - shortfall).fill(max)
+                .concat(Array(shortfall).fill(max - 1))
+                .concat([remainder + shortfall])
             };
           }
         }
         
-        // Normal case: teams fit within constraints
         const teamSizes = Array(numTeams).fill(max);
         if (remainder >= min) {
           teamSizes.push(remainder);
           numTeams++;
         } else if (remainder > 0) {
-          // Distribute remainder among existing teams
           for (let i = 0; i < remainder; i++) {
             teamSizes[i]++;
           }
