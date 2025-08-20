@@ -20,13 +20,28 @@ const MemberDashboard = () => {
     hackathons: [],
     currentTeam: null,
     teamMembers: [],
-    loading: true
+    loading: true,
+    error: null
   });
   const navigate = useNavigate();
   const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
 
   useEffect(() => {
     fetchMemberData();
+    
+    // Fallback timeout to prevent infinite loading
+    const fallbackTimeout = setTimeout(() => {
+      setMemberStats(prev => {
+        if (prev.loading) {
+          console.warn('⚠️ Fallback timeout triggered - forcing loading to false');
+          toast.warning('Dashboard loading is taking longer than expected. Some data may be incomplete.');
+          return { ...prev, loading: false };
+        }
+        return prev;
+      });
+    }, 15000); // 15 second fallback
+
+    return () => clearTimeout(fallbackTimeout);
   }, [userData]);
 
   const fetchMemberData = async () => {
@@ -35,15 +50,28 @@ const MemberDashboard = () => {
     try {
       setMemberStats(prev => ({ ...prev, loading: true }));
 
-      // Get user's hackathons
-      const userResponse = await fetch(`${baseURL}/users/get-user/${userData._id}`);
+      // Add timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout')), 10000); // 10 second timeout
+      });
+
+      // Get user's hackathons with timeout
+      const userResponse = await Promise.race([
+        fetch(`${baseURL}/users/get-user/${userData._id}`),
+        timeoutPromise
+      ]);
+
       if (userResponse.ok) {
         const userInfo = await userResponse.json();
+        console.log(`✅ User data loaded for: ${userInfo.name}`);
         
-        // Get hackathons user is part of
+        // Get hackathons user is part of with timeout
         const hackathonPromises = (userInfo.hackathonIds || []).map(async (hackathonId) => {
           try {
-            const hackathonResponse = await fetch(`${baseURL}/hackathons/${hackathonId}`);
+            const hackathonResponse = await Promise.race([
+              fetch(`${baseURL}/hackathons/${hackathonId}`),
+              timeoutPromise
+            ]);
             if (hackathonResponse.ok) {
               return await hackathonResponse.json();
             }
@@ -54,6 +82,7 @@ const MemberDashboard = () => {
         });
 
         const hackathons = (await Promise.all(hackathonPromises)).filter(Boolean);
+        console.log(`✅ Loaded ${hackathons.length} hackathons`);
 
         // Get team information if user has a team
         let currentTeam = null;
@@ -61,7 +90,11 @@ const MemberDashboard = () => {
         if (userInfo.teamId) {
           try {
             console.log(`🔍 Fetching team data for user ${userInfo.name} with teamId: ${userInfo.teamId}`);
-            const teamResponse = await fetch(`${baseURL}/team/get-teams`);
+            const teamResponse = await Promise.race([
+              fetch(`${baseURL}/team/get-teams`),
+              timeoutPromise
+            ]);
+            
             if (teamResponse.ok) {
               const teams = await teamResponse.json();
               console.log(`📋 Found ${teams.length} total teams`);
@@ -77,6 +110,7 @@ const MemberDashboard = () => {
             }
           } catch (error) {
             console.error('❌ Error fetching team data:', error);
+            // Continue without team data rather than failing completely
           }
         } else {
           console.log(`ℹ️ User ${userInfo.name} has no team assigned`);
@@ -86,13 +120,23 @@ const MemberDashboard = () => {
           hackathons,
           currentTeam,
           teamMembers,
-          loading: false
+          loading: false,
+          error: null
         });
+        console.log(`✅ Member dashboard data loaded successfully`);
+      } else {
+        console.error(`❌ Failed to fetch user data: ${userResponse.status}`);
+        toast.error('Failed to load user data');
+        setMemberStats(prev => ({ ...prev, loading: false, error: 'Failed to load user data' }));
       }
     } catch (error) {
-      console.error('Error fetching member data:', error);
-      toast.error('Failed to load dashboard data');
-      setMemberStats(prev => ({ ...prev, loading: false }));
+      console.error('❌ Error fetching member data:', error);
+      if (error.message === 'Request timeout') {
+        toast.error('Dashboard loading timed out. Please refresh the page.');
+      } else {
+        toast.error('Failed to load dashboard data');
+      }
+      setMemberStats(prev => ({ ...prev, loading: false, error: 'Failed to load dashboard data' }));
     }
   };
 
@@ -121,7 +165,48 @@ const MemberDashboard = () => {
   if (memberStats.loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">Loading Your Dashboard</h2>
+          <p className="text-gray-500 mb-4">Fetching your hackathon and team information...</p>
+          <div className="text-sm text-gray-400">
+            <p>This may take a few moments</p>
+            <p>If it takes too long, try refreshing the page</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (memberStats.error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto">
+          <div className="bg-red-50 p-5 rounded-full inline-block mb-6">
+            <AlertCircle className="w-16 h-16 text-red-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-3">Dashboard Loading Failed</h2>
+          <p className="text-gray-600 text-lg mb-6">
+            {memberStats.error === 'Request timeout' 
+              ? 'The dashboard is taking too long to load. This might be due to slow network or server issues.'
+              : 'There was an error loading your dashboard data. Please try again.'
+            }
+          </p>
+          <div className="space-y-3">
+            <button
+              onClick={fetchMemberData}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="block w-full bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-lg font-semibold transition-colors"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
