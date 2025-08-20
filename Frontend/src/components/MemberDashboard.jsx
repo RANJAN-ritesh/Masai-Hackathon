@@ -23,7 +23,7 @@ const MemberDashboard = () => {
     loading: true
   });
   const navigate = useNavigate();
-  const baseURL = import.meta.env.VITE_BASE_URL;
+  const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
 
   useEffect(() => {
     fetchMemberData();
@@ -60,17 +60,26 @@ const MemberDashboard = () => {
         let teamMembers = [];
         if (userInfo.teamId) {
           try {
+            console.log(`🔍 Fetching team data for user ${userInfo.name} with teamId: ${userInfo.teamId}`);
             const teamResponse = await fetch(`${baseURL}/team/get-teams`);
             if (teamResponse.ok) {
               const teams = await teamResponse.json();
+              console.log(`📋 Found ${teams.length} total teams`);
               currentTeam = teams.find(team => team._id === userInfo.teamId);
               if (currentTeam) {
                 teamMembers = currentTeam.teamMembers || [];
+                console.log(`✅ Found user's team: ${currentTeam.teamName} with ${teamMembers.length} members`);
+              } else {
+                console.warn(`⚠️ Team with ID ${userInfo.teamId} not found in ${teams.length} teams`);
               }
+            } else {
+              console.error(`❌ Failed to fetch teams: ${teamResponse.status}`);
             }
           } catch (error) {
-            console.error('Error fetching team data:', error);
+            console.error('❌ Error fetching team data:', error);
           }
+        } else {
+          console.log(`ℹ️ User ${userInfo.name} has no team assigned`);
         }
 
         setMemberStats({

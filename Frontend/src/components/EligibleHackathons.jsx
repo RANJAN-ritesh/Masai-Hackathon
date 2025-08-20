@@ -25,7 +25,7 @@ import ConfirmationModal from "./ConfirmationModal";
 import CSVUploadModal from "./CSVUploadModal";
 
 const EligibleHackathons = () => {
-  const baseURL = import.meta.env.VITE_BASE_URL;
+  const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
   const [hackathons, setHackathons] = useState([]);
   const [loading, setLoading] = useState(true);
   const userId = localStorage.getItem("userId");
@@ -498,46 +498,99 @@ const EligibleHackathons = () => {
 
   // View teams for a hackathon
   const handleViewTeams = async (hackathon) => {
+    console.log(`🚀 Starting team fetch for hackathon:`, {
+      id: hackathon._id,
+      title: hackathon.title,
+      baseURL: baseURL
+    });
+    
     setSelectedHackathonForTeams(hackathon);
     setTeamsModalOpen(true);
     setTeamsLoading(true);
     
     // Add loading timeout to prevent infinite loading
     const loadingTimeout = setTimeout(() => {
-      if (teamsLoading) {
-        console.warn("⚠️ Team loading timeout reached");
-        setTeamsLoading(false);
-        toast.warning("Team loading is taking longer than expected. Please try again.");
-      }
-    }, 10000); // 10 second timeout
+      console.warn("⚠️ Team loading timeout reached after 15 seconds");
+      setTeamsLoading(false);
+      toast.warning("Team loading timed out. Please check your connection and try again.", {
+        autoClose: 6000
+      });
+    }, 15000); // 15 second timeout
     
     try {
-      console.log(`🔍 Fetching teams for hackathon: ${hackathon._id}`);
-      const response = await fetch(`${baseURL}/team/hackathon/${hackathon._id}`);
+      const teamEndpoint = `${baseURL}/team/hackathon/${hackathon._id}`;
+      console.log(`🔍 Fetching teams from: ${teamEndpoint}`);
+      
+      // Add AbortController for better request management
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), 12000);
+      
+      const response = await fetch(teamEndpoint, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        signal: abortController.signal
+      });
+      
+      clearTimeout(timeoutId);
+      console.log(`📡 Response status: ${response.status}`);
       
       if (response.ok) {
         const data = await response.json();
-        console.log(`📋 Teams response:`, data);
-        setTeamsData(data.teams || []);
+        console.log(`📋 Teams response:`, {
+          message: data.message,
+          count: data.count,
+          teamsLength: data.teams?.length,
+          teams: data.teams
+        });
         
-        if (!data.teams || data.teams.length === 0) {
-          toast.info("No teams found for this hackathon yet. Create teams first!", {
-            autoClose: 4000
+        const teams = data.teams || [];
+        setTeamsData(teams);
+        
+        if (teams.length === 0) {
+          console.log(`ℹ️ No teams found for hackathon ${hackathon.title}`);
+          toast.info(`No teams found for "${hackathon.title}". Create teams first!`, {
+            autoClose: 5000
+          });
+        } else {
+          console.log(`✅ Successfully loaded ${teams.length} teams`);
+          toast.success(`Loaded ${teams.length} team${teams.length !== 1 ? 's' : ''} for ${hackathon.title}`, {
+            autoClose: 3000
           });
         }
       } else {
-        const errorData = await response.json();
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (parseError) {
+          errorData = { message: `HTTP ${response.status} - ${response.statusText}` };
+        }
+        
         console.error(`❌ Failed to fetch teams: ${response.status}`, errorData);
-        toast.error(`Failed to fetch teams: ${errorData.message || 'Unknown error'}`);
+        toast.error(`Failed to fetch teams: ${errorData.message || `HTTP ${response.status}`}`, {
+          autoClose: 5000
+        });
         setTeamsData([]);
       }
     } catch (error) {
-      console.error("Error fetching teams:", error);
-      toast.error("Network error while fetching teams");
+      console.error("❌ Network error fetching teams:", error);
+      
+      if (error.name === 'AbortError') {
+        toast.error("Request timed out. Please try again.", {
+          autoClose: 5000
+        });
+      } else {
+        toast.error(`Network error: ${error.message}`, {
+          autoClose: 5000
+        });
+      }
       setTeamsData([]);
     } finally {
       clearTimeout(loadingTimeout);
       setTeamsLoading(false);
+      console.log(`🏁 Team fetch completed for hackathon: ${hackathon.title}`);
     }
   };
 
