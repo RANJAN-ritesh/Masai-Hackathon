@@ -74,6 +74,11 @@ router.post("/upload-participants", async (req, res) => {
             existingUser.hackathonIds = existingUser.hackathonIds || [];
             existingUser.hackathonIds.push(hackathonId);
             
+            // Ensure user is verified for login
+            if (!existingUser.isVerified) {
+              existingUser.isVerified = true;
+            }
+            
             try {
               await existingUser.save();
               updatedCount++;
@@ -83,7 +88,19 @@ router.post("/upload-participants", async (req, res) => {
               existingCount++;
             }
           } else {
-            existingCount++;
+            // User is already in this hackathon, but ensure they're verified
+            if (!existingUser.isVerified) {
+              existingUser.isVerified = true;
+              try {
+                await existingUser.save();
+                updatedCount++;
+              } catch (saveError) {
+                console.error("Error updating user verification:", saveError);
+                existingCount++;
+              }
+            } else {
+              existingCount++;
+            }
           }
         } else {
           // Create new user
