@@ -68,7 +68,7 @@ const HackathonSchema = new Schema<IHackathon>(
     eventType: { type: String, required: true, default: "Team Hackathon" },
     minTeamSize: { type: Number, required: true, default: 2 },
     maxTeamSize: { type: Number, required: true, default: 4 },
-    status: { type: String, required: true, default: "active", enum: ["active", "inactive", "completed"] },
+    status: { type: String, required: true, default: "upcoming", enum: ["upcoming", "active", "inactive", "completed"] },
     problemStatements: [{
       _id: { type: String },
       track: { type: String },
@@ -112,5 +112,14 @@ const HackathonSchema = new Schema<IHackathon>(
   },
   { timestamps: true }
 );
+
+// Debug: Log the status enum values
+console.log("🔧 Hackathon Schema Status Enum:", HackathonSchema.path('status').enumValues);
+console.log("🔧 Hackathon Schema Status Default:", HackathonSchema.path('status').defaultValue);
+
+// Force model re-registration to ensure new schema is used
+if (mongoose.models.Hackathon) {
+  delete mongoose.models.Hackathon;
+}
 
 export default mongoose.model<IHackathon>("Hackathon", HackathonSchema); 
