@@ -38,24 +38,63 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 async function testUserAuthentication() {
   log('Testing user authentication...');
   
+  let allUsersAuthenticated = true;
+  
+  // First, create test users if they don't exist
   for (let i = 0; i < TEST_USERS.length; i++) {
     try {
       const user = TEST_USERS[i];
-      const response = await axios.post(`${BASE_URL}/users/login`, {
+      
+      // Try to create the user first
+      const createResponse = await axios.post(`${BASE_URL}/users/create-user`, {
+        userId: `TEST${i + 1}`,
+        name: user.name,
+        code: `TEST${i + 1}`,
+        course: 'Computer Science',
+        skills: ['JavaScript', 'React'],
+        vertical: 'Web Development',
+        phoneNumber: `+1234567890${i}`,
         email: user.email,
         password: user.password
       });
       
-      if (response.data.token) {
-        authTokens[user.email] = response.data.token;
+      if (createResponse.data._id) {
+        log(`✅ User ${user.name} created successfully`, 'SUCCESS');
+      }
+    } catch (error) {
+      if (error.response?.status === 400 && error.response?.data?.message?.includes('already exists')) {
+        log(`ℹ️ User ${user.name} already exists`, 'INFO');
+      } else {
+        log(`❌ User ${user.name} creation error: ${error.response?.data?.message || error.message}`, 'ERROR');
+        allUsersAuthenticated = false;
+      }
+    }
+  }
+  
+  // Now try to authenticate
+  for (let i = 0; i < TEST_USERS.length; i++) {
+    try {
+      const user = TEST_USERS[i];
+      const response = await axios.post(`${BASE_URL}/users/verify-user`, {
+        email: user.email,
+        password: user.password
+      });
+      
+      if (response.data.user) {
+        // For now, we'll use the user ID as the token since we don't have JWT yet
+        authTokens[user.email] = response.data.user._id;
         log(`✅ User ${user.name} authenticated successfully`, 'SUCCESS');
       } else {
         log(`❌ User ${user.name} authentication failed`, 'ERROR');
+        allUsersAuthenticated = false;
       }
     } catch (error) {
       log(`❌ User ${user.name} authentication error: ${error.response?.data?.message || error.message}`, 'ERROR');
+      allUsersAuthenticated = false;
     }
   }
+  
+  return allUsersAuthenticated;
 }
 
 async function testHackathonCreation() {
@@ -65,7 +104,7 @@ async function testHackathonCreation() {
     const adminToken = authTokens[TEST_USERS[0].email];
     if (!adminToken) {
       log('❌ Admin token not available', 'ERROR');
-      return;
+      return false; // Indicate failure
     }
 
     const hackathonData = {
@@ -92,11 +131,14 @@ async function testHackathonCreation() {
       log(`✅ Hackathon created successfully with ID: ${testHackathonId}`, 'SUCCESS');
       log(`   - Participant teams: ${response.data.allowParticipantTeams}`, 'INFO');
       log(`   - Team creation mode: ${response.data.teamCreationMode}`, 'INFO');
+      return true; // Indicate success
     } else {
       log('❌ Hackathon creation failed', 'ERROR');
+      return false; // Indicate failure
     }
   } catch (error) {
     log(`❌ Hackathon creation error: ${error.response?.data?.message || error.message}`, 'ERROR');
+    return false; // Indicate failure
   }
 }
 
@@ -107,7 +149,7 @@ async function testParticipantTeamCreation() {
     const userToken = authTokens[TEST_USERS[1].email];
     if (!userToken || !testHackathonId) {
       log('❌ User token or hackathon ID not available', 'ERROR');
-      return;
+      return false; // Indicate failure
     }
 
     const teamData = {
@@ -126,11 +168,14 @@ async function testParticipantTeamCreation() {
       log(`   - Team name: ${response.data.team.teamName}`, 'INFO');
       log(`   - Member count: ${response.data.team.memberCount}`, 'INFO');
       log(`   - Status: ${response.data.team.status}`, 'INFO');
+      return true; // Indicate success
     } else {
       log('❌ Team creation failed', 'ERROR');
+      return false; // Indicate failure
     }
   } catch (error) {
     log(`❌ Team creation error: ${error.response?.data?.message || error.message}`, 'ERROR');
+    return false; // Indicate failure
   }
 }
 
@@ -149,7 +194,7 @@ async function testTeamNameValidation() {
   const userToken = authTokens[TEST_USERS[1].email];
   if (!userToken || !testHackathonId) {
     log('❌ User token or hackathon ID not available', 'ERROR');
-    return;
+    return false; // Indicate failure
   }
 
   for (const invalidName of invalidNames) {
@@ -165,14 +210,17 @@ async function testTeamNameValidation() {
       });
 
       log(`❌ Team name "${invalidName}" should have been rejected`, 'ERROR');
+      return false; // Indicate failure
     } catch (error) {
       if (error.response?.status === 400) {
         log(`✅ Team name "${invalidName}" correctly rejected: ${error.response.data.message}`, 'SUCCESS');
       } else {
         log(`❌ Unexpected error for team name "${invalidName}": ${error.message}`, 'ERROR');
+        return false; // Indicate failure
       }
     }
   }
+  return true; // Indicate success if all invalid names are rejected
 }
 
 async function testJoinRequestSystem() {
@@ -182,7 +230,7 @@ async function testJoinRequestSystem() {
     const userToken = authTokens[TEST_USERS[2].email];
     if (!userToken || !testTeamId) {
       log('❌ User token or team ID not available', 'ERROR');
-      return;
+      return false; // Indicate failure
     }
 
     // Send join request
@@ -200,11 +248,14 @@ async function testJoinRequestSystem() {
       
       // Test responding to request
       await testRequestResponse(response.data.request.id);
+      return true; // Indicate success
     } else {
       log('❌ Join request failed', 'ERROR');
+      return false; // Indicate failure
     }
   } catch (error) {
     log(`❌ Join request error: ${error.response?.data?.message || error.message}`, 'ERROR');
+    return false; // Indicate failure
   }
 }
 
@@ -215,7 +266,7 @@ async function testRequestResponse(requestId) {
     const teamCreatorToken = authTokens[TEST_USERS[1].email];
     if (!teamCreatorToken) {
       log('❌ Team creator token not available', 'ERROR');
-      return;
+      return false; // Indicate failure
     }
 
     // Accept the request
@@ -228,11 +279,14 @@ async function testRequestResponse(requestId) {
 
     if (response.data.message) {
       log(`✅ Request responded to successfully: ${response.data.message}`, 'SUCCESS');
+      return true; // Indicate success
     } else {
       log('❌ Request response failed', 'ERROR');
+      return false; // Indicate failure
     }
   } catch (error) {
     log(`❌ Request response error: ${error.response?.data?.message || error.message}`, 'ERROR');
+    return false; // Indicate failure
   }
 }
 
@@ -243,7 +297,7 @@ async function testTeamFinalization() {
     const teamCreatorToken = authTokens[TEST_USERS[1].email];
     if (!teamCreatorToken || !testTeamId) {
       log('❌ Team creator token or team ID not available', 'ERROR');
-      return;
+      return false; // Indicate failure
     }
 
     const response = await axios.post(`${BASE_URL}/participant-team/team/${testTeamId}/finalize`, {}, {
@@ -254,11 +308,14 @@ async function testTeamFinalization() {
       log(`✅ Team finalized successfully: ${response.data.message}`, 'SUCCESS');
       log(`   - Team status: ${response.data.team?.status}`, 'INFO');
       log(`   - Finalized at: ${response.data.team?.finalizedAt}`, 'INFO');
+      return true; // Indicate success
     } else {
       log('❌ Team finalization failed', 'ERROR');
+      return false; // Indicate failure
     }
   } catch (error) {
     log(`❌ Team finalization error: ${error.response?.data?.message || error.message}`, 'ERROR');
+    return false; // Indicate failure
   }
 }
 
@@ -271,7 +328,7 @@ async function testOwnershipTransfer() {
     
     if (!currentOwnerToken || !newOwnerToken || !testTeamId) {
       log('❌ Required tokens or team ID not available', 'ERROR');
-      return;
+      return false; // Indicate failure
     }
 
     // Get user ID for new owner
@@ -281,7 +338,7 @@ async function testOwnershipTransfer() {
 
     if (!userResponse.data._id) {
       log('❌ Could not get new owner user ID', 'ERROR');
-      return;
+      return false; // Indicate failure
     }
 
     const transferData = {
@@ -294,11 +351,14 @@ async function testOwnershipTransfer() {
 
     if (response.data.message) {
       log(`✅ Ownership transferred successfully: ${response.data.message}`, 'SUCCESS');
+      return true; // Indicate success
     } else {
       log('❌ Ownership transfer failed', 'ERROR');
+      return false; // Indicate failure
     }
   } catch (error) {
     log(`❌ Ownership transfer error: ${error.response?.data?.message || error.message}`, 'ERROR');
+    return false; // Indicate failure
   }
 }
 
@@ -309,7 +369,7 @@ async function testNotificationSystem() {
     const userToken = authTokens[TEST_USERS[1].email];
     if (!userToken) {
       log('❌ User token not available', 'ERROR');
-      return;
+      return false; // Indicate failure
     }
 
     const response = await axios.get(`${BASE_URL}/participant-team/notifications`, {
@@ -324,11 +384,14 @@ async function testNotificationSystem() {
         const firstNotification = response.data.notifications[0];
         await testMarkNotificationAsRead(firstNotification._id, userToken);
       }
+      return true; // Indicate success
     } else {
       log('❌ Notifications retrieval failed', 'ERROR');
+      return false; // Indicate failure
     }
   } catch (error) {
     log(`❌ Notifications error: ${error.response?.data?.message || error.message}`, 'ERROR');
+    return false; // Indicate failure
   }
 }
 
@@ -342,11 +405,14 @@ async function testMarkNotificationAsRead(notificationId, userToken) {
 
     if (response.data.message) {
       log(`✅ Notification marked as read: ${response.data.message}`, 'SUCCESS');
+      return true; // Indicate success
     } else {
       log('❌ Mark as read failed', 'ERROR');
+      return false; // Indicate failure
     }
   } catch (error) {
     log(`❌ Mark as read error: ${error.response?.data?.message || error.message}`, 'ERROR');
+    return false; // Indicate failure
   }
 }
 
@@ -358,7 +424,7 @@ async function testCleanup() {
     const userToken = authTokens[TEST_USERS[2].email];
     if (!userToken || !testTeamId) {
       log('❌ User token or team ID not available', 'ERROR');
-      return;
+      return false; // Indicate failure
     }
 
     const response = await axios.post(`${BASE_URL}/participant-team/team/${testTeamId}/leave`, {}, {
@@ -367,11 +433,14 @@ async function testCleanup() {
 
     if (response.data.message) {
       log(`✅ User left team successfully: ${response.data.message}`, 'SUCCESS');
+      return true; // Indicate success
     } else {
       log('❌ Leave team failed', 'ERROR');
+      return false; // Indicate failure
     }
   } catch (error) {
     log(`❌ Cleanup error: ${error.response?.data?.message || error.message}`, 'ERROR');
+    return false; // Indicate failure
   }
 }
 
@@ -379,41 +448,77 @@ async function runAllTests() {
   log('🚀 Starting comprehensive participant team creation tests...', 'INFO');
   log('==================================================', 'INFO');
   
+  let testResults = [];
+  let hasFailures = false;
+  
   try {
-    // Run all tests in sequence
-    await testUserAuthentication();
+    // Run all tests in sequence and track results
+    const authResult = await testUserAuthentication();
+    testResults.push({ name: 'User Authentication', success: authResult !== false });
+    if (authResult === false) hasFailures = true;
     await sleep(1000);
     
-    await testHackathonCreation();
+    const hackathonResult = await testHackathonCreation();
+    testResults.push({ name: 'Hackathon Creation', success: hackathonResult !== false });
+    if (hackathonResult === false) hasFailures = true;
     await sleep(1000);
     
-    await testParticipantTeamCreation();
+    const teamResult = await testParticipantTeamCreation();
+    testResults.push({ name: 'Participant Team Creation', success: teamResult !== false });
+    if (teamResult === false) hasFailures = true;
     await sleep(1000);
     
-    await testTeamNameValidation();
+    const validationResult = await testTeamNameValidation();
+    testResults.push({ name: 'Team Name Validation', success: validationResult !== false });
+    if (validationResult === false) hasFailures = true;
     await sleep(1000);
     
-    await testJoinRequestSystem();
+    const joinRequestResult = await testJoinRequestSystem();
+    testResults.push({ name: 'Join Request System', success: joinRequestResult !== false });
+    if (joinRequestResult === false) hasFailures = true;
     await sleep(1000);
     
-    await testTeamFinalization();
+    const finalizationResult = await testTeamFinalization();
+    testResults.push({ name: 'Team Finalization', success: finalizationResult !== false });
+    if (finalizationResult === false) hasFailures = true;
     await sleep(1000);
     
-    await testOwnershipTransfer();
+    const ownershipResult = await testOwnershipTransfer();
+    testResults.push({ name: 'Ownership Transfer', success: ownershipResult !== false });
+    if (ownershipResult === false) hasFailures = true;
     await sleep(1000);
     
-    await testNotificationSystem();
+    const notificationResult = await testNotificationSystem();
+    testResults.push({ name: 'Notification System', success: notificationResult !== false });
+    if (notificationResult === false) hasFailures = true;
     await sleep(1000);
     
-    await testCleanup();
+    const cleanupResult = await testCleanup();
+    testResults.push({ name: 'Cleanup Operations', success: cleanupResult !== false });
+    if (cleanupResult === false) hasFailures = true;
     
+    // Report test results
     log('==================================================', 'INFO');
-    log('🎉 All tests completed successfully!', 'SUCCESS');
-    log('✅ Participant team creation feature is working correctly', 'SUCCESS');
+    log('📊 Test Results Summary:', 'INFO');
+    testResults.forEach(result => {
+      const status = result.success ? '✅ PASS' : '❌ FAIL';
+      log(`${status} - ${result.name}`, result.success ? 'SUCCESS' : 'ERROR');
+    });
+    
+    if (hasFailures) {
+      log('==================================================', 'INFO');
+      log('❌ Some tests failed. The participant team creation feature needs attention.', 'ERROR');
+      process.exit(1);
+    } else {
+      log('==================================================', 'INFO');
+      log('🎉 All tests completed successfully!', 'SUCCESS');
+      log('✅ Participant team creation feature is working correctly', 'SUCCESS');
+    }
     
   } catch (error) {
     log('==================================================', 'INFO');
-    log(`❌ Test suite failed: ${error.message}`, 'ERROR');
+    log(`❌ Test suite failed with exception: ${error.message}`, 'ERROR');
+    process.exit(1);
   }
 }
 
