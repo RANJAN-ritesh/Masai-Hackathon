@@ -135,7 +135,7 @@ class NotificationService {
   cleanupOldNotifications(): void {
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     
-    for (const [userId, notifications] of this.notifications.entries()) {
+    for (const [userId, notifications] of Array.from(this.notifications.entries())) {
       const filteredNotifications = notifications.filter(
         notification => notification.createdAt > oneWeekAgo
       );
