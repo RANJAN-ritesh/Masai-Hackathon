@@ -94,7 +94,9 @@ app.get("/health",(req, res)=>{
         uptime: process.uptime(),
         environment: process.env.NODE_ENV || 'development',
         debug: "Testing if new code is deployed - " + new Date().toISOString(), // Added for deployment verification
-        schemaVersion: "2.0 - includes upcoming status enum" // Force new deployment
+        schemaVersion: "3.0 - FORCE COMPLETE RESTART", // Force complete restart
+        hackathonStatusEnum: ["upcoming", "active", "inactive", "completed"], // Show expected enum values
+        buildTime: "2025-08-20T19:21:00.000Z" // Build timestamp to verify deployment
     })
 })
 
@@ -126,4 +128,6 @@ app.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
     console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+    console.log(`🔧 SCHEMA DEBUG: Hackathon status enum should include 'upcoming'`);
+    console.log(`🔧 DEPLOYMENT TIME: ${new Date().toISOString()}`);
 });
