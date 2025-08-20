@@ -859,7 +859,7 @@ const EligibleHackathons = () => {
                   <div className="flex space-x-3">
                     <button
                       onClick={copyAllTeamsToClipboard}
-                      className="bg-white bg-opacity-25 hover:bg-opacity-35 text-white px-4 py-2 rounded-lg font-bold transition-all duration-300 flex items-center border-2 border-white border-opacity-40 hover:border-opacity-60 shadow-lg"
+                      className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold transition-all duration-300 flex items-center border-2 border-green-400 hover:border-green-300 shadow-xl"
                       title="Copy all teams to clipboard in CSV format"
                     >
                       <Copy className="w-4 h-4 mr-2 stroke-2" />
@@ -867,7 +867,7 @@ const EligibleHackathons = () => {
                     </button>
                     <button
                       onClick={() => setTeamsModalOpen(false)}
-                      className="bg-white bg-opacity-25 hover:bg-opacity-35 text-white p-2 rounded-lg transition-all duration-300 border-2 border-white border-opacity-40 hover:border-opacity-60 shadow-lg"
+                      className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-all duration-300 border-2 border-red-400 hover:border-red-300 shadow-xl"
                       title="Close Teams Overview"
                     >
                       <X className="w-5 h-5 stroke-2" />
@@ -909,10 +909,10 @@ const EligibleHackathons = () => {
                             </div>
                             <button
                               onClick={() => copyTeamToClipboard(team)}
-                              className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg transition-all duration-300 flex items-center text-sm font-bold shadow-sm border border-blue-700 hover:shadow-md"
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg transition-all duration-300 flex items-center text-sm font-bold shadow-lg border-2 border-emerald-500 hover:border-emerald-400 hover:shadow-xl"
                               title="Copy team to clipboard in CSV format"
                             >
-                              <Copy className="w-4 h-4 mr-1 stroke-2" />
+                              <Copy className="w-4 h-4 mr-1 stroke-[2.5]" />
                               CSV
                             </button>
                           </div>
