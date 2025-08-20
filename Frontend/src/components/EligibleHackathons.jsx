@@ -651,7 +651,7 @@ const EligibleHackathons = () => {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-fr">
               {role === "admin"
                 ? hackathons.map((registration) => {
                     const status = getEventStatus(
@@ -662,10 +662,10 @@ const EligibleHackathons = () => {
                     return (
                       <div
                         key={registration._id}
-                        className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all border border-gray-100 group"
+                        className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all border border-gray-100 group flex flex-col h-full"
                       >
                         <div className="h-2 bg-gradient-to-r from-indigo-500 to-purple-600"></div>
-                        <div className="p-6">
+                        <div className="p-6 flex flex-col flex-grow">
                           <div
                             className="flex justify-between items-start mb-4 cursor-pointer"
                             onClick={() => handleCardClick(registration._id)}
@@ -682,7 +682,7 @@ const EligibleHackathons = () => {
                           </div>
 
                           <div
-                            className="space-y-3 mb-6 cursor-pointer"
+                            className="space-y-3 mb-6 cursor-pointer flex-grow"
                             onClick={() => handleCardClick(registration._id)}
                           >
                             <div className="flex items-center text-sm text-gray-600">
@@ -696,7 +696,7 @@ const EligibleHackathons = () => {
                             </div>
                           </div>
 
-                          <div className="pt-4 border-t border-gray-100">
+                          <div className="pt-4 border-t border-gray-100 mt-auto">
                             <div className="flex flex-wrap gap-3 items-center justify-between">
                               <button
                                 onClick={() => openModal("create", registration)}
@@ -774,11 +774,11 @@ const EligibleHackathons = () => {
                     return (
                       <div
                         key={registration._id}
-                        className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all cursor-pointer border border-gray-100 group"
+                        className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all cursor-pointer border border-gray-100 group flex flex-col h-full"
                         onClick={() => handleCardClick(registration?.hackathonId?._id)}
                       >
                         <div className="h-2 bg-gradient-to-r from-indigo-500 to-purple-600"></div>
-                        <div className="p-6">
+                        <div className="p-6 flex flex-col flex-grow">
                           <div className="flex justify-between items-start mb-4">
                             <h3 className="text-xl font-bold text-gray-800 leading-tight group-hover:text-indigo-600 transition-colors">
                               {registration?.hackathonId?.name}
@@ -791,7 +791,7 @@ const EligibleHackathons = () => {
                             </span>
                           </div>
 
-                          <div className="space-y-3 mb-6">
+                          <div className="space-y-3 mb-6 flex-grow">
                             <div className="flex items-center text-sm text-gray-600">
                               <CalendarRange className="w-4 h-4 mr-2 text-indigo-500" />
                               <span className="font-medium">
@@ -805,7 +805,7 @@ const EligibleHackathons = () => {
                             </div>
                           </div>
 
-                          <div className="pt-4 border-t border-gray-100">
+                          <div className="pt-4 border-t border-gray-100 mt-auto">
                             <div className="flex justify-between items-center">
                               <div className="bg-indigo-50 px-4 py-3 rounded-lg">
                                 <p className="text-md font-semibold text-indigo-900">
