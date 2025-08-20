@@ -11,6 +11,7 @@ import userRoutes from "./routes/userRoutes";
 import teamRoutes from "./routes/teamRoutes";
 import teamRequestRoutes from "./routes/teamRequestRoutes";
 import problemStatementRoutes from "./routes/problemStatementRoutes";
+// import participantTeamRoutes from "./routes/participantTeamRoutes";
 
 // Load environment variables
 dotenv.config();
@@ -74,13 +75,25 @@ app.use("/users", userRoutes);
 app.use("/team", teamRoutes);
 app.use("/team-request", teamRequestRoutes);
 app.use("/hackathons", problemStatementRoutes); // Mount hackathon routes at /hackathons level
+// app.use("/participant-team", participantTeamRoutes); // New participant team routes - temporarily disabled for debugging
+
+// Test inline route
+app.get("/participant-team/test", (req, res) => {
+  res.json({ message: 'Inline participant team route is working' });
+});
+
+// Test route with different path
+app.get("/test-participant", (req, res) => {
+  res.json({ message: 'Alternative test route is working' });
+});
 
 app.get("/health",(req, res)=>{
     res.status(200).json({
         status: "ok",
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'development'
+        environment: process.env.NODE_ENV || 'development',
+        debug: "Testing if new code is deployed - " + new Date().toISOString()
     })
 })
 
