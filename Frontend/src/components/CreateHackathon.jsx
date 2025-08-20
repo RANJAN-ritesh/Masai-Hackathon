@@ -76,7 +76,7 @@ const CreateHackathon = () => {
     ],
     submissionStart: "",
     submissionEnd: "",
-    status: "Upcoming",
+    status: "upcoming",
     eventType: "Interactive Hackathon",
     prizeDetails: [
       {
