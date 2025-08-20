@@ -82,6 +82,11 @@ app.get("/participant-team/test", (req, res) => {
   res.json({ message: 'Inline participant team route is working' });
 });
 
+// Test route with different path
+app.get("/test-participant", (req, res) => {
+  res.json({ message: 'Alternative test route is working' });
+});
+
 app.get("/health",(req, res)=>{
     res.status(200).json({
         status: "ok",
