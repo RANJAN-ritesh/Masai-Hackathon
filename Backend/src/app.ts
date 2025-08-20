@@ -93,7 +93,8 @@ app.get("/health",(req, res)=>{
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         environment: process.env.NODE_ENV || 'development',
-        debug: "Testing if new code is deployed - " + new Date().toISOString()
+        debug: "Testing if new code is deployed - " + new Date().toISOString(), // Added for deployment verification
+        schemaVersion: "2.0 - includes upcoming status enum" // Force new deployment
     })
 })
 
