@@ -591,39 +591,37 @@ const EligibleHackathons = () => {
           {/* Header with background effect */}
           <div className="relative mb-12">
             <div className="absolute inset-0 bg-indigo-600 opacity-5 rounded-xl"></div>
-            <div className="relative z-10 flex flex-col md:flex-row justify-between items-center p-6 bg-white bg-opacity-80 backdrop-blur-sm rounded-xl shadow-lg">
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-              <div>
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Eligible Hackathons</h1>
-                  <p className="text-gray-600">
-                    {loading ? "Loading..." : `Found ${hackathonCount} hackathon${hackathonCount !== 1 ? 's' : ''}`}
+            <div className="relative z-10 flex flex-col md:flex-row justify-between items-start p-6 bg-white bg-opacity-80 backdrop-blur-sm rounded-xl shadow-lg">
+              <div className="flex flex-col">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Eligible Hackathons</h1>
+                <p className="text-gray-600">
+                  {loading ? "Loading..." : `Found ${hackathonCount} hackathon${hackathonCount !== 1 ? 's' : ''}`}
                 </p>
               </div>
               {role === "admin" && (
-                  <div className="flex items-center space-x-3">
-                    <button 
-                      onClick={handleRefresh} 
-                      disabled={loading}
-                      className="mt-6 md:mt-0 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center shadow-md" 
-                      title="Refresh hackathons list"
-                    >
-                      {loading ? (
-                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      ) : (
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                      )}
-                      <span className="ml-2">{loading ? 'Refreshing...' : 'Refresh'}</span>
-                    </button>
-                <Link to="/create-hackathon">
-                  <button className="mt-6 md:mt-0 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center shadow-md">
-                        <Sparkles className="w-5 h-5 mr-2" />Create New Hackathon
+                <div className="flex items-center space-x-3 mt-4 md:mt-0">
+                  <button 
+                    onClick={handleRefresh} 
+                    disabled={loading}
+                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-4 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center shadow-md" 
+                    title="Refresh hackathons list"
+                  >
+                    {loading ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    )}
+                    <span className="ml-2">{loading ? 'Refreshing...' : 'Refresh'}</span>
                   </button>
-                </Link>
-                  </div>
+                  <Link to="/create-hackathon">
+                    <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center shadow-md">
+                      <Sparkles className="w-5 h-5 mr-2" />Create New Hackathon
+                    </button>
+                  </Link>
+                </div>
               )}
-              </div>
             </div>
           </div>
 
