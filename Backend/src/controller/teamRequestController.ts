@@ -4,6 +4,20 @@ import teamRequests from "../model/teamRequests";
 import team from "../model/team";
 import user from "../model/user";
 
+// Extend Express Request interface to include user
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: string;
+        email: string;
+        role: string;
+        name: string;
+      };
+    }
+  }
+}
+
 export const getPendingJoinRequests = async (req: Request, res: Response): Promise<void> => {
     try {
         const { teamId } = req.params; // Extract teamId from URL

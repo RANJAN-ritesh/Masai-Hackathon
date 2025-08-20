@@ -113,9 +113,9 @@ const HackathonSchema = new Schema<IHackathon>(
   { timestamps: true }
 );
 
-// Debug: Log the status enum values
-console.log("🔧 Hackathon Schema Status Enum:", HackathonSchema.path('status').enumValues);
-console.log("🔧 Hackathon Schema Status Default:", HackathonSchema.path('status').defaultValue);
+// Debug: Log schema enum values
+// console.log("🔧 Hackathon Schema Status Enum:", HackathonSchema.path('status').enumValues);
+// console.log("🔧 Hackathon Schema Status Default:", HackathonSchema.path('status').defaultValue);
 
 // Force model re-registration to ensure new schema is used
 if (mongoose.models.Hackathon) {
