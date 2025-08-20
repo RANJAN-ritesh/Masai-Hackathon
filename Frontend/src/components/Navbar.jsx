@@ -14,6 +14,7 @@ import {
 } from "lucide-react"; // Added icons
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import NotificationCenter from "./NotificationCenter";
 
 const Navbar = () => {
   const baseURL = import.meta.env.VITE_BASE_URL;
@@ -154,6 +155,9 @@ const Navbar = () => {
                   </button>
                 </Link>
               )} */}
+
+              {/* Notification Center */}
+              <NotificationCenter />
 
               {/* Profile Dropdown */}
               <div className="relative" ref={profileDropdownRef}>

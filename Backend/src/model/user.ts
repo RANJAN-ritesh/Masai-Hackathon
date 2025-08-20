@@ -13,7 +13,13 @@ export interface IUser extends Document{
     teamId?: string; 
     hackathonIds?: string[]; // Track which hackathons user is part of
     isVerified: boolean;
-    role: "admin" | "leader" | "member"; 
+    role: "admin" | "leader" | "member";
+    // NEW FIELDS FOR PARTICIPANT TEAM CREATION
+    teamsCreated: mongoose.Types.ObjectId[];
+    currentTeamId?: mongoose.Types.ObjectId;
+    canSendRequests: boolean;
+    canReceiveRequests: boolean;
+    lastTeamActivity?: Date;
 }
 
 const UserSchema = new Schema<IUser>({
@@ -29,7 +35,13 @@ const UserSchema = new Schema<IUser>({
     teamId: {type:String, required:false}, // Make teamId optional
     hackathonIds: {type:[String], required:false, default:[]}, // Track hackathon associations
     isVerified: {type:Boolean, required:true, default:false},
-    role: {type:String, enum:["admin", "leader", "member"],required:true, default:"member"}
+    role: {type:String, enum:["admin", "leader", "member"],required:true, default:"member"},
+    // NEW FIELDS FOR PARTICIPANT TEAM CREATION
+    teamsCreated: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Team' }],
+    currentTeamId: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
+    canSendRequests: { type: Boolean, default: true },
+    canReceiveRequests: { type: Boolean, default: true },
+    lastTeamActivity: { type: Date }
 }, 
 { timestamps: true})
 

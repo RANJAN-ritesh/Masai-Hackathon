@@ -8,6 +8,14 @@ export interface ITeam extends Document {
     hackathonId?: string; // Associate teams with specific hackathons
     description?: string;
     status?: string;
+    // NEW FIELDS FOR PARTICIPANT TEAM CREATION
+    isFinalized: boolean;
+    creationMethod: "admin" | "participant" | "auto";
+    finalizedAt?: Date;
+    canReceiveRequests: boolean;
+    pendingRequests: mongoose.Types.ObjectId[];
+    teamStatus: "forming" | "finalized" | "locked";
+    teamLeader: mongoose.Types.ObjectId;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -19,7 +27,15 @@ const TeamSchema = new Schema<ITeam>({
     memberLimit: { type: Number, required: true, default: 4 },
     hackathonId: { type: String, required: false }, // Link teams to hackathons
     description: { type: String, required: false },
-    status: { type: String, required: false, default: 'active', enum: ['active', 'inactive', 'completed'] }
+    status: { type: String, required: false, default: 'active', enum: ['active', 'inactive', 'completed'] },
+    // NEW FIELDS FOR PARTICIPANT TEAM CREATION
+    isFinalized: { type: Boolean, default: false },
+    creationMethod: { type: String, enum: ["admin", "participant", "auto"], default: "admin" },
+    finalizedAt: { type: Date },
+    canReceiveRequests: { type: Boolean, default: true },
+    pendingRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'TeamRequest' }],
+    teamStatus: { type: String, enum: ["forming", "finalized", "locked"], default: "forming" },
+    teamLeader: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
 
 export default mongoose.model<ITeam>("Team", TeamSchema);

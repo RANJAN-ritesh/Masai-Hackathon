@@ -43,6 +43,15 @@ export interface IHackathon extends Document {
     twitter?: string;
     linkedin?: string;
   };
+  // NEW FIELDS FOR PARTICIPANT TEAM CREATION
+  teamCreationMode: "admin" | "participant" | "both";
+  allowParticipantTeams: boolean;
+  teamFinalizationRequired: boolean;
+  minTeamSizeForFinalization: number;
+  teamModificationLocked: boolean;
+  teamModificationLockedAt?: Date;
+  autoTeamCreationEnabled: boolean;
+  autoTeamCreationTime?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -90,7 +99,16 @@ const HackathonSchema = new Schema<IHackathon>(
       instagram: { type: String },
       twitter: { type: String },
       linkedin: { type: String }
-    }
+    },
+    // NEW FIELDS FOR PARTICIPANT TEAM CREATION
+    teamCreationMode: { type: String, enum: ["admin", "participant", "both"], default: "admin" },
+    allowParticipantTeams: { type: Boolean, default: false },
+    teamFinalizationRequired: { type: Boolean, default: true },
+    minTeamSizeForFinalization: { type: Number, default: 2 },
+    teamModificationLocked: { type: Boolean, default: false },
+    teamModificationLockedAt: { type: Date },
+    autoTeamCreationEnabled: { type: Boolean, default: true },
+    autoTeamCreationTime: { type: Date }
   },
   { timestamps: true }
 );

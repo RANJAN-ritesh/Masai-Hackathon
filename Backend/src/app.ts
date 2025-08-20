@@ -11,6 +11,7 @@ import userRoutes from "./routes/userRoutes";
 import teamRoutes from "./routes/teamRoutes";
 import teamRequestRoutes from "./routes/teamRequestRoutes";
 import problemStatementRoutes from "./routes/problemStatementRoutes";
+import participantTeamRoutes from "./routes/participantTeamRoutes";
 
 // Load environment variables
 dotenv.config();
@@ -74,6 +75,7 @@ app.use("/users", userRoutes);
 app.use("/team", teamRoutes);
 app.use("/team-request", teamRequestRoutes);
 app.use("/hackathons", problemStatementRoutes); // Mount hackathon routes at /hackathons level
+app.use("/participant-team", participantTeamRoutes); // New participant team routes
 
 app.get("/health",(req, res)=>{
     res.status(200).json({
