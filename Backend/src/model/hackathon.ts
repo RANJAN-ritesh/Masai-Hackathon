@@ -2,46 +2,39 @@ import mongoose, { Schema, Document } from "mongoose";
 
 export interface IHackathon extends Document {
   title: string;
-  version?: string;
   description: string;
   startDate: Date;
   endDate: Date;
-  submissionStart?: Date;
-  submissionEnd?: Date;
-  eventType: string;
-  minTeamSize: number;
-  maxTeamSize: number;
-  status: string;
+  submissionStartDate: Date;
+  submissionEndDate: Date;
+  eventPlan: string;
+  schedule: Array<{
+    date: Date;
+    activity: string;
+    time: string;
+  }>;
   problemStatements: Array<{
-    _id: string;
     track: string;
     description: string;
-    difficulty: string;
-  }>;
-  schedule: Array<{
-    date: string;
-    activity: string;
-  }>;
-  eventPlan: Array<{
-    week?: number;
-    phase: string;
-    description: string;
-    duration?: string;
   }>;
   prizeDetails: Array<{
     position: number;
     amount: string;
     description: string;
   }>;
-  allowedEmails: string[];
+  teamSize: {
+    min: number;
+    max: number;
+  };
+  status: "upcoming" | "active" | "inactive" | "completed";
+  participants: mongoose.Types.ObjectId[];
+  teams: mongoose.Types.ObjectId[];
   socialLinks: {
-    zoom?: string;
-    youtube?: string;
-    slack?: string;
-    github?: string;
-    instagram?: string;
+    website?: string;
     twitter?: string;
     linkedin?: string;
+    instagram?: string;
+    github?: string;
   };
   // NEW FIELDS FOR PARTICIPANT TEAM CREATION
   teamCreationMode: "admin" | "participant" | "both";
@@ -52,6 +45,9 @@ export interface IHackathon extends Document {
   teamModificationLockedAt?: Date;
   autoTeamCreationEnabled: boolean;
   autoTeamCreationTime?: Date;
+  // NEW FIELDS FOR HACKATHON CUSTOMIZATION
+  theme: "modern-tech" | "creative-arts" | "corporate" | "minimalist";
+  fontFamily: "roboto" | "poppins" | "inter" | "montserrat";
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,46 +55,39 @@ export interface IHackathon extends Document {
 const HackathonSchema = new Schema<IHackathon>(
   {
     title: { type: String, required: true },
-    version: { type: String },
     description: { type: String, required: true },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
-    submissionStart: { type: Date },
-    submissionEnd: { type: Date },
-    eventType: { type: String, required: true, default: "Team Hackathon" },
-    minTeamSize: { type: Number, required: true, default: 2 },
-    maxTeamSize: { type: Number, required: true, default: 4 },
-    status: { type: String, required: true, default: "upcoming", enum: ["upcoming", "active", "inactive", "completed"] },
-    problemStatements: [{
-      _id: { type: String },
-      track: { type: String },
-      description: { type: String },
-      difficulty: { type: String, enum: ["Easy", "Medium", "Hard"] }
-    }],
+    submissionStartDate: { type: Date },
+    submissionEndDate: { type: Date },
+    eventPlan: { type: String },
     schedule: [{
-      date: { type: String },
-      activity: { type: String }
+      date: { type: Date },
+      activity: { type: String },
+      time: { type: String }
     }],
-    eventPlan: [{
-      week: { type: Number },
-      phase: { type: String },
-      description: { type: String },
-      duration: { type: String }
+    problemStatements: [{
+      track: { type: String },
+      description: { type: String }
     }],
     prizeDetails: [{
       position: { type: Number },
       amount: { type: String },
       description: { type: String }
     }],
-    allowedEmails: [{ type: String }],
+    teamSize: {
+      min: { type: Number, required: true, default: 2 },
+      max: { type: Number, required: true, default: 4 }
+    },
+    status: { type: String, required: true, default: "upcoming", enum: ["upcoming", "active", "inactive", "completed"] },
+    participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    teams: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Team' }],
     socialLinks: {
-      zoom: { type: String },
-      youtube: { type: String },
-      slack: { type: String },
-      github: { type: String },
-      instagram: { type: String },
+      website: { type: String },
       twitter: { type: String },
-      linkedin: { type: String }
+      linkedin: { type: String },
+      instagram: { type: String },
+      github: { type: String }
     },
     // NEW FIELDS FOR PARTICIPANT TEAM CREATION
     teamCreationMode: { type: String, enum: ["admin", "participant", "both"], default: "admin" },
@@ -108,7 +97,10 @@ const HackathonSchema = new Schema<IHackathon>(
     teamModificationLocked: { type: Boolean, default: false },
     teamModificationLockedAt: { type: Date },
     autoTeamCreationEnabled: { type: Boolean, default: true },
-    autoTeamCreationTime: { type: Date }
+    autoTeamCreationTime: { type: Date },
+    // NEW FIELDS FOR HACKATHON CUSTOMIZATION
+    theme: { type: String, enum: ["modern-tech", "creative-arts", "corporate", "minimalist"], default: "modern-tech" },
+    fontFamily: { type: String, enum: ["roboto", "poppins", "inter", "montserrat"], default: "roboto" }
   },
   { timestamps: true }
 );

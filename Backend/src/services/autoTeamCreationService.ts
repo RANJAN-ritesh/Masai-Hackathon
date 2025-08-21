@@ -119,8 +119,8 @@ export class AutoTeamCreationService {
       // Calculate optimal team size
       const teamSize = this.calculateOptimalTeamSize(
         remainingParticipants.length,
-        hackathon.minTeamSize,
-        hackathon.maxTeamSize
+        hackathon.teamSize.min,
+        hackathon.teamSize.max
       );
 
       // Take participants for this team
@@ -136,7 +136,7 @@ export class AutoTeamCreationService {
         hackathonId: hackathon._id,
         createdBy: teamLeader._id,
         teamMembers: teamMembers.map(p => p._id),
-        memberLimit: hackathon.maxTeamSize,
+        memberLimit: hackathon.teamSize.max,
         creationMethod: 'auto',
         teamStatus: 'finalized',
         isFinalized: true,

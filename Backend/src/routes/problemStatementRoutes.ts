@@ -150,4 +150,50 @@ router.get("/problem-statements/:hackathonId", async (req, res) => {
   }
 });
 
+// PUT - Update hackathon customization (theme and font)
+router.put("/:id/customize", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { theme, fontFamily } = req.body;
+
+    // Validate theme and fontFamily
+    const validThemes = ["modern-tech", "creative-arts", "corporate", "minimalist"];
+    const validFonts = ["roboto", "poppins", "inter", "montserrat"];
+
+    if (theme && !validThemes.includes(theme)) {
+      return res.status(400).json({ error: "Invalid theme" });
+    }
+
+    if (fontFamily && !validFonts.includes(fontFamily)) {
+      return res.status(400).json({ error: "Invalid font family" });
+    }
+
+    const updateData: any = {};
+    if (theme) updateData.theme = theme;
+    if (fontFamily) updateData.fontFamily = fontFamily;
+
+    const hackathon = await Hackathon.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true }
+    );
+
+    if (!hackathon) {
+      return res.status(404).json({ error: "Hackathon not found" });
+    }
+
+    res.json({
+      message: "Hackathon customization updated successfully",
+      hackathon: {
+        id: hackathon._id,
+        theme: hackathon.theme,
+        fontFamily: hackathon.fontFamily
+      }
+    });
+  } catch (error) {
+    console.error("Error updating hackathon customization:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 export default router;

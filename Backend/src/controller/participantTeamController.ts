@@ -58,7 +58,7 @@ export const createParticipantTeam = async (req: Request, res: Response) => {
       hackathonId,
       createdBy: userId,
       teamMembers: [userId],
-      memberLimit: hackathon.maxTeamSize,
+      memberLimit: hackathon.teamSize.max,
       creationMethod: 'participant',
       teamStatus: 'forming',
       canReceiveRequests: true,

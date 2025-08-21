@@ -17,12 +17,14 @@ import {
   Copy,
   X,
   Eye,
-  Crown
+  Crown,
+  Palette
 } from "lucide-react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import ConfirmationModal from "./ConfirmationModal";
-import CSVUploadModal from "./CSVUploadModal";
+import CSVManagementModal from "./CSVManagementModal";
+import HackathonCustomization from "./HackathonCustomization";
 
 const EligibleHackathons = () => {
   const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
@@ -34,6 +36,7 @@ const EligibleHackathons = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalConfig, setModalConfig] = useState({});
   const [csvModalOpen, setCsvModalOpen] = useState(false);
+  const [customizationModalOpen, setCustomizationModalOpen] = useState(false);
   const [selectedHackathonId, setSelectedHackathonId] = useState(null);
   const location = useLocation(); // Add this line
 
@@ -789,11 +792,11 @@ const EligibleHackathons = () => {
 
                               <div className="flex space-x-2">
                                 <button
-                                  onClick={() => handleCSVUploadClick(registration._id)}
-                                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-2 rounded-lg transition-all duration-300"
-                                  title="Upload Participants"
+                                  onClick={() => setCsvModalOpen(true)}
+                                  className="bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white p-2 rounded-lg transition-all duration-300 shadow-sm hover:shadow"
+                                  title="Manage Participants"
                                 >
-                                  <UserPlus className="w-5 h-5" />
+                                  <Users className="w-5 h-5" />
                                 </button>
 
                                 <button
@@ -801,7 +804,15 @@ const EligibleHackathons = () => {
                                   className="bg-purple-100 hover:bg-purple-200 text-purple-700 p-2 rounded-lg transition-all duration-300"
                                   title="View Teams"
                                 >
-                                  <Eye className="w-5 h-5" />
+                                  <Eye className="w-5 h-4" />
+                                </button>
+
+                                <button
+                                  onClick={() => setCustomizationModalOpen(true)}
+                                  className="bg-gradient-to-r from-pink-400 to-purple-500 hover:from-pink-500 hover:to-purple-600 text-white p-2 rounded-lg transition-all duration-300 shadow-sm hover:shadow"
+                                  title="Customize Theme"
+                                >
+                                  <Palette className="w-5 h-5" />
                                 </button>
 
                                 <Link to={`/edithackathon/${registration._id}`}>
@@ -1097,15 +1108,23 @@ const EligibleHackathons = () => {
           </div>
         )}
 
-        <CSVUploadModal
+        {/* CSV Management Modal */}
+        <CSVManagementModal
           isOpen={csvModalOpen}
           onClose={() => setCsvModalOpen(false)}
           hackathonId={selectedHackathonId}
-          baseURL={baseURL}
+        />
+
+        {/* Hackathon Customization Modal */}
+        <HackathonCustomization
+          isOpen={customizationModalOpen}
+          onClose={() => setCustomizationModalOpen(false)}
+          hackathonId={selectedHackathonId}
+          currentTheme={hackathons.find(h => h._id === selectedHackathonId)?.theme}
+          currentFont={hackathons.find(h => h._id === selectedHackathonId)?.fontFamily}
         />
       </div>
-    )
-  );
-};
+    );
+  };
 
 export default EligibleHackathons;
