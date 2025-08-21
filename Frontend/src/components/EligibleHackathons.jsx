@@ -808,7 +808,10 @@ const EligibleHackathons = () => {
                                 </button>
 
                                 <button
-                                  onClick={() => setCustomizationModalOpen(true)}
+                                  onClick={() => {
+                                    setSelectedHackathonId(registration._id);
+                                    setCustomizationModalOpen(true);
+                                  }}
                                   className="bg-gradient-to-r from-pink-400 to-purple-500 hover:from-pink-500 hover:to-purple-600 text-white p-2 rounded-lg transition-all duration-300 shadow-sm hover:shadow"
                                   title="Customize Theme"
                                 >
