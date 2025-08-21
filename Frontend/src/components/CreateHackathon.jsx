@@ -60,11 +60,11 @@ const CreateHackathon = () => {
     ],
     schedule: [
       {
-        date: "",
+        date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16), // Tomorrow
         activity: "Hackathon Kick-off",
       },
       {
-        date: "",
+        date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16), // Next week
         activity: "Winner Announcement",
       },
     ],
@@ -403,10 +403,12 @@ const CreateHackathon = () => {
         endDate: new Date(eventData.endDate).toISOString(),
         submissionStart: eventData.submissionStart ? new Date(eventData.submissionStart).toISOString() : undefined,
         submissionEnd: eventData.submissionEnd ? new Date(eventData.submissionEnd).toISOString() : undefined,
-        schedule: eventData.schedule.map(item => ({
-          ...item,
-          date: item.date ? new Date(item.date).toISOString() : undefined
-        }))
+        schedule: eventData.schedule
+          .filter(item => item.date && item.date.trim() !== '') // Only include items with valid dates
+          .map(item => ({
+            ...item,
+            date: new Date(item.date).toISOString()
+          }))
       };
 
       console.log("Submitting hackathon data:", submissionData);

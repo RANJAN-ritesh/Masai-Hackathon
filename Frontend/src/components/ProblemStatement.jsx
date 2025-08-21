@@ -70,6 +70,9 @@ import { Code, Database, TestTube, ChevronRight, X } from "lucide-react";
 const ProblemStatement = ({ hackathonData }) => {
   if (!hackathonData) return null;
 
+  console.log("🔍 ProblemStatement - hackathonData:", hackathonData);
+  console.log("🔍 ProblemStatement - problemStatements:", hackathonData?.problemStatements);
+
   const [selectedTrack, setSelectedTrack] = useState(null);
   const [showModal, setShowModal] = useState(false);
   // Countdown timer state

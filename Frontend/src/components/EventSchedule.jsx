@@ -7,34 +7,61 @@ const EventSchedule = ({ hackathonData }) => {
     const tempData = {};
     const tabList = [];
 
-    if (!hackathonData?.schedule) return { tabs: [], scheduleData: {} };
+    console.log("🔍 EventSchedule - hackathonData:", hackathonData);
+    console.log("🔍 EventSchedule - schedule:", hackathonData?.schedule);
 
-    hackathonData.schedule.forEach((item) => {
-      const dateObj = new Date(item.date);
-      const dayKey = dateObj.toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-      }); // e.g., "Fri, Apr 8"
+    if (!hackathonData?.schedule || !Array.isArray(hackathonData.schedule)) {
+      console.log("❌ EventSchedule - No schedule data or not an array");
+      return { tabs: [], scheduleData: {} };
+    }
 
-      const time = dateObj.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      });
-
-      if (!tempData[dayKey]) {
-        tempData[dayKey] = [];
-        tabList.push(dayKey);
+    hackathonData.schedule.forEach((item, index) => {
+      console.log(`🔍 Processing schedule item ${index}:`, item);
+      
+      if (!item.date) {
+        console.log(`❌ Item ${index} has no date:`, item);
+        return; // Skip items without dates
       }
 
-      tempData[dayKey].push({ time, event: item.activity });
+      try {
+        const dateObj = new Date(item.date);
+        
+        if (isNaN(dateObj.getTime())) {
+          console.log(`❌ Item ${index} has invalid date:`, item.date);
+          return; // Skip items with invalid dates
+        }
+
+        const dayKey = dateObj.toLocaleDateString("en-US", {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        }); // e.g., "Fri, Apr 8"
+
+        const time = dateObj.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          minute: "2-digit",
+          hour12: true,
+        });
+
+        if (!tempData[dayKey]) {
+          tempData[dayKey] = [];
+          tabList.push(dayKey);
+        }
+
+        tempData[dayKey].push({ time, event: item.activity });
+        console.log(`✅ Added item ${index} to day ${dayKey}:`, { time, event: item.activity });
+      } catch (error) {
+        console.error(`❌ Error processing schedule item ${index}:`, error, item);
+      }
     });
 
     // Sort events for each day
     Object.keys(tempData).forEach((day) => {
       tempData[day].sort((a, b) => new Date(`1970/01/01 ${a.time}`) - new Date(`1970/01/01 ${b.time}`));
     });
+
+    console.log("🔍 Final tabs:", tabList);
+    console.log("🔍 Final scheduleData:", tempData);
 
     return { tabs: tabList, scheduleData: tempData };
   }, [hackathonData]);
