@@ -1,56 +1,98 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { MyContext } from '../context/AuthContextProvider';
-import { Palette, Type, Eye, Save, X } from 'lucide-react';
+import { useTheme } from '../context/ThemeContextProvider';
+import { Palette, Type, Eye, Save, X, Sun, Moon } from 'lucide-react';
 
 const HackathonCustomization = ({ isOpen, onClose, hackathonId, currentTheme, currentFont }) => {
   const { hackathon } = useContext(MyContext);
+  const { themeConfig, isDarkMode, toggleDarkMode } = useTheme();
   const [selectedTheme, setSelectedTheme] = useState(currentTheme || 'modern-tech');
   const [selectedFont, setSelectedFont] = useState(currentFont || 'roboto');
   const [isSaving, setIsSaving] = useState(false);
   
   const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
 
-  // Theme configurations
+  // Enhanced theme configurations with dark/light variants
   const themes = {
     'modern-tech': {
       name: 'Modern Tech',
-      description: 'Dark theme with blue accents and tech-inspired gradients',
-      preview: {
-        backgroundColor: '#0f172a',
-        textColor: '#f8fafc',
-        accentColor: '#3b82f6',
-        cardBg: '#1e293b'
+      description: 'Professional theme with tech-inspired gradients',
+      variants: {
+        light: {
+          backgroundColor: '#f8fafc',
+          textColor: '#1e293b',
+          accentColor: '#3b82f6',
+          cardBg: '#ffffff',
+          borderColor: '#e2e8f0'
+        },
+        dark: {
+          backgroundColor: '#0f172a',
+          textColor: '#f8fafc',
+          accentColor: '#60a5fa',
+          cardBg: '#1e293b',
+          borderColor: '#334155'
+        }
       }
     },
     'creative-arts': {
       name: 'Creative Arts',
-      description: 'Light theme with vibrant colors and artistic patterns',
-      preview: {
-        backgroundColor: '#fef3c7',
-        textColor: '#1f2937',
-        accentColor: '#ec4899',
-        cardBg: '#ffffff'
+      description: 'Vibrant theme with artistic patterns',
+      variants: {
+        light: {
+          backgroundColor: '#fef3c7',
+          textColor: '#1f2937',
+          accentColor: '#ec4899',
+          cardBg: '#ffffff',
+          borderColor: '#fbbf24'
+        },
+        dark: {
+          backgroundColor: '#451a03',
+          textColor: '#fef3c7',
+          accentColor: '#f472b6',
+          cardBg: '#92400e',
+          borderColor: '#d97706'
+        }
       }
     },
     'corporate': {
       name: 'Corporate',
-      description: 'Professional theme with clean lines and business focus',
-      preview: {
-        backgroundColor: '#f8fafc',
-        textColor: '#1e293b',
-        accentColor: '#475569',
-        cardBg: '#ffffff'
+      description: 'Clean business-focused design',
+      variants: {
+        light: {
+          backgroundColor: '#f8fafc',
+          textColor: '#1e293b',
+          accentColor: '#475569',
+          cardBg: '#ffffff',
+          borderColor: '#cbd5e1'
+        },
+        dark: {
+          backgroundColor: '#1e293b',
+          textColor: '#f8fafc',
+          accentColor: '#94a3b8',
+          cardBg: '#334155',
+          borderColor: '#475569'
+        }
       }
     },
     'minimalist': {
       name: 'Minimalist',
-      description: 'Clean design with lots of whitespace and simplicity',
-      preview: {
-        backgroundColor: '#ffffff',
-        textColor: '#374151',
-        accentColor: '#6b7280',
-        cardBg: '#f9fafb'
+      description: 'Clean design with lots of whitespace',
+      variants: {
+        light: {
+          backgroundColor: '#ffffff',
+          textColor: '#374151',
+          accentColor: '#6b7280',
+          cardBg: '#f9fafb',
+          borderColor: '#e5e7eb'
+        },
+        dark: {
+          backgroundColor: '#111827',
+          textColor: '#f9fafb',
+          accentColor: '#9ca3af',
+          cardBg: '#1f2937',
+          borderColor: '#374151'
+        }
       }
     }
   };
@@ -116,27 +158,69 @@ const HackathonCustomization = ({ isOpen, onClose, hackathonId, currentTheme, cu
   };
 
   const ThemePreview = ({ themeKey, theme }) => (
-    <div
-      className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-        selectedTheme === themeKey ? 'border-blue-500 shadow-lg' : 'border-gray-200 hover:border-gray-300'
-      }`}
-      onClick={() => setSelectedTheme(themeKey)}
-      style={{
-        backgroundColor: theme.preview.backgroundColor,
-        color: theme.preview.textColor
-      }}
-    >
-      <div className="font-semibold mb-2">{theme.name}</div>
-      <div className="text-sm opacity-80 mb-3">{theme.description}</div>
-      <div className="space-y-2">
-        <div
-          className="h-3 rounded"
-          style={{ backgroundColor: theme.preview.accentColor }}
-        ></div>
-        <div
-          className="h-8 rounded p-2"
-          style={{ backgroundColor: theme.preview.cardBg }}
-        ></div>
+    <div className="space-y-3">
+      <div
+        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+          selectedTheme === themeKey ? 'border-blue-500 shadow-lg' : 'border-gray-200 hover:border-gray-300'
+        }`}
+        onClick={() => setSelectedTheme(themeKey)}
+      >
+        <div className="font-semibold mb-2 text-gray-800">{theme.name}</div>
+        <div className="text-sm text-gray-600 mb-3">{theme.description}</div>
+        
+        {/* Light Variant Preview */}
+        <div className="mb-3">
+          <div className="text-xs font-medium text-gray-500 mb-2 flex items-center">
+            <Sun className="w-3 h-3 mr-1" />
+            Light Variant
+          </div>
+          <div
+            className="h-16 rounded p-3 space-y-2"
+            style={{
+              backgroundColor: theme.variants.light.backgroundColor,
+              color: theme.variants.light.textColor
+            }}
+          >
+            <div
+              className="h-2 rounded"
+              style={{ backgroundColor: theme.variants.light.accentColor }}
+            ></div>
+            <div
+              className="h-8 rounded p-2"
+              style={{ 
+                backgroundColor: theme.variants.light.cardBg,
+                border: `1px solid ${theme.variants.light.borderColor}`
+              }}
+            ></div>
+          </div>
+        </div>
+
+        {/* Dark Variant Preview */}
+        <div>
+          <div className="text-xs font-medium text-gray-500 mb-2 flex items-center">
+            <Moon className="w-3 h-3 mr-1" />
+            Dark Variant
+          </div>
+          <div
+            className="h-16 rounded p-3 space-y-2"
+            style={{
+              backgroundColor: theme.variants.dark.backgroundColor,
+              color: theme.variants.dark.textColor
+            }}
+          >
+            <div
+              className="h-2 rounded"
+              style={{ backgroundColor: theme.variants.dark.accentColor }}
+            ></div>
+            <div
+              className="h-8 rounded p-2"
+              style={{ 
+                backgroundColor: theme.variants.dark.cardBg,
+                border: `1px solid ${theme.variants.dark.borderColor}`
+              }}
+            ></div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -148,7 +232,7 @@ const HackathonCustomization = ({ isOpen, onClose, hackathonId, currentTheme, cu
       }`}
       onClick={() => setSelectedFont(fontKey)}
     >
-      <div className="font-semibold mb-2">{font.name}</div>
+      <div className="font-semibold mb-2 text-gray-800">{font.name}</div>
       <div className="text-sm text-gray-600 mb-3">{font.description}</div>
       <div
         className="text-lg"
@@ -168,7 +252,7 @@ const HackathonCustomization = ({ isOpen, onClose, hackathonId, currentTheme, cu
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
       <div className="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Customize Hackathon</h2>
@@ -178,6 +262,40 @@ const HackathonCustomization = ({ isOpen, onClose, hackathonId, currentTheme, cu
           >
             <X size={24} />
           </button>
+        </div>
+
+        {/* Dark/Light Mode Toggle */}
+        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800">Theme Mode</h3>
+              <p className="text-sm text-gray-600">Toggle between dark and light variants</p>
+            </div>
+            <button
+              onClick={toggleDarkMode}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
+                isDarkMode 
+                  ? 'bg-gray-800 text-white hover:bg-gray-700' 
+                  : 'bg-yellow-400 text-gray-800 hover:bg-yellow-500'
+              }`}
+            >
+              {isDarkMode ? (
+                <>
+                  <Sun className="w-5 h-5" />
+                  <span>Light Mode</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-5 h-5" />
+                  <span>Dark Mode</span>
+                </>
+              )}
+            </button>
+          </div>
+          <div className="mt-3 text-sm text-gray-600">
+            <strong>Current:</strong> {isDarkMode ? 'Dark Mode' : 'Light Mode'} - 
+            Switch to see how your selected theme looks in both variants!
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -214,46 +332,78 @@ const HackathonCustomization = ({ isOpen, onClose, hackathonId, currentTheme, cu
             <Eye className="h-5 w-5 text-purple-600 mr-2" />
             <h3 className="text-lg font-semibold text-gray-800">Live Preview</h3>
           </div>
-          <div
-            className="p-6 rounded-lg border"
+          <div 
+            className="p-6 rounded-lg border-2 border-gray-200"
             style={{
-              backgroundColor: themes[selectedTheme].preview.backgroundColor,
-              color: themes[selectedTheme].preview.textColor,
-              fontFamily: fonts[selectedFont].family
+              backgroundColor: themeConfig.backgroundColor,
+              color: themeConfig.textColor,
+              fontFamily: fonts[selectedFont]?.family
             }}
           >
-            <h4 className="text-xl font-bold mb-4">Hackathon Title</h4>
+            <h4 className="text-xl font-bold mb-4">Sample Content</h4>
             <p className="mb-4">
-              This is how your hackathon page will look with the selected theme and font.
-              The preview shows the main content area styling.
+              This is how your hackathon page will look with the selected theme and font. 
+              The preview shows the {isDarkMode ? 'dark' : 'light'} variant of the {themes[selectedTheme]?.name} theme.
             </p>
-            <div
-              className="p-4 rounded"
-              style={{ backgroundColor: themes[selectedTheme].preview.cardBg }}
-            >
-              <h5 className="font-semibold mb-2">Sample Content Card</h5>
-              <p className="text-sm opacity-80">
-                This represents how content cards will appear in your selected theme.
-              </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div 
+                className="p-4 rounded-lg"
+                style={{
+                  backgroundColor: themeConfig.cardBg,
+                  border: `1px solid ${themeConfig.borderColor}`
+                }}
+              >
+                <h5 className="font-semibold mb-2">Sample Card</h5>
+                <p className="text-sm" style={{ color: themeConfig.mutedText }}>
+                  This card shows the theme's card background and border colors.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <button 
+                  className="w-full px-4 py-2 rounded-lg text-white font-medium"
+                  style={{ backgroundColor: themeConfig.buttonBg }}
+                >
+                  Primary Button
+                </button>
+                <button 
+                  className="w-full px-4 py-2 rounded-lg font-medium"
+                  style={{
+                    border: `1px solid ${themeConfig.accentColor}`,
+                    color: themeConfig.accentColor,
+                    backgroundColor: 'transparent'
+                  }}
+                >
+                  Secondary Button
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end space-x-3 mt-6 pt-6 border-t">
+        <div className="mt-8 flex justify-end space-x-4">
           <button
             onClick={onClose}
-            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
           >
             Cancel
           </button>
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition flex items-center"
           >
-            <Save className="h-4 w-4 mr-2" />
-            {isSaving ? 'Saving...' : 'Save Changes'}
+            {isSaving ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4 mr-2" />
+                Save Changes
+              </>
+            )}
           </button>
         </div>
       </div>

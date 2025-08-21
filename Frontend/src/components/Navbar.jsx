@@ -12,7 +12,9 @@ import {
   UserRoundPlus,
   House,
   Trophy,
-} from "lucide-react"; // Added icons
+  Sun,
+  Moon,
+} from "lucide-react"; // Added Sun and Moon icons
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import NotificationCenter from "./NotificationCenter";
@@ -21,7 +23,7 @@ const Navbar = () => {
   const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
   const userId = localStorage.getItem("userId");
   const { isAuth, setIsAuth, hackathon, role } = useContext(MyContext);
-  const { themeConfig } = useTheme();
+  const { themeConfig, isDarkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
@@ -85,6 +87,12 @@ const Navbar = () => {
     navigate("/login");
   };
 
+  // Handle theme toggle
+  const handleThemeToggle = () => {
+    toggleDarkMode();
+    toast.success(isDarkMode ? "Switched to Light Mode" : "Switched to Dark Mode");
+  };
+
   if (isLogin) return null; // Don't show navbar on login page
 
   return (
@@ -128,6 +136,19 @@ const Navbar = () => {
         .theme-dropdown-item:hover {
           background-color: ${themeConfig.accentColor} !important;
           color: white !important;
+        }
+
+        .theme-toggle {
+          background-color: ${themeConfig.cardBg} !important;
+          border: 1px solid ${themeConfig.borderColor} !important;
+          color: ${themeConfig.accentColor} !important;
+          transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+          background-color: ${themeConfig.accentColor} !important;
+          color: white !important;
+          transform: scale(1.05);
         }
       `}</style>
 
@@ -178,6 +199,19 @@ const Navbar = () => {
 
             {/* Right Side - Navigation */}
             <div className="flex items-center space-x-4">
+              {/* Theme Toggle Button */}
+              <button
+                onClick={handleThemeToggle}
+                className="p-2 rounded-lg theme-toggle transition-all duration-300"
+                title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              >
+                {isDarkMode ? (
+                  <Sun className="h-5 w-5" />
+                ) : (
+                  <Moon className="h-5 w-5" />
+                )}
+              </button>
+
               {/* Mobile menu button */}
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -323,6 +357,24 @@ const Navbar = () => {
                 borderTop: `1px solid ${themeConfig.borderColor}`
               }}
             >
+              {/* Theme Toggle in Mobile Menu */}
+              <button
+                onClick={handleThemeToggle}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg transition mb-2 theme-toggle"
+              >
+                {isDarkMode ? (
+                  <>
+                    <Sun className="h-5 w-5" />
+                    <span>Light Mode</span>
+                  </>
+                ) : (
+                  <>
+                    <Moon className="h-5 w-5" />
+                    <span>Dark Mode</span>
+                  </>
+                )}
+              </button>
+
               <Link to={role === "admin" ? "/select-team" : "/my-team"} onClick={() => setIsMenuOpen(false)}>
                 <button className="w-full theme-button-secondary px-4 py-2 rounded-lg transition mb-2">
                   {role === "admin" ? "Check Teams" : "My Team"}
