@@ -1108,8 +1108,6 @@ const EligibleHackathons = () => {
             </div>
           </div>
         )}
-        )}
-        )}
 
         {/* CSV Management Modal */}
         <CSVManagementModal
