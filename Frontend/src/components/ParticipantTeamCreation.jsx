@@ -56,7 +56,11 @@ const ParticipantTeamCreation = () => {
 
   const fetchParticipants = async (hackathonId) => {
     try {
-      const response = await fetch(`${baseURL}/participant-team/hackathon/${hackathonId}`);
+      const response = await fetch(`${baseURL}/participant-team/participants/${hackathonId}`, {
+        headers: {
+          'Authorization': `Bearer ${userData._id}` // Add authentication header
+        }
+      });
       const data = await response.json();
       setParticipants(data.participants || []);
     } catch (error) {
@@ -84,6 +88,7 @@ const ParticipantTeamCreation = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userData._id}` // Add authentication header
         },
         body: JSON.stringify({
           ...formData,

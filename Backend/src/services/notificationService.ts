@@ -158,7 +158,9 @@ export const createAutoTeamCreationNotification = (
   type: "auto_team_creation",
   title: "Teams Auto-Created",
   message: `${teamsCreated} teams have been automatically created for remaining participants. Check your team assignment.`,
-  isRead: false
+  isRead: false,
+  createdAt: new Date(),
+  updatedAt: new Date()
 });
 
 export const notificationService = new NotificationService();

@@ -421,6 +421,9 @@ const CreateHackathon = () => {
         const result = await response.json();
         console.log("Hackathon created successfully:", result);
         
+        // Set the current hackathon in localStorage so it can be viewed
+        localStorage.setItem("currentHackathon", result._id);
+        
         // Show success message
         toast.success("Hackathon Created Successfully", {
           position: "top-center",
@@ -441,10 +444,28 @@ const CreateHackathon = () => {
           eventType: "Team Hackathon",
           maxTeamSize: 4,
           minTeamSize: 2,
+          teamCreationMode: "admin",
+          allowParticipantTeams: false,
+          teamFinalizationRequired: true,
+          minTeamSizeForFinalization: 2,
+          teamModificationLocked: false,
+          autoTeamCreationEnabled: true,
           status: "upcoming",
           submissionStart: "",
           submissionEnd: "",
           allowedEmails: [],
+          problemStatements: [
+            {
+              track: "ML",
+              description: "Sample ML Problem Statement",
+              difficulty: "Hard",
+            },
+            {
+              track: "DA",
+              description: "Analyze large datasets for insights.",
+              difficulty: "Medium",
+            },
+          ],
           schedule: [
             {
               date: "",
@@ -452,11 +473,49 @@ const CreateHackathon = () => {
               time: "10:00 AM",
               description: "Welcome and introduction"
             }
-          ]
+          ],
+          eventPlan: [
+            {
+              week: 1,
+              phase: "Interaction",
+              description: "Full week of Interaction",
+            },
+            {
+              week: 2,
+              phase: "Hackathon",
+              description: "Full week of Interaction",
+            },
+          ],
+          prizeDetails: [
+            {
+              position: 1,
+              amount: "5000",
+              description: "Winner",
+            },
+            {
+              position: 2,
+              amount: "3000",
+              description: "Runner-up",
+            },
+            {
+              position: 3,
+              amount: "2000",
+              description: "Runner-up",
+            },
+          ],
+          socialLinks: {
+            zoom: "",
+            youtube: "",
+            slack: "",
+            github: "",
+            instagram: "",
+            twitter: "",
+            linkedin: ""
+          }
         });
 
-        // Navigate back to dashboard with a flag to trigger refresh
-        navigate("/", { state: { refreshHackathons: true } });
+        // Navigate to the hackathon page to view it
+        navigate("/hackathon");
       } else {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to create event");

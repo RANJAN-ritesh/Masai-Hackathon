@@ -201,10 +201,10 @@ export class AutoTeamCreationService {
       // Send notification to all participants
       for (const participant of participants) {
         notificationService.addNotification(
-          participant._id.toString(),
+          (participant._id as any).toString(),
           createAutoTeamCreationNotification(
-            participant._id.toString(),
-            hackathon._id.toString(),
+            (participant._id as any).toString(),
+            (hackathon._id as any).toString(),
             teamsCreated.length
           )
         );
