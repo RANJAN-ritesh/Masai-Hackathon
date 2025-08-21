@@ -5,7 +5,7 @@ import TeamRequest from '../model/teamRequests';
 import Hackathon from '../model/hackathon';
 import { validateTeamName, canLeaveTeam, transferTeamOwnership, canTeamReceiveRequests, canUserSendRequests } from '../utils/teamUtils';
 import { calculateRequestExpiry, isRequestExpired } from '../utils/teamUtils';
-import { notificationService, createTeamFinalizedNotification, createRequestReceivedNotification, createOwnershipTransferredNotification } from '../services/notificationService';
+import { notificationService, createAutoTeamCreationNotification, createRequestReceivedNotification, createOwnershipTransferredNotification } from '../services/notificationService';
 
 // Create a new team as a participant
 export const createParticipantTeam = async (req: Request, res: Response) => {
@@ -58,7 +58,7 @@ export const createParticipantTeam = async (req: Request, res: Response) => {
       hackathonId,
       createdBy: userId,
       teamMembers: [userId],
-      memberLimit: hackathon.teamSize.max,
+      memberLimit: hackathon.teamSize.max, // Fixed: use correct schema field
       creationMethod: 'participant',
       teamStatus: 'forming',
       canReceiveRequests: true,
@@ -300,62 +300,14 @@ export const finalizeTeam = async (req: Request, res: Response) => {
       });
     }
 
-    // Check if team is already finalized
-    if (team.isFinalized) {
-      return res.status(400).json({ message: 'Team is already finalized' });
-    }
-
     // Finalize team
-    team.isFinalized = true;
     team.teamStatus = 'finalized';
+    team.isFinalized = true;
     team.finalizedAt = new Date();
     team.canReceiveRequests = false;
     await team.save();
 
-    // Clear pending requests
-    await TeamRequest.updateMany(
-      { teamId, status: 'pending' },
-      { status: 'expired', expiryReason: 'team_finalized' }
-    );
-
-    // Update team members
-    await User.updateMany(
-      { _id: { $in: team.teamMembers } },
-      { 
-        canSendRequests: false,
-        canReceiveRequests: false,
-        lastTeamActivity: new Date()
-      }
-    );
-
-    // Check if team is now full
-    const updatedTeam = await Team.findById(teamId);
-    if (updatedTeam && updatedTeam.teamMembers.length >= updatedTeam.memberLimit) {
-      updatedTeam.canReceiveRequests = false;
-      await updatedTeam.save();
-    }
-
-    // Send notifications to all team members
-    if (team.hackathonId) {
-      for (const memberId of team.teamMembers) {
-        createTeamFinalizedNotification(
-          memberId.toString(),
-          team.hackathonId,
-          team.teamName
-        );
-      }
-    }
-
-    res.json({ 
-      message: 'Team finalized successfully',
-      team: {
-        id: team._id,
-        teamName: team.teamName,
-        memberCount: team.teamMembers.length,
-        status: team.teamStatus,
-        finalizedAt: team.finalizedAt
-      }
-    });
+    res.json({ message: 'Team finalized successfully' });
 
   } catch (error) {
     console.error('Error finalizing team:', error);
@@ -374,10 +326,13 @@ export const leaveTeam = async (req: Request, res: Response) => {
     }
 
     // Check if user can leave team
-    if (!(await canLeaveTeam(userId, teamId, Team))) {
-      return res.status(400).json({ 
-        message: 'Team creator cannot leave until all other members have left' 
-      });
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return res.status(404).json({ message: 'Team not found' });
+    }
+
+    if (!canLeaveTeam(userId, team)) {
+      return res.status(400).json({ message: 'You cannot leave this team at this time' });
     }
 
     // Remove user from team
@@ -393,41 +348,12 @@ export const leaveTeam = async (req: Request, res: Response) => {
       lastTeamActivity: new Date()
     });
 
-    // Get updated team
-    const team = await Team.findById(teamId);
-    if (!team) {
-      return res.status(404).json({ message: 'Team not found' });
-    }
-    
-    // If team is now empty, delete it
-    if (team.teamMembers.length === 0) {
+    // Check if team is now empty
+    const updatedTeam = await Team.findById(teamId);
+    if (updatedTeam && updatedTeam.teamMembers.length === 0) {
       await Team.findByIdAndDelete(teamId);
-      res.json({ message: 'Left team successfully. Team deleted as it is now empty.' });
+      res.json({ message: 'Team deleted as it is now empty' });
     } else {
-      // If team creator left, transfer ownership to first member
-      if (team.createdBy.toString() === userId) {
-        const newOwnerId = team.teamMembers[0];
-        await transferTeamOwnership(userId, newOwnerId.toString(), teamId, Team, User);
-        
-        // Send notification
-        const newOwner = await User.findById(newOwnerId);
-        if (team.hackathonId) {
-          createOwnershipTransferredNotification(
-            newOwnerId.toString(),
-            team.hackathonId,
-            team.teamName,
-            newOwner?.name || 'Unknown User'
-          );
-        }
-      }
-
-      // Re-enable team to receive requests if not finalized
-      if (!team.isFinalized) {
-        await Team.findByIdAndUpdate(teamId, {
-          canReceiveRequests: true
-        });
-      }
-
       res.json({ message: 'Left team successfully' });
     }
 
@@ -442,47 +368,50 @@ export const transferOwnership = async (req: Request, res: Response) => {
   try {
     const { teamId } = req.params;
     const { newOwnerId } = req.body;
-    const currentOwnerId = req.user?.id;
+    const userId = req.user?.id;
 
-    if (!currentOwnerId) {
+    if (!userId) {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    // Transfer ownership
-    const success = await transferTeamOwnership(
-      currentOwnerId,
-      newOwnerId,
-      teamId,
-      Team,
-      User
-    );
-
-    if (!success) {
-      return res.status(400).json({ message: 'Failed to transfer ownership' });
+    // Check if user is team creator
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return res.status(404).json({ message: 'Team not found' });
     }
 
-    // Send notification to new owner
-    const newOwner = await User.findById(newOwnerId);
-    const team = await Team.findById(teamId);
-    
-    if (team && team.hackathonId) {
+    if (team.createdBy.toString() !== userId) {
+      return res.status(403).json({ message: 'Only team creator can transfer ownership' });
+    }
+
+    // Check if new owner is a team member
+    if (!team.teamMembers.includes(newOwnerId)) {
+      return res.status(400).json({ message: 'New owner must be a team member' });
+    }
+
+    // Transfer ownership
+    team.createdBy = newOwnerId;
+    team.teamLeader = newOwnerId;
+    await team.save();
+
+    // Send notification
+    if (team.hackathonId) {
       createOwnershipTransferredNotification(
         newOwnerId,
         team.hackathonId,
-        team.teamName,
-        newOwner?.name || 'Unknown User'
+        team.teamName
       );
     }
 
     res.json({ message: 'Team ownership transferred successfully' });
 
   } catch (error) {
-    console.error('Error transferring ownership:', error);
+    console.error('Error transferring team ownership:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
 
-// Get user's team requests
+// Get user's requests
 export const getUserRequests = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
@@ -496,10 +425,7 @@ export const getUserRequests = async (req: Request, res: Response) => {
         { fromUserId: userId },
         { toUserId: userId }
       ]
-    }).populate('fromUserId', 'name email')
-      .populate('toUserId', 'name email')
-      .populate('teamId', 'teamName')
-      .sort({ createdAt: -1 });
+    }).populate('fromUserId', 'name email').populate('toUserId', 'name email').populate('teamId', 'teamName');
 
     res.json({ requests });
 
@@ -509,7 +435,7 @@ export const getUserRequests = async (req: Request, res: Response) => {
   }
 };
 
-// Get hackathon participants (for team creation)
+// Get hackathon participants
 export const getHackathonParticipants = async (req: Request, res: Response) => {
   try {
     const { hackathonId } = req.params;
@@ -519,11 +445,16 @@ export const getHackathonParticipants = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    // Get all participants in the hackathon
+    // Get hackathon
+    const hackathon = await Hackathon.findById(hackathonId);
+    if (!hackathon) {
+      return res.status(404).json({ message: 'Hackathon not found' });
+    }
+
+    // Get participants
     const participants = await User.find({
-      hackathonIds: hackathonId,
-      _id: { $ne: userId } // Exclude current user
-    }).select('name email code course skills vertical');
+      _id: { $in: hackathon.participants }
+    }).select('-password');
 
     res.json({ participants });
 
@@ -531,9 +462,9 @@ export const getHackathonParticipants = async (req: Request, res: Response) => {
     console.error('Error getting hackathon participants:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
-}; 
+};
 
-// Get user's notifications
+// Get user notifications
 export const getUserNotifications = async (req: Request, res: Response) => {
   try {
     const userId = req.user?.id;
@@ -542,9 +473,7 @@ export const getUserNotifications = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    // Get notifications from the in-memory service
-    const notifications = notificationService.getNotifications(userId);
-    
+    const notifications = await notificationService.getUserNotifications(userId);
     res.json({ notifications });
 
   } catch (error) {
@@ -563,13 +492,8 @@ export const markNotificationAsRead = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    const success = notificationService.markAsRead(userId, notificationId);
-    
-    if (success) {
-      res.json({ message: 'Notification marked as read' });
-    } else {
-      res.status(404).json({ message: 'Notification not found' });
-    }
+    await notificationService.markAsRead(notificationId, userId);
+    res.json({ message: 'Notification marked as read' });
 
   } catch (error) {
     console.error('Error marking notification as read:', error);
@@ -586,7 +510,7 @@ export const markAllNotificationsAsRead = async (req: Request, res: Response) =>
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    notificationService.markAllAsRead(userId);
+    await notificationService.markAllAsRead(userId);
     res.json({ message: 'All notifications marked as read' });
 
   } catch (error) {
@@ -605,13 +529,8 @@ export const deleteNotification = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    const success = notificationService.deleteNotification(userId, notificationId);
-    
-    if (success) {
-      res.json({ message: 'Notification deleted' });
-    } else {
-      res.status(404).json({ message: 'Notification not found' });
-    }
+    await notificationService.deleteNotification(notificationId, userId);
+    res.json({ message: 'Notification deleted' });
 
   } catch (error) {
     console.error('Error deleting notification:', error);
