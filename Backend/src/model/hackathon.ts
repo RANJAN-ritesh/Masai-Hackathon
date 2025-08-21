@@ -29,8 +29,8 @@ export interface IHackathon extends Document {
     duration?: string;
   }>;
   prizeDetails: Array<{
-    rank: string;
-    prize: string;
+    position: number;
+    amount: string;
     description: string;
   }>;
   allowedEmails: string[];
@@ -86,8 +86,8 @@ const HackathonSchema = new Schema<IHackathon>(
       duration: { type: String }
     }],
     prizeDetails: [{
-      rank: { type: String },
-      prize: { type: String },
+      position: { type: Number },
+      amount: { type: String },
       description: { type: String }
     }],
     allowedEmails: [{ type: String }],

@@ -25,6 +25,9 @@ const MainContent = () => {
         const response = await fetch(`${baseURL}/hackathons/${currentHackathon}`);
         if (response.ok) {
           const data = await response.json();
+          console.log("🔍 MainContent - Fetched hackathon data:", data);
+          console.log("🔍 MainContent - Schedule:", data.schedule);
+          console.log("🔍 MainContent - Problem Statements:", data.problemStatements);
           setHackathonData(data);
         } else {
           console.error("Failed to fetch hackathon data");
