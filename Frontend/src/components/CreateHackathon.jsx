@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   Calendar,
   AlertCircle,
@@ -16,10 +16,12 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import Papa from "papaparse";
 import { useNavigate } from "react-router-dom";
+import { MyContext } from "../context/AuthContextProvider";
 
 const CreateHackathon = () => {
-  const baseURL = import.meta.env.VITE_BASE_URL;
+  const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
   const navigate = useNavigate();
+  const { setHackathon } = useContext(MyContext);
   const userId = localStorage.getItem("userId");
   const [eventData, setEventData] = useState({
     title: "Test Hackathon 1",
@@ -425,6 +427,8 @@ const CreateHackathon = () => {
         
         // Set the current hackathon in localStorage so it can be viewed
         localStorage.setItem("currentHackathon", result._id);
+        // Set the hackathon in context so MainContent can use it
+        setHackathon(result);
         
         // Show success message
         toast.success("Hackathon Created Successfully", {

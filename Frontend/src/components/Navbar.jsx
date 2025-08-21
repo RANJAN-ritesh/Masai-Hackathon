@@ -17,7 +17,7 @@ import "react-toastify/dist/ReactToastify.css";
 import NotificationCenter from "./NotificationCenter";
 
 const Navbar = () => {
-  const baseURL = import.meta.env.VITE_BASE_URL;
+  const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
   const userId = localStorage.getItem("userId");
   const { isAuth, setIsAuth, hackathon, role } = useContext(MyContext);
   const navigate = useNavigate();

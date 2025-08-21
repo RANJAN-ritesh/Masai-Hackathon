@@ -16,7 +16,7 @@ const EditHackathon = () => {
   const { id } = useParams(); // Changed from hackathonId to id to match route
   const location = useLocation();
   const navigate = useNavigate();
-  const baseURL = import.meta.env.VITE_BASE_URL;
+  const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
   
   const [hackathonData, setHackathonData] = useState(null);
   const [loading, setLoading] = useState(true);

@@ -15,7 +15,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 function Login() {
-  const baseURL = import.meta.env.VITE_BASE_URL;
+  const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);

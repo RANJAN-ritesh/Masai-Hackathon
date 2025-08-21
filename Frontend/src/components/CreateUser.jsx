@@ -3,7 +3,7 @@ import Papa from "papaparse";
 import { Upload, File, CheckCircle, XCircle } from "lucide-react";
 
 const CreateUser = () => {
-  const baseURL = import.meta.env.VITE_BASE_URL;
+  const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
   const [users, setUsers] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);

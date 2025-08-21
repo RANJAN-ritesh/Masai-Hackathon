@@ -79,42 +79,37 @@ const AuthContextProvider = ({ children }) => {
           const allHackathons = await allHackathonsResponse.json();
           
           if (allHackathons && allHackathons.length > 0) {
-            // Use the first available hackathon
-            const firstHackathon = allHackathons[0];
-            setHackathon(firstHackathon);
+            // If we have a currentHackathon ID in localStorage, try to find and use that one
+            if (currentHackathon) {
+              const selectedHackathon = allHackathons.find(h => h._id === currentHackathon);
+              if (selectedHackathon) {
+                console.log("🔍 AuthContext - Found selected hackathon:", selectedHackathon.title);
+                setHackathon(selectedHackathon);
+                return;
+              } else {
+                console.log("🔍 AuthContext - Selected hackathon not found, clearing localStorage");
+                localStorage.removeItem("currentHackathon");
+              }
+            }
             
-            // Update localStorage with the actual hackathon ID
-            localStorage.setItem("currentHackathon", firstHackathon._id);
+            // If no selection or selected hackathon not found, use the most recent hackathon
+            const mostRecentHackathon = allHackathons.sort((a, b) => 
+              new Date(b.createdAt) - new Date(a.createdAt)
+            )[0];
+            
+            console.log("🔍 AuthContext - Using most recent hackathon:", mostRecentHackathon.title);
+            setHackathon(mostRecentHackathon);
+            localStorage.setItem("currentHackathon", mostRecentHackathon._id);
             return;
           }
         }
         
-        // If no hackathons found and we have a currentHackathon ID, try to fetch it
-        if (currentHackathon) {
-          try {
-            const response = await fetch(`${baseURL}/hackathons/${currentHackathon}`);
-            
-            if (response.ok) {
-              const data = await response.json();
-              setHackathon(data);
-            } else {
-              // Invalid hackathon ID, clear it
-              localStorage.removeItem("currentHackathon");
-              setHackathon(null);
-            }
-          } catch (error) {
-            console.error("Error fetching specific hackathon:", error);
-            // Invalid hackathon ID, clear it
-            localStorage.removeItem("currentHackathon");
-            setHackathon(null);
-          }
-        } else {
-          // No hackathons available
-          setHackathon(null);
-        }
+        // If no hackathons found
+        console.log("🔍 AuthContext - No hackathons found");
+        setHackathon(null);
+        localStorage.removeItem("currentHackathon");
       } catch (error) {
         console.error("Error fetching hackathons:", error);
-        // Set hackathon to null if fetch fails
         setHackathon(null);
       } finally {
         setLoading(false);
@@ -122,7 +117,7 @@ const AuthContextProvider = ({ children }) => {
     };
 
     fetchHackathons();
-  }, [userId, baseURL, currentHackathon]);
+  }, [userId, baseURL]);
 
   return (
     <MyContext.Provider
@@ -134,6 +129,7 @@ const AuthContextProvider = ({ children }) => {
         currentHackathonId,
         setCurrentHackathonId,
         hackathon,
+        setHackathon,
         setUserData,
         role,
       }}

@@ -29,7 +29,7 @@ const EligibleHackathons = () => {
   const [hackathons, setHackathons] = useState([]);
   const [loading, setLoading] = useState(true);
   const userId = localStorage.getItem("userId");
-  const { setCurrentHackathonId, userData, role } = useContext(MyContext);
+  const { setCurrentHackathonId, userData, role, setHackathon } = useContext(MyContext);
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalConfig, setModalConfig] = useState({});
@@ -433,6 +433,15 @@ const EligibleHackathons = () => {
     setCurrentHackathonId(hackathonId);
     // console.log("Current Hackathon ID: ", hackathonId);
     localStorage.setItem("currentHackathon", hackathonId);
+    
+    // Find the hackathon data and set it in context
+    const selectedHackathon = hackathons.find(h => h._id === hackathonId);
+    if (selectedHackathon) {
+      // Update the context with the selected hackathon
+      setHackathon(selectedHackathon);
+      console.log("🔍 Setting hackathon in context:", selectedHackathon);
+    }
+    
     navigate(`/hackathon`);
   };
 

@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 const MemberDashboard = () => {
-  const { userData, hackathon } = useContext(MyContext);
+  const { userData, hackathon, setHackathon } = useContext(MyContext);
   const [memberStats, setMemberStats] = useState({
     hackathons: [],
     currentTeam: null,
@@ -395,6 +395,8 @@ const MemberDashboard = () => {
                       <button
                         onClick={() => {
                           localStorage.setItem('currentHackathon', hackathon._id);
+                          // Set the hackathon in context so MainContent can use it
+                          setHackathon(hackathon);
                           navigate('/hackathon');
                         }}
                         className="mt-3 w-full bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"

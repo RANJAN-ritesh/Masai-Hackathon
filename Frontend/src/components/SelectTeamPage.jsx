@@ -33,7 +33,7 @@ import ConfirmationModal from "./ConfirmationModal";
 // const socket = io("http://localhost:5009"); // Replace with your backend URL
 
 const SelectTeamPage = () => {
-  const baseURL = import.meta.env.VITE_BASE_URL;
+  const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
   const [teams, setTeams] = useState([]);
   const [userTeamId, setUserTeamId] = useState(null);
   const [pendingRequests, setPendingRequests] = useState([]);
@@ -47,7 +47,6 @@ const SelectTeamPage = () => {
   const [fullTeamDetails, setFullTeamDetails] = useState({});
   const userId = localStorage.getItem("userId");
   const { hackathon, userData, role } = useContext(MyContext);
-  const currentHackathon = localStorage.getItem("currentHackathon");
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalConfig, setModalConfig] = useState({});
@@ -84,7 +83,7 @@ const SelectTeamPage = () => {
     setProblemLoading(true);
     try {
       const res = await fetch(
-        `${baseURL}/hackathons/problems/${currentHackathon}`
+        `${baseURL}/hackathons/problems/${hackathon._id}`
       );
       const data = await res.json();
       setCurrentTeamId(id);
@@ -103,7 +102,7 @@ const SelectTeamPage = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           teamId: currentTeamId,
-          hackathonId: currentHackathon,
+          hackathonId: hackathon._id,
           problemStatementId: problemId,
         }),
       });
@@ -181,7 +180,7 @@ const SelectTeamPage = () => {
   };
 
   useEffect(() => {
-    if (!currentHackathon) {
+    if (!hackathon) {
       navigate("/");
     }
   });
@@ -189,7 +188,7 @@ const SelectTeamPage = () => {
   const fetchTeams = async () => {
     try {
       // Fetch teams specific to the current hackathon
-      const response = await fetch(`${baseURL}/team/hackathon/${currentHackathon}`);
+      const response = await fetch(`${baseURL}/team/hackathon/${hackathon._id}`);
       const data = await response.json();
       
       if (!response.ok) {
@@ -200,7 +199,7 @@ const SelectTeamPage = () => {
       const teams = data.teams || data || [];
       setTeams(teams);
       
-      console.log(`📋 Loaded ${teams.length} teams for hackathon ${currentHackathon}`);
+      console.log(`📋 Loaded ${teams.length} teams for hackathon ${hackathon._id}`);
     } catch (err) {
       console.error('Error fetching teams:', err);
       setError(err.message);
@@ -562,7 +561,7 @@ const SelectTeamPage = () => {
           // Fetch problem details from backend if not already present
           try {
             const res = await fetch(
-              `${baseURL}/hackathons/problems/${currentHackathon}`
+              `${baseURL}/hackathons/problems/${hackathon._id}`
             );
             const data = await res.json();
             const found = (data.problemStatements || []).find(
@@ -575,7 +574,7 @@ const SelectTeamPage = () => {
       setSelectedProblems(problems);
     };
     if (teams.length > 0) fetchSelectedProblems();
-  }, [teams, baseURL, currentHackathon]);
+  }, [teams, baseURL, hackathon._id]);
 
   if (loading)
     return (

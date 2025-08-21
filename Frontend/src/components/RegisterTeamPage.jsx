@@ -12,7 +12,7 @@ import { MyContext } from "../context/AuthContextProvider";
 // const socket = io("http://localhost:5009", { transports: ["websocket"] });
 
 const RegisterTeamPage = () => {
-  const baseURL = import.meta.env.VITE_BASE_URL;
+  const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
   const { width, height } = useWindowSize(); // Auto-resizes confetti
   const [showConfetti, setShowConfetti] = useState(false); // State for Confetti 🎉
   const navigate = useNavigate();
@@ -21,14 +21,13 @@ const RegisterTeamPage = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { setCurrentHackathonId } = useContext(MyContext);
-  const currentHackathon = localStorage.getItem("currentHackathon");
+  const { setCurrentHackathonId, hackathon } = useContext(MyContext);
 
   useEffect(() => {
-    if (!currentHackathon) {
+    if (!hackathon) {
       navigate("/");
     }
-  });
+  }, [hackathon, navigate]);
 
   const handleChange = (e) => {
     setTeamData({
@@ -48,7 +47,7 @@ const RegisterTeamPage = () => {
       const teamPayload = {
         teamName: teamData.teamName,
         createdBy: userId,
-        hackathonId: setCurrentHackathonId,
+        hackathonId: hackathon._id,
       };
 
       const response = await fetch(`${baseURL}/team/create-team`, {
