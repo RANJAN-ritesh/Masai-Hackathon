@@ -20,6 +20,9 @@ export interface IUser extends Document{
     canSendRequests: boolean;
     canReceiveRequests: boolean;
     lastTeamActivity?: Date;
+    // Timestamp fields from mongoose timestamps
+    createdAt: Date;
+    updatedAt: Date;
 }
 
 const UserSchema = new Schema<IUser>({

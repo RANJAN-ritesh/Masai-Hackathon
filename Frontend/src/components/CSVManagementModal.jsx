@@ -66,6 +66,32 @@ const CSVManagementModal = ({ isOpen, onClose, hackathonId }) => {
       if (response.ok) {
         const result = await response.json();
         toast.success(result.message || 'Participants added successfully!');
+        
+        // Display notifications if any
+        if (result.notifications && result.notifications.length > 0) {
+          result.notifications.forEach(notification => {
+            if (notification.type === 'info') {
+              toast.info(
+                <div>
+                  <div className="font-semibold">{notification.title}</div>
+                  <div className="text-sm">{notification.message}</div>
+                  {notification.details && notification.details.length > 0 && (
+                    <div className="text-xs mt-1">
+                      {notification.details.slice(0, 3).map((detail, idx) => (
+                        <div key={idx}>• {detail.email} → {detail.currentHackathon}</div>
+                      ))}
+                      {notification.details.length > 3 && (
+                        <div className="text-xs">... and {notification.details.length - 3} more</div>
+                      )}
+                    </div>
+                  )}
+                </div>,
+                { autoClose: 8000 }
+              );
+            }
+          });
+        }
+        
         setParticipantsAdded(true);
         // Store the uploaded data in localStorage for persistence
         localStorage.setItem(`csvData_${hackathonId}`, JSON.stringify(uploadedData));

@@ -181,6 +181,23 @@ router.post("/upload-participants", async (req, res) => {
     
     const finalMessage = message.length > 0 ? message.join(', ') : 'No changes made';
 
+    // Prepare admin-friendly notifications
+    const notifications = [];
+    if (errors.length > 0) {
+      const ongoingHackathonErrors = errors.filter(e => e.error.includes('already part of ongoing hackathon'));
+      if (ongoingHackathonErrors.length > 0) {
+        notifications.push({
+          type: 'info',
+          title: 'Participants in Other Hackathons',
+          message: `${ongoingHackathonErrors.length} participants are currently enrolled in other ongoing hackathons and will be available after those hackathons complete.`,
+          details: ongoingHackathonErrors.map(e => ({
+            email: e.email,
+            currentHackathon: e.error.split(': ')[1]
+          }))
+        });
+      }
+    }
+
     res.status(200).json({
       message: finalMessage,
       uploadedCount,
@@ -188,12 +205,14 @@ router.post("/upload-participants", async (req, res) => {
       updatedCount,
       errorCount: errors.length,
       errors: errors.length > 0 ? errors : undefined,
+      notifications: notifications.length > 0 ? notifications : undefined,
       summary: {
         total: participants.length,
         newUsers: uploadedCount,
         existingUsersAdded: updatedCount,
         alreadyInHackathon: existingCount,
-        errors: errors.length
+        errors: errors.length,
+        ongoingHackathonUsers: errors.filter(e => e.error.includes('already part of ongoing hackathon')).length
       }
     });
   } catch (error) {
@@ -311,6 +330,60 @@ router.get("/hackathon/:hackathonId/participants", async (req, res) => {
   } catch (error) {
     console.error("Error fetching hackathon participants:", error);
     res.status(500).json({ message: "Error fetching participants", error: String(error) });
+  }
+});
+
+// Check if user is enrolled in any hackathon
+router.get("/hackathon/:userId/enrollment", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    // Find user and check their hackathon enrollment
+    const user = await User.findById(userId).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!user.hackathonIds || user.hackathonIds.length === 0) {
+      return res.status(200).json({ 
+        message: "User not enrolled in any hackathon",
+        hackathon: null 
+      });
+    }
+
+    // Get the most recent hackathon the user is enrolled in
+    const Hackathon = require('../model/hackathon').default;
+    const userHackathons = await Hackathon.find({
+      _id: { $in: user.hackathonIds },
+      status: { $in: ['upcoming', 'active'] }
+    }).sort({ createdAt: -1 });
+
+    if (userHackathons.length === 0) {
+      return res.status(200).json({ 
+        message: "User not enrolled in any active hackathon",
+        hackathon: null 
+      });
+    }
+
+    // Return the most recent active hackathon
+    const enrolledHackathon = userHackathons[0];
+    res.status(200).json({
+      message: "User enrolled in hackathon",
+      hackathon: enrolledHackathon,
+      enrollmentDate: user.createdAt
+    });
+
+  } catch (error) {
+    console.error("Error checking user enrollment:", error);
+    res.status(500).json({ 
+      message: "Error checking enrollment", 
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
   }
 });
 

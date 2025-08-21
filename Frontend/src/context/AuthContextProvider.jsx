@@ -9,6 +9,7 @@ const AuthContextProvider = ({ children }) => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true); // Track loading state
   const [currentHackathonId, setCurrentHackathonId] = useState("");
+  const [userHackathon, setUserHackathon] = useState(null); // Track user's enrolled hackathon
   let currentHackathon = localStorage.getItem("currentHackathon");
   
   // Don't set a default hackathon ID - let the system handle it properly
@@ -29,18 +30,17 @@ const AuthContextProvider = ({ children }) => {
       if (!currentUserId || currentUserId === "null" || currentUserId === "undefined") {
         console.log("No valid userId found");
         setLoading(false);
-          return;
-        }
+        return;
+      }
 
       try {
         const response = await fetch(`${baseURL}/users/get-user/${currentUserId}`);
         const contentType = response.headers.get("Content-Type");
-        // console.log("Content-Type:", contentType);
 
         if (!response.ok) throw new Error("Failed to fetch user data");
 
         const userData = await response.json();
-        // console.log("Data after login", userData);
+        console.log("Data after login", userData);
         localStorage.setItem("userData", JSON.stringify(userData));
         setUserData(userData);
         setRole(userData.role || "member"); // Use 'role' field from backend, not 'userType'
@@ -67,6 +67,33 @@ const AuthContextProvider = ({ children }) => {
     fetchUserDetails();
   }, [isAuth]); // Depend on isAuth instead of userId
 
+  // Effect to check if user is enrolled in any hackathon
+  useEffect(() => {
+    const checkUserHackathon = async () => {
+      if (!userData || !userData._id) return;
+
+      try {
+        // Check if user is enrolled in any hackathon
+        const response = await fetch(`${baseURL}/users/hackathon/${userData._id}/enrollment`);
+        if (response.ok) {
+          const enrollmentData = await response.json();
+          if (enrollmentData.hackathon) {
+            console.log("🔍 AuthContext - User enrolled in hackathon:", enrollmentData.hackathon.title);
+            setUserHackathon(enrollmentData.hackathon);
+            // Set this as the current hackathon
+            setHackathon(enrollmentData.hackathon);
+            localStorage.setItem("currentHackathon", enrollmentData.hackathon._id);
+            return;
+          }
+        }
+      } catch (error) {
+        console.log("User not enrolled in any hackathon or error checking enrollment");
+      }
+    };
+
+    checkUserHackathon();
+  }, [userData, baseURL]);
+
   const [hackathon, setHackathon] = useState(null);
   useEffect(() => {
     const fetchHackathons = async () => {
@@ -79,6 +106,14 @@ const AuthContextProvider = ({ children }) => {
           const allHackathons = await allHackathonsResponse.json();
           
           if (allHackathons && allHackathons.length > 0) {
+            // If user has a specific hackathon, use that one
+            if (userHackathon) {
+              console.log("🔍 AuthContext - Using user's enrolled hackathon:", userHackathon.title);
+              setHackathon(userHackathon);
+              localStorage.setItem("currentHackathon", userHackathon._id);
+              return;
+            }
+            
             // If we have a currentHackathon ID in localStorage, try to find and use that one
             if (currentHackathon) {
               const selectedHackathon = allHackathons.find(h => h._id === currentHackathon);
@@ -117,7 +152,7 @@ const AuthContextProvider = ({ children }) => {
     };
 
     fetchHackathons();
-  }, [userId, baseURL]);
+  }, [userId, baseURL, userHackathon]);
 
   return (
     <MyContext.Provider
@@ -132,6 +167,8 @@ const AuthContextProvider = ({ children }) => {
         setHackathon,
         setUserData,
         role,
+        userHackathon,
+        setUserHackathon,
       }}
     >
       {children}
