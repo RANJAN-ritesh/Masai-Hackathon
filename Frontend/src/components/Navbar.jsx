@@ -1,6 +1,7 @@
 import React, { useContext, useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { MyContext } from "../context/AuthContextProvider";
+import { useTheme } from "../context/ThemeContextProvider";
 import {
   LogOut,
   User,
@@ -20,6 +21,7 @@ const Navbar = () => {
   const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
   const userId = localStorage.getItem("userId");
   const { isAuth, setIsAuth, hackathon, role } = useContext(MyContext);
+  const { themeConfig } = useTheme();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
@@ -79,245 +81,342 @@ const Navbar = () => {
     localStorage.removeItem("currentHackathon");
     localStorage.removeItem("authData");
     setIsAuth(false);
-    toast.success("User logged out successfully", {
-      position: "top-right",
-      autoClose: 3000,
-    });
+    toast.success("Logged out successfully!");
     navigate("/login");
   };
 
+  if (isLogin) return null; // Don't show navbar on login page
+
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-50">
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex justify-between items-center">
-          <Link to="/hackathon" className="flex-shrink-0">
-            <div className="flex items-center">
-              <h1 className="text-3xl font-bold">
-                <span className="text-black">xto</span>
-                <span className="text-red-500">10x</span>
-              </h1>
-              <span className="text-gray-500 text-sm ml-2">by masai</span>
-            </div>
-          </Link>
+    <>
+      {/* Global theme styles for navbar */}
+      <style>{`
+        .theme-navbar {
+          background-color: ${themeConfig.navbarBg} !important;
+          border-bottom: 1px solid ${themeConfig.borderColor} !important;
+          color: ${themeConfig.textColor} !important;
+        }
+        
+        .theme-button {
+          background-color: ${themeConfig.buttonBg} !important;
+          color: white !important;
+          transition: all 0.3s ease;
+        }
+        
+        .theme-button:hover {
+          background-color: ${themeConfig.buttonHover} !important;
+        }
+        
+        .theme-button-secondary {
+          border: 1px solid ${themeConfig.accentColor} !important;
+          color: ${themeConfig.accentColor} !important;
+          background-color: transparent !important;
+          transition: all 0.3s ease;
+        }
+        
+        .theme-button-secondary:hover {
+          background-color: ${themeConfig.accentColor} !important;
+          color: white !important;
+        }
+        
+        .theme-dropdown {
+          background-color: ${themeConfig.cardBg} !important;
+          border: 1px solid ${themeConfig.borderColor} !important;
+          color: ${themeConfig.textColor} !important;
+        }
+        
+        .theme-dropdown-item:hover {
+          background-color: ${themeConfig.accentColor} !important;
+          color: white !important;
+        }
+      `}</style>
 
-          {/* Event Details - Hidden on mobile */}
-          {!isLogin && (
-            <div className="hidden md:block">
-              <div className="flex justify-center text-xl ">
-                <div className="font-bold">
-                  {hackathon && hackathon.name ? hackathon.name : "Hackathon"}{" "}
-                </div>
-                <span className="text-red-500 ml-2">{currentDate}</span>
+      <nav 
+        className="theme-navbar sticky top-0 z-50 shadow-sm"
+        style={{
+          backgroundColor: themeConfig.navbarBg,
+          borderBottom: `1px solid ${themeConfig.borderColor}`,
+          color: themeConfig.textColor
+        }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            {/* Logo */}
+            <Link to="/" className="flex items-center space-x-2">
+              <div className="text-2xl font-bold">
+                <span style={{ color: themeConfig.accentColor }}>xto</span>
+                <span style={{ color: themeConfig.textColor }}>10x</span>
               </div>
-              <div className="text-gray-600 text-sm mt-1 flex justify-center">
-                {hackathon && hackathon.description
-                  ? hackathon.description
-                  : "Code, Collaborate, Conquer!"}
-              </div>
-            </div>
-          )}
+              <span 
+                className="text-sm px-2 py-1 rounded"
+                style={{ 
+                  backgroundColor: themeConfig.accentColor,
+                  color: 'white'
+                }}
+              >
+                by masai
+              </span>
+            </Link>
 
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition"
-          >
-            {isMenuOpen ? (
-              <X className="h-6 w-6 text-gray-600" />
-            ) : (
-              <Menu className="h-6 w-6 text-gray-600" />
+            {/* Center - Hackathon Info */}
+            {isAuth && hackathon && (
+              <div className="hidden md:flex flex-col items-center">
+                <h2 
+                  className="text-lg font-semibold"
+                  style={{ color: themeConfig.textColor }}
+                >
+                  {hackathon.title || "Hackathon"}
+                </h2>
+                <p 
+                  className="text-sm"
+                  style={{ color: themeConfig.textColor, opacity: 0.7 }}
+                >
+                  {currentDate}
+                </p>
+              </div>
             )}
-          </button>
 
-          {/* Desktop Navigation */}
-          {isAuth && (
-            <div className="hidden md:flex items-center space-x-4">
-              {!isDashboard && (
-                <Link to={role === "admin" ? "/select-team" : "/my-team"}>
-                  <button className="bg-white border border-red-500 text-red-500 px-4 py-2 rounded-lg hover:bg-red-50 transition">
-                    {role === "admin" ? "Check Teams" : "My Team"}
-                  </button>
-                </Link>
+            {/* Right Side - Navigation */}
+            <div className="flex items-center space-x-4">
+              {/* Mobile menu button */}
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="md:hidden p-2 rounded-md theme-button-secondary"
+              >
+                {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+
+              {/* Desktop Navigation */}
+              {isAuth && (
+                <div className="hidden md:flex items-center space-x-4">
+                  {!isDashboard && (
+                    <Link to={role === "admin" ? "/select-team" : "/my-team"}>
+                      <button className="theme-button-secondary px-4 py-2 rounded-lg transition">
+                        {role === "admin" ? "Check Teams" : "My Team"}
+                      </button>
+                    </Link>
+                  )}
+                  {role === "member" && !isDashboard && (
+                    <Link to="/create-participant-team">
+                      <button className="theme-button px-4 py-2 rounded-lg transition">
+                        Create Team
+                      </button>
+                    </Link>
+                  )}
+                  {!isDashboard && (
+                    <Link
+                      to="/"
+                      className="p-2 rounded-full theme-button-secondary"
+                      style={{
+                        backgroundColor: themeConfig.cardBg,
+                        color: themeConfig.textColor
+                      }}
+                    >
+                      <House size={20} />
+                    </Link>
+                  )}
+
+                  {/* Notification Center */}
+                  <NotificationCenter />
+
+                  {/* Profile Dropdown */}
+                  <div className="relative" ref={profileDropdownRef}>
+                    <button
+                      onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                      className="flex items-center space-x-2 p-2 rounded-lg theme-button-secondary"
+                    >
+                      <div 
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium"
+                        style={{
+                          backgroundColor: themeConfig.accentColor,
+                          color: 'white'
+                        }}
+                      >
+                        {userInitials}
+                      </div>
+                      <ChevronDown size={16} />
+                    </button>
+
+                    {/* Dropdown Menu */}
+                    {isProfileDropdownOpen && (
+                      <div 
+                        className="absolute right-0 mt-2 w-48 rounded-md shadow-lg theme-dropdown z-50"
+                        style={{
+                          backgroundColor: themeConfig.cardBg,
+                          border: `1px solid ${themeConfig.borderColor}`
+                        }}
+                      >
+                        <div className="py-1">
+                          <div 
+                            className="px-4 py-2 border-b"
+                            style={{ borderColor: themeConfig.borderColor }}
+                          >
+                            <p 
+                              className="text-sm font-medium"
+                              style={{ color: themeConfig.textColor }}
+                            >
+                              {userData.name || "User"}
+                            </p>
+                            <p 
+                              className="text-xs"
+                              style={{ color: themeConfig.textColor, opacity: 0.7 }}
+                            >
+                              {role}
+                            </p>
+                          </div>
+                          
+                          <Link
+                            to="/profile"
+                            className="flex items-center px-4 py-2 text-sm theme-dropdown-item"
+                            onClick={() => setIsProfileDropdownOpen(false)}
+                          >
+                            <User className="mr-3 h-4 w-4" />
+                            View Profile
+                          </Link>
+                          
+                          {role === "admin" && (
+                            <>
+                              <Link
+                                to="/create-hackathon"
+                                className="flex items-center px-4 py-2 text-sm theme-dropdown-item"
+                                onClick={() => setIsProfileDropdownOpen(false)}
+                              >
+                                <FilePlus className="mr-3 h-4 w-4" />
+                                Create Hackathon
+                              </Link>
+                              <Link
+                                to="/create-user"
+                                className="flex items-center px-4 py-2 text-sm theme-dropdown-item"
+                                onClick={() => setIsProfileDropdownOpen(false)}
+                              >
+                                <UserRoundPlus className="mr-3 h-4 w-4" />
+                                Create User
+                              </Link>
+                            </>
+                          )}
+                          
+                          <button
+                            onClick={() => {
+                              setIsProfileDropdownOpen(false);
+                              handleLogout();
+                            }}
+                            className="flex items-center w-full px-4 py-2 text-sm theme-dropdown-item"
+                          >
+                            <LogOut className="mr-3 h-4 w-4" />
+                            Logout
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
-              {role === "member" && !isDashboard && (
-                <Link to="/create-participant-team">
-                  <button className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition">
+            </div>
+          </div>
+
+          {/* Mobile Navigation */}
+          {isAuth && isMenuOpen && (
+            <div 
+              className="md:hidden mt-4 space-y-3 pb-4"
+              style={{
+                backgroundColor: themeConfig.navbarBg,
+                borderTop: `1px solid ${themeConfig.borderColor}`
+              }}
+            >
+              <Link to={role === "admin" ? "/select-team" : "/my-team"} onClick={() => setIsMenuOpen(false)}>
+                <button className="w-full theme-button-secondary px-4 py-2 rounded-lg transition mb-2">
+                  {role === "admin" ? "Check Teams" : "My Team"}
+                </button>
+              </Link>
+
+              {role === "member" && (
+                <Link to="/create-participant-team" onClick={() => setIsMenuOpen(false)}>
+                  <button className="w-full theme-button px-4 py-2 rounded-lg transition mb-2">
                     Create Team
                   </button>
                 </Link>
               )}
+
               {!isDashboard && (
-                <Link
-                  to="/"
-                  className="border p-2 rounded-full bg-gray-800 text-white cursor-pointer"
-                >
-                  <House />
+                <Link to="/">
+                  <button 
+                    className="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg transition mb-2"
+                    style={{
+                      backgroundColor: themeConfig.cardBg,
+                      color: themeConfig.textColor,
+                      border: `1px solid ${themeConfig.borderColor}`
+                    }}
+                  >
+                    <House className="h-5 w-5" style={{ color: themeConfig.accentColor }} />
+                    <span>Home</span>
+                  </button>
                 </Link>
               )}
 
-              {/* {!isInteractive && (
-                <Link to="/register-team" onClick={() => setIsMenuOpen(false)}>
-                  <button className="w-full bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition mb-2">
-                    Register Team
-                  </button>
-                </Link>
-              )} */}
-
-              {/* Notification Center */}
-              <NotificationCenter />
-
-              {/* Profile Dropdown */}
-              <div className="relative" ref={profileDropdownRef}>
-                <button
-                  onClick={() =>
-                    setIsProfileDropdownOpen(!isProfileDropdownOpen)
-                  }
-                  className="flex items-center space-x-2"
-                  aria-expanded={isProfileDropdownOpen}
-                  aria-haspopup="true"
+              <Link to="/profile" onClick={() => setIsMenuOpen(false)}>
+                <button 
+                  className="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg transition mb-2"
+                  style={{
+                    backgroundColor: themeConfig.cardBg,
+                    color: themeConfig.textColor,
+                    border: `1px solid ${themeConfig.borderColor}`
+                  }}
                 >
-                  {/* Circle with User Initials */}
-                  <div className="w-10 h-10 rounded-full bg-gray-800 text-white flex items-center justify-center text-lg font-semibold">
-                    {userInitials}
-                  </div>
-
-                  <ChevronDown
-                    className={`h-4 w-4 ml-1 transition-transform duration-300 ${
-                      isProfileDropdownOpen ? "rotate-180" : ""
-                    }`}
-                  />
+                  <User className="h-5 w-5" style={{ color: themeConfig.accentColor }} />
+                  <span>View Profile</span>
                 </button>
+              </Link>
 
-                {/* Dropdown Menu */}
-                {isProfileDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 border border-gray-100">
-                    <Link
-                      to="/profile"
-                      className="block px-4 py-2 text-gray-700 hover:bg-red-50 hover:text-red-500 transition"
-                      onClick={() => setIsProfileDropdownOpen(false)}
-                    >
-                      <User className="h-4 w-4 inline mr-2" />
-                      View Profile
-                    </Link>
-                    {role === "admin" && (
-                      <>
-                        <Link to="/create-hackathon">
-                          <button className="w-full text-left px-4 py-2 text-gray-700 hover:bg-red-50 hover:text-red-500 transition flex items-center">
-                            <FilePlus className="h-4 w-4 mr-2" />
-                            Create Hackathon
-                          </button>
-                        </Link>
-
-                        <Link to="/create-users">
-                          <button className="w-full text-left px-4 py-2 text-gray-700 hover:bg-red-50 hover:text-red-500 transition flex items-center">
-                            <UserRoundPlus className="h-4 w-4 mr-2" />
-                            Upload Users
-                          </button>
-                        </Link>
-                      </>
-                    )}
-                    <button
-                      onClick={() => {
-                        setIsProfileDropdownOpen(false);
-                        handleLogout();
+              {role === "admin" && (
+                <>
+                  <Link to="/create-hackathon" onClick={() => setIsMenuOpen(false)}>
+                    <button 
+                      className="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg transition mb-2"
+                      style={{
+                        backgroundColor: themeConfig.cardBg,
+                        color: themeConfig.textColor,
+                        border: `1px solid ${themeConfig.borderColor}`
                       }}
-                      className="w-full text-left px-4 py-2 text-gray-700 hover:bg-red-50 hover:text-red-500 transition flex items-center"
                     >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Logout
+                      <FilePlus className="h-5 w-5" style={{ color: themeConfig.accentColor }} />
+                      <span>Create Hackathon</span>
                     </button>
-                  </div>
-                )}
-              </div>
+                  </Link>
+                  <Link to="/create-user" onClick={() => setIsMenuOpen(false)}>
+                    <button 
+                      className="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg transition mb-2"
+                      style={{
+                        backgroundColor: themeConfig.cardBg,
+                        color: themeConfig.textColor,
+                        border: `1px solid ${themeConfig.borderColor}`
+                      }}
+                    >
+                      <UserRoundPlus className="h-5 w-5" style={{ color: themeConfig.accentColor }} />
+                      <span>Create User</span>
+                    </button>
+                  </Link>
+                </>
+              )}
+
+              <button
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  handleLogout();
+                }}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg transition"
+                style={{
+                  backgroundColor: themeConfig.dangerColor,
+                  color: 'white'
+                }}
+              >
+                <LogOut className="h-5 w-5" />
+                <span>Logout</span>
+              </button>
             </div>
           )}
         </div>
-
-        {/* Mobile Navigation */}
-        {isAuth && isMenuOpen && (
-          <div className="md:hidden mt-4 space-y-3">
-            <Link to={role === "admin" ? "/select-team" : "/my-team"} onClick={() => setIsMenuOpen(false)}>
-              <button className="w-full bg-white border border-red-500 text-red-500 px-4 py-2 rounded-lg hover:bg-red-50 transition mb-2">
-                {role === "admin" ? "Check Teams" : "My Team"}
-              </button>
-            </Link>
-
-            {role === "member" && (
-              <Link to="/create-participant-team" onClick={() => setIsMenuOpen(false)}>
-                <button className="w-full bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition mb-2">
-                  Create Team
-                </button>
-              </Link>
-            )}
-
-            {/* {!isInteractive && (
-              <Link to="/register-team" onClick={() => setIsMenuOpen(false)}>
-                <button className="w-full bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition mb-2">
-                  Register Team
-                </button>
-              </Link>
-            )} */}
-            {!isDashboard && (
-              <Link to="/">
-                <button className="w-full flex items-center justify-center space-x-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition mb-2">
-                  <House className="h-5 w-5 text-red-500" />
-                  <span>Home</span>
-                </button>
-              </Link>
-            )}
-
-            <Link to="/profile" onClick={() => setIsMenuOpen(false)}>
-              <button className="w-full flex items-center justify-center space-x-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition mb-2">
-                <User className="h-5 w-5 text-red-500" />
-                <span>View Profile</span>
-              </button>
-            </Link>
-
-            {role === "admin" && (
-              <>
-                <Link to="/create-hackathon" onClick={() => setIsMenuOpen(false)}>
-                  <button className="w-full flex items-center justify-center space-x-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition mb-2">
-                    <FilePlus className="h-5 w-5 mr-2 text-red-500" />
-                    Create Hackathon
-                  </button>
-                </Link>
-
-                <Link to="/create-users" onClick={() => setIsMenuOpen(false)}>
-                  <button className="w-full flex items-center justify-center space-x-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition mb-2">
-                    <UserRoundPlus className="h-5 w-5 mr-2 text-red-500" />
-                    Upload Users
-                  </button>
-                </Link>
-
-                <Link to="/eligible-hackathons" onClick={() => setIsMenuOpen(false)}>
-                  <button className="w-full flex items-center justify-center space-x-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition mb-2">
-                    <Trophy className="h-5 w-5 mr-2 text-red-500" />
-                    Manage Hackathons
-                  </button>
-                </Link>
-              </>
-            )}
-
-            <button
-              onClick={() => {
-                setIsMenuOpen(false);
-                {
-                  /* ✅ Closes dropdown on click */
-                }
-                handleLogout();
-                {
-                  /* Ensures logout logic is executed */
-                }
-              }}
-              className="w-full flex items-center justify-center space-x-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition"
-            >
-              <LogOut className="h-5 w-5 text-red-500" />
-              <span>Logout</span>
-            </button>
-          </div>
-        )}
-      </div>
-    </header>
+      </nav>
+    </>
   );
 };
 

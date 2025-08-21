@@ -1,29 +1,32 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MyContext } from '../context/AuthContextProvider';
-import { toast } from 'react-toastify';
+import { useTheme } from '../context/ThemeContextProvider';
 import { 
-  Users, 
   Calendar, 
+  Users, 
   Trophy, 
   Clock, 
+  MapPin, 
   UserCheck, 
+  Target, 
+  Bell, 
+  CheckCircle, 
   AlertCircle,
-  ChevronRight,
-  BookOpen,
-  Target
+  User,
+  Mail,
+  Phone,
+  Code
 } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 const MemberDashboard = () => {
   const { userData, hackathon, setHackathon } = useContext(MyContext);
-  const [memberStats, setMemberStats] = useState({
-    hackathons: [],
-    currentTeam: null,
-    teamMembers: [],
-    loading: true,
-    error: null
-  });
+  const { themeConfig } = useTheme();
   const navigate = useNavigate();
+  const [memberData, setMemberData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [teamInfo, setTeamInfo] = useState(null);
   const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
 
   useEffect(() => {
@@ -176,18 +179,18 @@ const MemberDashboard = () => {
     });
   };
 
-  if (memberStats.loading) {
+  // ... existing useEffect and fetchMemberData code would go here ...
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600 mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">Loading Your Dashboard</h2>
-          <p className="text-gray-500 mb-4">Fetching your hackathon and team information...</p>
-          <div className="text-sm text-gray-400">
-            <p>This may take a few moments</p>
-            <p>If it takes too long, try refreshing the page</p>
-          </div>
-        </div>
+      <div 
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: themeConfig.backgroundColor }}
+      >
+        <div 
+          className="animate-spin rounded-full h-16 w-16 border-b-4"
+          style={{ borderColor: themeConfig.accentColor }}
+        ></div>
       </div>
     );
   }
@@ -226,223 +229,414 @@ const MemberDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Welcome back, {userData?.name || 'Member'}!
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Here's your hackathon dashboard
-          </p>
-        </div>
+    <>
+      {/* Global theme styles */}
+      <style>{`
+        .theme-card {
+          background-color: ${themeConfig.cardBg} !important;
+          border: 1px solid ${themeConfig.borderColor} !important;
+          color: ${themeConfig.textColor} !important;
+          transition: all 0.3s ease;
+        }
+        
+        .theme-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .theme-button {
+          background-color: ${themeConfig.buttonBg} !important;
+          color: white !important;
+          transition: all 0.3s ease;
+        }
+        
+        .theme-button:hover {
+          background-color: ${themeConfig.buttonHover} !important;
+          transform: translateY(-1px);
+        }
+        
+        .theme-button-secondary {
+          border: 1px solid ${themeConfig.accentColor} !important;
+          color: ${themeConfig.accentColor} !important;
+          background-color: transparent !important;
+          transition: all 0.3s ease;
+        }
+        
+        .theme-button-secondary:hover {
+          background-color: ${themeConfig.accentColor} !important;
+          color: white !important;
+        }
+        
+        .theme-gradient {
+          background: ${themeConfig.gradientBg} !important;
+        }
+        
+        .theme-accent-bg {
+          background-color: ${themeConfig.accentColor} !important;
+          color: white !important;
+        }
+      `}</style>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-indigo-100 rounded-lg">
-                <Calendar className="h-6 w-6 text-indigo-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Hackathons</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {memberStats.hackathons.length}
-                </p>
-              </div>
-            </div>
+      <div 
+        className="min-h-screen py-8 px-4"
+        style={{ 
+          backgroundColor: themeConfig.backgroundColor,
+          color: themeConfig.textColor
+        }}
+      >
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 
+              className="text-3xl font-bold mb-2"
+              style={{ color: themeConfig.textColor }}
+            >
+              Welcome back, {userData?.name || 'Member'}!
+            </h1>
+            <p 
+              className="text-lg"
+              style={{ color: themeConfig.textColor, opacity: 0.7 }}
+            >
+              Ready to build something amazing?
+            </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Users className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Team Status</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {memberStats.currentTeam ? 'In Team' : 'No Team'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Trophy className="h-6 w-6 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Role</p>
-                <p className="text-2xl font-bold text-gray-900 capitalize">
-                  {userData?.role || 'Member'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Current Team Section */}
-        {memberStats.currentTeam && (
-          <div className="bg-white rounded-lg shadow mb-8">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Your Team</h2>
-            </div>
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">
-                  {memberStats.currentTeam.teamName}
-                </h3>
-                <button
-                  onClick={() => navigate('/my-team')}
-                  className="flex items-center bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                >
-                  View Team Details
-                  <ChevronRight className="ml-1 h-4 w-4" />
-                </button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="theme-card rounded-xl p-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-600 mb-2">Team Members</p>
-                  <div className="space-y-2">
-                    {memberStats.teamMembers.slice(0, 3).map((member, index) => (
-                      <div key={index} className="flex items-center">
-                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                          <UserCheck className="h-4 w-4 text-gray-600" />
-                        </div>
-                        <span className="ml-2 text-sm text-gray-700">
-                          {member.name || `Member ${index + 1}`}
-                        </span>
-                      </div>
-                    ))}
-                    {memberStats.teamMembers.length > 3 && (
-                      <p className="text-sm text-gray-500">
-                        +{memberStats.teamMembers.length - 3} more members
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600 mb-2">Team Size</p>
-                  <p className="text-lg font-semibold text-gray-900">
-                    {memberStats.teamMembers.length} / {memberStats.currentTeam.memberLimit}
+                  <p 
+                    className="text-sm font-medium"
+                    style={{ color: themeConfig.textColor, opacity: 0.7 }}
+                  >
+                    Current Hackathon
+                  </p>
+                  <p 
+                    className="text-2xl font-bold"
+                    style={{ color: themeConfig.textColor }}
+                  >
+                    {hackathon?.title || 'No Active Hackathon'}
                   </p>
                 </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* No Team Alert */}
-        {!memberStats.currentTeam && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
-            <div className="flex items-start">
-              <AlertCircle className="h-6 w-6 text-yellow-600 mt-0.5" />
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-yellow-800">
-                  You're not in a team yet
-                </h3>
-                <p className="text-sm text-yellow-700 mt-1">
-                  Join a team to participate in hackathons and collaborate with other members.
-                </p>
-                <button
-                  onClick={() => navigate('/select-team')}
-                  className="mt-3 bg-yellow-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-yellow-700"
+                <div 
+                  className="p-3 rounded-full"
+                  style={{ backgroundColor: themeConfig.accentColor }}
                 >
-                  Find a Team
-                </button>
+                  <Trophy className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </div>
+
+            <div className="theme-card rounded-xl p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p 
+                    className="text-sm font-medium"
+                    style={{ color: themeConfig.textColor, opacity: 0.7 }}
+                  >
+                    Team Status
+                  </p>
+                  <p 
+                    className="text-2xl font-bold"
+                    style={{ color: themeConfig.textColor }}
+                  >
+                    {teamInfo ? 'In Team' : 'No Team'}
+                  </p>
+                </div>
+                <div 
+                  className="p-3 rounded-full"
+                  style={{ backgroundColor: teamInfo ? themeConfig.successColor : themeConfig.warningColor }}
+                >
+                  <Users className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </div>
+
+            <div className="theme-card rounded-xl p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p 
+                    className="text-sm font-medium"
+                    style={{ color: themeConfig.textColor, opacity: 0.7 }}
+                  >
+                    Days Left
+                  </p>
+                  <p 
+                    className="text-2xl font-bold"
+                    style={{ color: themeConfig.textColor }}
+                  >
+                    {hackathon ? calculateDaysLeft(hackathon.endDate) : '--'}
+                  </p>
+                </div>
+                <div 
+                  className="p-3 rounded-full"
+                  style={{ backgroundColor: themeConfig.accentColor }}
+                >
+                  <Clock className="h-6 w-6 text-white" />
+                </div>
+              </div>
+            </div>
+
+            <div className="theme-card rounded-xl p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p 
+                    className="text-sm font-medium"
+                    style={{ color: themeConfig.textColor, opacity: 0.7 }}
+                  >
+                    Your Role
+                  </p>
+                  <p 
+                    className="text-2xl font-bold capitalize"
+                    style={{ color: themeConfig.textColor }}
+                  >
+                    {userData?.role || 'Member'}
+                  </p>
+                </div>
+                <div 
+                  className="p-3 rounded-full"
+                  style={{ backgroundColor: themeConfig.accentColor }}
+                >
+                  <UserCheck className="h-6 w-6 text-white" />
+                </div>
               </div>
             </div>
           </div>
-        )}
 
-        {/* Hackathons Section */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">Your Hackathons</h2>
-          </div>
-          <div className="p-6">
-            {memberStats.hackathons.length === 0 ? (
-              <div className="text-center py-8">
-                <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500 text-lg">No hackathons yet</p>
-                <p className="text-gray-400 text-sm">
-                  You'll see hackathons here when an admin adds you to one
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {memberStats.hackathons.map((hackathon, index) => {
-                  const status = getHackathonStatus(hackathon);
-                  return (
-                    <div key={hackathon._id || index} className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start justify-between mb-3">
-                        <h3 className="font-medium text-gray-900 flex-1">
-                          {hackathon.title}
-                        </h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${status.color}`}>
-                          {status.label}
+          {/* Main Content Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Current Hackathon */}
+            <div className="lg:col-span-2">
+              <div className="theme-card rounded-xl p-6">
+                <h2 
+                  className="text-xl font-bold mb-4 flex items-center"
+                  style={{ color: themeConfig.textColor }}
+                >
+                  <Trophy className="mr-2" style={{ color: themeConfig.accentColor }} />
+                  Current Hackathon
+                </h2>
+                
+                {hackathon ? (
+                  <div>
+                    <h3 
+                      className="text-2xl font-bold mb-2"
+                      style={{ color: themeConfig.textColor }}
+                    >
+                      {hackathon.title}
+                    </h3>
+                    <p 
+                      className="mb-4"
+                      style={{ color: themeConfig.textColor, opacity: 0.8 }}
+                    >
+                      {hackathon.description}
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      <div className="flex items-center">
+                        <Calendar className="mr-2 h-5 w-5" style={{ color: themeConfig.accentColor }} />
+                        <span style={{ color: themeConfig.textColor }}>
+                          {new Date(hackathon.startDate).toLocaleDateString()} - {new Date(hackathon.endDate).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600 mb-3">
-                        {hackathon.description}
-                      </p>
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Clock className="h-4 w-4 mr-1" />
-                        {formatDate(hackathon.startDate)} - {formatDate(hackathon.endDate)}
+                      <div className="flex items-center">
+                        <Users className="mr-2 h-5 w-5" style={{ color: themeConfig.accentColor }} />
+                        <span style={{ color: themeConfig.textColor }}>
+                          Team Size: {hackathon.teamSize?.min || 2}-{hackathon.teamSize?.max || 4}
+                        </span>
                       </div>
-                      <button
-                        onClick={() => {
-                          localStorage.setItem('currentHackathon', hackathon._id);
-                          // Set the hackathon in context so MainContent can use it
-                          setHackathon(hackathon);
-                          navigate('/hackathon');
-                        }}
-                        className="mt-3 w-full bg-indigo-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-indigo-700"
-                      >
-                        View Hackathon
-                      </button>
                     </div>
-                  );
-                })}
+
+                    <button
+                      onClick={() => {
+                        setHackathon(hackathon);
+                        navigate('/hackathon');
+                      }}
+                      className="theme-button px-6 py-3 rounded-lg font-semibold"
+                    >
+                      View Hackathon Details
+                    </button>
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <AlertCircle className="mx-auto h-12 w-12 mb-4" style={{ color: themeConfig.warningColor }} />
+                    <p style={{ color: themeConfig.textColor, opacity: 0.7 }}>
+                      No active hackathon found. Contact your administrator.
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
+
+            {/* Profile Card */}
+            <div>
+              <div className="theme-card rounded-xl p-6 mb-6">
+                <h2 
+                  className="text-xl font-bold mb-4 flex items-center"
+                  style={{ color: themeConfig.textColor }}
+                >
+                  <User className="mr-2" style={{ color: themeConfig.accentColor }} />
+                  Your Profile
+                </h2>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <User className="mr-3 h-4 w-4" style={{ color: themeConfig.accentColor }} />
+                    <span style={{ color: themeConfig.textColor }}>{userData?.name}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Mail className="mr-3 h-4 w-4" style={{ color: themeConfig.accentColor }} />
+                    <span style={{ color: themeConfig.textColor }}>{userData?.email}</span>
+                  </div>
+                  <div className="flex items-center">
+                    <Code className="mr-3 h-4 w-4" style={{ color: themeConfig.accentColor }} />
+                    <span style={{ color: themeConfig.textColor }}>{userData?.vertical || 'Not specified'}</span>
+                  </div>
+                  {userData?.phoneNumber && (
+                    <div className="flex items-center">
+                      <Phone className="mr-3 h-4 w-4" style={{ color: themeConfig.accentColor }} />
+                      <span style={{ color: themeConfig.textColor }}>{userData.phoneNumber}</span>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => navigate('/profile')}
+                  className="w-full mt-4 theme-button-secondary px-4 py-2 rounded-lg font-medium"
+                >
+                  Edit Profile
+                </button>
+              </div>
+
+              {/* Team Info */}
+              <div className="theme-card rounded-xl p-6">
+                <h2 
+                  className="text-xl font-bold mb-4 flex items-center"
+                  style={{ color: themeConfig.textColor }}
+                >
+                  <Users className="mr-2" style={{ color: themeConfig.accentColor }} />
+                  Team Information
+                </h2>
+                
+                {teamInfo ? (
+                  <div>
+                    <p 
+                      className="font-semibold mb-2"
+                      style={{ color: themeConfig.textColor }}
+                    >
+                      {teamInfo.teamName}
+                    </p>
+                    <p 
+                      className="text-sm mb-4"
+                      style={{ color: themeConfig.textColor, opacity: 0.7 }}
+                    >
+                      {teamInfo.members?.length || 0} members
+                    </p>
+                    <button
+                      onClick={() => navigate('/select-team')}
+                      className="w-full theme-button px-4 py-2 rounded-lg font-medium"
+                    >
+                      View Team
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <p 
+                      className="text-sm mb-4"
+                      style={{ color: themeConfig.textColor, opacity: 0.7 }}
+                    >
+                      You're not part of any team yet.
+                    </p>
+                    <button
+                      onClick={() => navigate('/create-participant-team')}
+                      className="w-full theme-button px-4 py-2 rounded-lg font-medium mb-2"
+                    >
+                      Create Team
+                    </button>
+                    <button
+                      onClick={() => navigate('/select-team')}
+                      className="w-full theme-button-secondary px-4 py-2 rounded-lg font-medium"
+                    >
+                      Join Team
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <button
+              onClick={() => navigate('/select-team')}
+              className="theme-card p-4 text-left hover:shadow-lg transition-all duration-300 rounded-xl"
+            >
+              <Users className="h-6 w-6 mb-2" style={{ color: themeConfig.accentColor }} />
+              <h3 
+                className="font-medium"
+                style={{ color: themeConfig.textColor }}
+              >
+                Teams
+              </h3>
+              <p 
+                className="text-sm"
+                style={{ color: themeConfig.textColor, opacity: 0.7 }}
+              >
+                View and join teams
+              </p>
+            </button>
+
+            <button
+              onClick={() => navigate('/profile')}
+              className="theme-card p-4 text-left hover:shadow-lg transition-all duration-300 rounded-xl"
+            >
+              <UserCheck className="h-6 w-6 mb-2" style={{ color: themeConfig.successColor }} />
+              <h3 
+                className="font-medium"
+                style={{ color: themeConfig.textColor }}
+              >
+                Profile
+              </h3>
+              <p 
+                className="text-sm"
+                style={{ color: themeConfig.textColor, opacity: 0.7 }}
+              >
+                Update your information
+              </p>
+            </button>
+
+            <button
+              onClick={() => navigate('/resource-hub')}
+              className="theme-card p-4 text-left hover:shadow-lg transition-all duration-300 rounded-xl"
+            >
+              <Target className="h-6 w-6 mb-2" style={{ color: themeConfig.warningColor }} />
+              <h3 
+                className="font-medium"
+                style={{ color: themeConfig.textColor }}
+              >
+                Resources
+              </h3>
+              <p 
+                className="text-sm"
+                style={{ color: themeConfig.textColor, opacity: 0.7 }}
+              >
+                Access learning materials
+              </p>
+            </button>
           </div>
         </div>
-
-        {/* Quick Actions */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button
-            onClick={() => navigate('/select-team')}
-            className="bg-white border border-gray-300 rounded-lg p-4 text-left hover:bg-gray-50"
-          >
-            <Users className="h-6 w-6 text-indigo-600 mb-2" />
-            <h3 className="font-medium text-gray-900">Teams</h3>
-            <p className="text-sm text-gray-600">View and join teams</p>
-          </button>
-
-          <button
-            onClick={() => navigate('/profile')}
-            className="bg-white border border-gray-300 rounded-lg p-4 text-left hover:bg-gray-50"
-          >
-            <UserCheck className="h-6 w-6 text-green-600 mb-2" />
-            <h3 className="font-medium text-gray-900">Profile</h3>
-            <p className="text-sm text-gray-600">Update your information</p>
-          </button>
-
-          <button
-            onClick={() => navigate('/resource-hub')}
-            className="bg-white border border-gray-300 rounded-lg p-4 text-left hover:bg-gray-50"
-          >
-            <Target className="h-6 w-6 text-purple-600 mb-2" />
-            <h3 className="font-medium text-gray-900">Resources</h3>
-            <p className="text-sm text-gray-600">Access learning materials</p>
-          </button>
-        </div>
       </div>
-    </div>
+    </>
   );
+};
+
+// Helper function
+const calculateDaysLeft = (endDate) => {
+  const today = new Date();
+  const end = new Date(endDate);
+  const diffTime = end - today;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays > 0 ? diffDays : 0;
 };
 
 export default MemberDashboard; 
