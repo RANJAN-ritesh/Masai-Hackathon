@@ -671,8 +671,8 @@ const EligibleHackathons = () => {
   };
 
   return (
-    hackathons && (
-      <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white">
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white">
+      {hackathons && (
         <div className="p-6 md:p-8 max-w-7xl mx-auto">
           {/* Header with background effect */}
           <div className="relative mb-12">
@@ -932,6 +932,7 @@ const EligibleHackathons = () => {
             </div>
           )}
         </div>
+      )}
         {/* Teams Display Modal */}
         {teamsModalOpen && (
           <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
@@ -1107,6 +1108,8 @@ const EligibleHackathons = () => {
             </div>
           </div>
         )}
+        )}
+        )}
 
         {/* CSV Management Modal */}
         <CSVManagementModal
@@ -1120,8 +1123,8 @@ const EligibleHackathons = () => {
           isOpen={customizationModalOpen}
           onClose={() => setCustomizationModalOpen(false)}
           hackathonId={selectedHackathonId}
-          currentTheme={hackathons.find(h => h._id === selectedHackathonId)?.theme}
-          currentFont={hackathons.find(h => h._id === selectedHackathonId)?.fontFamily}
+          currentTheme={hackathons.find((h) => h._id === selectedHackathonId)?.theme}
+          currentFont={hackathons.find((h) => h._id === selectedHackathonId)?.fontFamily}
         />
       </div>
     );
