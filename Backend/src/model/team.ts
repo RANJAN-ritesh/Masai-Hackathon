@@ -24,7 +24,19 @@ const TeamSchema = new Schema<ITeam>({
     teamName: { type: String, required: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     teamMembers: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
-    memberLimit: { type: Number, required: true, default: 4 },
+    memberLimit: { 
+        type: Number, 
+        required: true, 
+        default: 4,
+        min: 1,
+        max: 10, // Allow up to 10 members
+        validate: {
+            validator: function(value: number) {
+                return value >= 1 && value <= 10;
+            },
+            message: 'Member limit must be between 1 and 10'
+        }
+    },
     hackathonId: { type: String, required: false }, // Link teams to hackathons
     description: { type: String, required: false },
     status: { type: String, required: false, default: 'active', enum: ['active', 'inactive', 'completed'] },
