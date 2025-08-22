@@ -84,7 +84,6 @@ const EligibleHackathons = () => {
       }
       
         const data = await response.json();
-      console.log("Hackathons Data: ", data);
       
       if (data && Array.isArray(data)) {
         // Track count changes for visual feedback
@@ -119,7 +118,6 @@ const EligibleHackathons = () => {
 
   useEffect(() => {
     if (userData) {
-      // console.log("This is parsed data", userData);
       fetchHackathons(userData); // pass parsed data directly
     } else {
       setLoading(false); // fallback if no user is found
@@ -135,21 +133,19 @@ const EligibleHackathons = () => {
   // Add new useEffect to handle refresh after navigation
   useEffect(() => {
     if (location.state?.refreshHackathons) {
-      console.log("🔄 Refreshing hackathons after creation...");
       fetchHackathons(userData);
       // Clear the state to prevent infinite refreshes
       window.history.replaceState({}, document.title);
     }
   }, [location.state, userData]);
 
-  // Add timestamp-based refresh to ensure fresh data
+  // Add timestamp-based refresh to ensure fresh data - OPTIMIZED: Reduced frequency
   useEffect(() => {
     const interval = setInterval(() => {
       if (userData && userData.role === "admin") {
-        console.log("🔄 Auto-refreshing hackathons every 30 seconds...");
         fetchHackathons(userData);
       }
-    }, 30000); // Refresh every 30 seconds for admins
+    }, 60000); // Refresh every 60 seconds for admins (reduced from 30s)
 
     return () => clearInterval(interval);
   }, [userData]);
@@ -510,19 +506,12 @@ const EligibleHackathons = () => {
 
   // View teams for a hackathon
   const handleViewTeams = async (hackathon) => {
-    console.log(`🚀 Starting team fetch for hackathon:`, {
-      id: hackathon._id,
-      title: hackathon.title,
-      baseURL: baseURL
-    });
-    
     setSelectedHackathonForTeams(hackathon);
     setTeamsModalOpen(true);
     setTeamsLoading(true);
     
     // Add loading timeout to prevent infinite loading
     const loadingTimeout = setTimeout(() => {
-      console.warn("⚠️ Team loading timeout reached after 15 seconds");
       setTeamsLoading(false);
       toast.warning("Team loading timed out. Please check your connection and try again.", {
         autoClose: 6000
@@ -531,7 +520,6 @@ const EligibleHackathons = () => {
     
     try {
       const teamEndpoint = `${baseURL}/team/hackathon/${hackathon._id}`;
-      console.log(`🔍 Fetching teams from: ${teamEndpoint}`);
       
       // Add AbortController for better request management
       const abortController = new AbortController();
@@ -547,27 +535,18 @@ const EligibleHackathons = () => {
       });
       
       clearTimeout(timeoutId);
-      console.log(`📡 Response status: ${response.status}`);
       
       if (response.ok) {
         const data = await response.json();
-        console.log(`📋 Teams response:`, {
-          message: data.message,
-          count: data.count,
-          teamsLength: data.teams?.length,
-          teams: data.teams
-        });
         
         const teams = data.teams || [];
         setTeamsData(teams);
         
         if (teams.length === 0) {
-          console.log(`ℹ️ No teams found for hackathon ${hackathon.title}`);
           toast.info(`No teams found for "${hackathon.title}". Create teams first!`, {
             autoClose: 5000
           });
         } else {
-          console.log(`✅ Successfully loaded ${teams.length} teams`);
           toast.success(`Loaded ${teams.length} team${teams.length !== 1 ? 's' : ''} for ${hackathon.title}`, {
             autoClose: 3000
           });
@@ -580,14 +559,14 @@ const EligibleHackathons = () => {
           errorData = { message: `HTTP ${response.status} - ${response.statusText}` };
         }
         
-        console.error(`❌ Failed to fetch teams: ${response.status}`, errorData);
+        console.error(`Failed to fetch teams: ${response.status}`, errorData);
         toast.error(`Failed to fetch teams: ${errorData.message || `HTTP ${response.status}`}`, {
           autoClose: 5000
         });
         setTeamsData([]);
       }
     } catch (error) {
-      console.error("❌ Network error fetching teams:", error);
+      console.error("Network error fetching teams:", error);
       
       if (error.name === 'AbortError') {
         toast.error("Request timed out. Please try again.", {
@@ -602,7 +581,6 @@ const EligibleHackathons = () => {
     } finally {
       clearTimeout(loadingTimeout);
       setTeamsLoading(false);
-      console.log(`🏁 Team fetch completed for hackathon: ${hackathon.title}`);
     }
   };
 

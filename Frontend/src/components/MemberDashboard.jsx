@@ -66,7 +66,6 @@ const MemberDashboard = () => {
 
       if (userResponse.ok) {
         const userInfo = await userResponse.json();
-        console.log(`✅ User data loaded for: ${userInfo.name}`);
         
         // OPTIMIZATION: Make all requests in parallel instead of sequentially
         const promises = [];
@@ -97,7 +96,6 @@ const MemberDashboard = () => {
         if (userInfo.teamId) {
           teamPromise = (async () => {
             try {
-              console.log(`🔍 Fetching team data for user ${userInfo.name} with teamId: ${userInfo.teamId}`);
               const teamResponse = await Promise.race([
                 fetch(`${baseURL}/team/get-teams`),
                 timeoutPromise
@@ -105,22 +103,19 @@ const MemberDashboard = () => {
               
               if (teamResponse.ok) {
                 const teams = await teamResponse.json();
-                console.log(`📋 Found ${teams.length} total teams`);
                 const currentTeam = teams.find(team => team._id === userInfo.teamId);
                 if (currentTeam) {
                   const teamMembers = currentTeam.teamMembers || [];
-                  console.log(`✅ Found user's team: ${currentTeam.teamName} with ${teamMembers.length} members`);
                   return { currentTeam, teamMembers };
                 } else {
-                  console.warn(`⚠️ Team with ID ${userInfo.teamId} not found in ${teams.length} teams`);
                   return { currentTeam: null, teamMembers: [] };
                 }
               } else {
-                console.error(`❌ Failed to fetch teams: ${teamResponse.status}`);
+                console.error(`Failed to fetch teams: ${teamResponse.status}`);
                 return { currentTeam: null, teamMembers: [] };
               }
             } catch (error) {
-              console.error('❌ Error fetching team data:', error);
+              console.error('Error fetching team data:', error);
               return { currentTeam: null, teamMembers: [] };
             }
           })();
@@ -130,8 +125,6 @@ const MemberDashboard = () => {
         // Execute all promises in parallel
         const [hackathons, teamData] = await Promise.all(promises);
         const { currentTeam, teamMembers } = teamData;
-        
-        console.log(`✅ Loaded ${hackathons.filter(Boolean).length} hackathons and team data in parallel`);
 
         setMemberStats({
           hackathons: hackathons.filter(Boolean),
@@ -140,14 +133,13 @@ const MemberDashboard = () => {
           loading: false,
           error: null
         });
-        console.log(`✅ Member dashboard data loaded successfully`);
       } else {
-        console.error(`❌ Failed to fetch user data: ${userResponse.status}`);
+        console.error(`Failed to fetch user data: ${userResponse.status}`);
         toast.error('Failed to load user data');
         setMemberStats(prev => ({ ...prev, loading: false, error: 'Failed to load user data' }));
       }
     } catch (error) {
-      console.error('❌ Error fetching member data:', error);
+      console.error('Error fetching member data:', error);
       if (error.message === 'Request timeout') {
         toast.error('Dashboard loading timed out. Please refresh the page.');
       } else {

@@ -68,16 +68,11 @@ const MainContent = () => {
 
   useEffect(() => {
     if (!hackathon) {
-      console.log("🔍 MainContent - No hackathon in context, redirecting to dashboard");
       navigate("/");
       return;
     }
 
     // Use the hackathon data directly from context instead of fetching
-    console.log("🔍 MainContent - Using hackathon from context:", hackathon);
-    console.log("🔍 MainContent - Schedule:", hackathon.schedule);
-    console.log("🔍 MainContent - Problem Statements:", hackathon.problemStatements);
-    
     setHackathonData(hackathon);
     setLoading(false);
   }, [hackathon, navigate]);

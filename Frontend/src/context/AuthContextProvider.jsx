@@ -28,7 +28,6 @@ const AuthContextProvider = ({ children }) => {
       const currentUserId = localStorage.getItem("userId");
       
       if (!currentUserId || currentUserId === "null" || currentUserId === "undefined") {
-        console.log("No valid userId found");
         setLoading(false);
         return;
       }
@@ -40,7 +39,6 @@ const AuthContextProvider = ({ children }) => {
         if (!response.ok) throw new Error("Failed to fetch user data");
 
         const userData = await response.json();
-        console.log("Data after login", userData);
         localStorage.setItem("userData", JSON.stringify(userData));
         setUserData(userData);
         setRole(userData.role || "member"); // Use 'role' field from backend, not 'userType'
@@ -78,7 +76,6 @@ const AuthContextProvider = ({ children }) => {
         if (response.ok) {
           const enrollmentData = await response.json();
           if (enrollmentData.hackathon) {
-            console.log("🔍 AuthContext - User enrolled in hackathon:", enrollmentData.hackathon.title);
             setUserHackathon(enrollmentData.hackathon);
             // Set this as the current hackathon
             setHackathon(enrollmentData.hackathon);
@@ -87,7 +84,7 @@ const AuthContextProvider = ({ children }) => {
           }
         }
       } catch (error) {
-        console.log("User not enrolled in any hackathon or error checking enrollment");
+        // Silent fail - user not enrolled
       }
     };
 
@@ -108,7 +105,6 @@ const AuthContextProvider = ({ children }) => {
           if (allHackathons && allHackathons.length > 0) {
             // If user has a specific hackathon, use that one
             if (userHackathon) {
-              console.log("🔍 AuthContext - Using user's enrolled hackathon:", userHackathon.title);
               setHackathon(userHackathon);
               localStorage.setItem("currentHackathon", userHackathon._id);
               return;
@@ -118,11 +114,9 @@ const AuthContextProvider = ({ children }) => {
             if (currentHackathon) {
               const selectedHackathon = allHackathons.find(h => h._id === currentHackathon);
               if (selectedHackathon) {
-                console.log("🔍 AuthContext - Found selected hackathon:", selectedHackathon.title);
                 setHackathon(selectedHackathon);
                 return;
               } else {
-                console.log("🔍 AuthContext - Selected hackathon not found, clearing localStorage");
                 localStorage.removeItem("currentHackathon");
               }
             }
@@ -132,7 +126,6 @@ const AuthContextProvider = ({ children }) => {
               new Date(b.createdAt) - new Date(a.createdAt)
             )[0];
             
-            console.log("🔍 AuthContext - Using most recent hackathon:", mostRecentHackathon.title);
             setHackathon(mostRecentHackathon);
             localStorage.setItem("currentHackathon", mostRecentHackathon._id);
             return;
@@ -140,7 +133,6 @@ const AuthContextProvider = ({ children }) => {
         }
         
         // If no hackathons found
-        console.log("🔍 AuthContext - No hackathons found");
         setHackathon(null);
         localStorage.removeItem("currentHackathon");
       } catch (error) {
