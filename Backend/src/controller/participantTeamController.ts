@@ -331,7 +331,8 @@ export const leaveTeam = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Team not found' });
     }
 
-    if (!canLeaveTeam(userId, team)) {
+    // Fixed: Use the correct function signature
+    if (!(await canLeaveTeam(userId, teamId, Team))) {
       return res.status(400).json({ message: 'You cannot leave this team at this time' });
     }
 
@@ -389,17 +390,24 @@ export const transferOwnership = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'New owner must be a team member' });
     }
 
-    // Transfer ownership
-    team.createdBy = newOwnerId;
-    team.teamLeader = newOwnerId;
-    await team.save();
+    // Fixed: Use the correct function signature
+    const success = await transferTeamOwnership(userId, newOwnerId, teamId, Team, User);
+    
+    if (!success) {
+      return res.status(400).json({ message: 'Failed to transfer ownership' });
+    }
 
     // Send notification
     if (team.hackathonId) {
+      // Get the new owner's name for the notification
+      const newOwner = await User.findById(newOwnerId);
+      const newOwnerName = newOwner?.name || 'Unknown User';
+      
       createOwnershipTransferredNotification(
         newOwnerId,
         team.hackathonId,
-        team.teamName
+        team.teamName,
+        newOwnerName
       );
     }
 
@@ -473,7 +481,8 @@ export const getUserNotifications = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    const notifications = await notificationService.getUserNotifications(userId);
+    // Fixed: Use the correct method name
+    const notifications = notificationService.getNotifications(userId);
     res.json({ notifications });
 
   } catch (error) {
@@ -492,8 +501,14 @@ export const markNotificationAsRead = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    await notificationService.markAsRead(notificationId, userId);
-    res.json({ message: 'Notification marked as read' });
+    // Fixed: Use the correct method signature
+    const success = notificationService.markAsRead(userId, notificationId);
+    
+    if (success) {
+      res.json({ message: 'Notification marked as read' });
+    } else {
+      res.status(404).json({ message: 'Notification not found' });
+    }
 
   } catch (error) {
     console.error('Error marking notification as read:', error);
@@ -510,7 +525,8 @@ export const markAllNotificationsAsRead = async (req: Request, res: Response) =>
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    await notificationService.markAllAsRead(userId);
+    // Fixed: Use the correct method name
+    notificationService.markAllAsRead(userId);
     res.json({ message: 'All notifications marked as read' });
 
   } catch (error) {
@@ -529,8 +545,14 @@ export const deleteNotification = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    await notificationService.deleteNotification(notificationId, userId);
-    res.json({ message: 'Notification deleted' });
+    // Fixed: Use the correct method signature
+    const success = notificationService.deleteNotification(userId, notificationId);
+    
+    if (success) {
+      res.json({ message: 'Notification deleted' });
+    } else {
+      res.status(404).json({ message: 'Notification not found' });
+    }
 
   } catch (error) {
     console.error('Error deleting notification:', error);
