@@ -180,9 +180,15 @@ const EligibleHackathons = () => {
       
       const participantsData = await participantsResponse.json();
       const allParticipants = participantsData.participants || [];
+      // Normalize roles and teamId before filtering
+      const normalizedParticipants = allParticipants.map((user) => ({
+        ...user,
+        role: (user.role || 'member').toLowerCase(),
+        teamId: user.teamId || ''
+      }));
       
       // Filter participants who are not already in teams
-      const availableParticipants = allParticipants.filter(user => 
+      const availableParticipants = normalizedParticipants.filter(user => 
         (user.role === 'member' || user.role === 'leader') && 
         (!user.teamId || user.teamId === '')
       );
