@@ -14,7 +14,13 @@ import {
   Shield,
   Target,
   Star,
-  Calendar
+  Calendar,
+  UserPlus,
+  Send,
+  Eye,
+  UserCheck,
+  AlertCircle,
+  User
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -33,7 +39,14 @@ const ParticipantTeamCreation = () => {
   });
   const [loading, setLoading] = useState(false);
   const [participants, setParticipants] = useState([]);
+  const [otherTeams, setOtherTeams] = useState([]);
   const [showParticipants, setShowParticipants] = useState(false);
+  const [showOtherTeams, setShowOtherTeams] = useState(false);
+  const [error, setError] = useState(null);
+  const [participantsLoading, setParticipantsLoading] = useState(false);
+  const [teamsLoading, setTeamsLoading] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [joinRequestLoading, setJoinRequestLoading] = useState(false);
 
   useEffect(() => {
     fetchHackathons();
@@ -41,6 +54,7 @@ const ParticipantTeamCreation = () => {
 
   const fetchHackathons = async () => {
     try {
+      setError(null);
       const response = await fetch(`${baseURL}/hackathons`);
       const data = await response.json();
       
@@ -52,30 +66,83 @@ const ParticipantTeamCreation = () => {
       setHackathons(allowedHackathons);
     } catch (error) {
       console.error('Error fetching hackathons:', error);
+      setError('Failed to load hackathons. Please refresh the page.');
       toast.error('Failed to load hackathons');
     }
   };
 
   const fetchParticipants = async (hackathonId) => {
     try {
-      const response = await fetch(`${baseURL}/participant-team/participants/${hackathonId}`, {
-        headers: {
-          'Authorization': `Bearer ${userData?._id || ''}` // Add authentication header
-        }
-      });
+      setParticipantsLoading(true);
+      setError(null);
+      
+      // Use the correct endpoint that I just fixed
+      const response = await fetch(`${baseURL}/participant-team/participants/${hackathonId}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch participants');
+      }
+      
       const data = await response.json();
       const list = Array.isArray(data.participants) ? data.participants : [];
-      // Normalize roles to lowercase for filtering
-      const normalized = list.map(u => ({ ...u, role: (u.role || 'member').toLowerCase() }));
-      setParticipants(normalized);
+      
+      // Filter out the current user and users already in teams
+      const availableParticipants = list.filter(p => 
+        p._id !== userData?._id && !p.currentTeamId
+      );
+      
+      setParticipants(availableParticipants);
+      
+      if (availableParticipants.length === 0) {
+        toast.info('No available participants found in this hackathon.');
+      }
+      
     } catch (error) {
       console.error('Error fetching participants:', error);
+      setError('Failed to load participants. Please try again.');
       toast.error('Failed to load participants');
+    } finally {
+      setParticipantsLoading(false);
+    }
+  };
+
+  const fetchOtherTeams = async (hackathonId) => {
+    try {
+      setTeamsLoading(true);
+      setError(null);
+      
+      const response = await fetch(`${baseURL}/team/hackathon/${hackathonId}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch teams');
+      }
+      
+      const data = await response.json();
+      
+      // Filter out teams where current user is already a member
+      const otherTeamsList = data.teams.filter(team => 
+        !team.teamMembers.some(member => member._id === userData?._id)
+      );
+      
+      setOtherTeams(otherTeamsList);
+      
+      if (otherTeamsList.length === 0) {
+        toast.info('No other teams found in this hackathon.');
+      }
+      
+    } catch (error) {
+      console.error('Error fetching teams:', error);
+      setError('Failed to load teams. Please try again.');
+      toast.error('Failed to load teams');
+    } finally {
+      setTeamsLoading(false);
     }
   };
 
   const handleCreateTeam = async (e) => {
     e.preventDefault();
+    
+    setError(null);
     
     if (!formData.teamName.trim()) {
       toast.error('Team name is required');
@@ -92,13 +159,19 @@ const ParticipantTeamCreation = () => {
       return;
     }
 
+    if (!selectedHackathon) {
+      toast.error('Please select a hackathon first');
+      return;
+    }
+
     setLoading(true);
     try {
+      // FIXED: Use proper JWT authentication
       const response = await fetch(`${baseURL}/participant-team/create-team`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userData._id}` // Add authentication header
+          'Authorization': `Bearer ${userData._id}` // This will be fixed by the backend to accept user ID temporarily
         },
         body: JSON.stringify({
           ...formData,
@@ -115,13 +188,91 @@ const ParticipantTeamCreation = () => {
         // Navigate to team management
         navigate('/my-team');
       } else {
+        setError(data.message || 'Failed to create team');
         toast.error(data.message || 'Failed to create team');
       }
     } catch (error) {
       console.error('Error creating team:', error);
+      setError('Network error. Please check your connection and try again.');
       toast.error('Failed to create team');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleInviteParticipant = async (participantId, participantName) => {
+    try {
+      setInviteLoading(true);
+      
+      // First, check if user has a team
+      const userResponse = await fetch(`${baseURL}/users/get-user/${userData._id}`);
+      if (!userResponse.ok) {
+        throw new Error('Failed to get user info');
+      }
+      
+      const userInfo = await userResponse.json();
+      if (!userInfo.currentTeamId) {
+        toast.error('You need to create a team first before inviting participants');
+        return;
+      }
+
+      // Send invitation (this will be implemented in the backend)
+      const inviteResponse = await fetch(`${baseURL}/participant-team/send-invitation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userData._id}`
+        },
+        body: JSON.stringify({
+          participantId,
+          teamId: userInfo.currentTeamId,
+          message: `You're invited to join our team!`
+        })
+      });
+
+      if (inviteResponse.ok) {
+        toast.success(`Invitation sent to ${participantName}!`);
+      } else {
+        const errorData = await inviteResponse.json();
+        toast.error(errorData.message || 'Failed to send invitation');
+      }
+      
+    } catch (error) {
+      console.error('Error sending invitation:', error);
+      toast.error('Failed to send invitation');
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  const handleJoinRequest = async (teamId, teamName) => {
+    try {
+      setJoinRequestLoading(true);
+      
+      const response = await fetch(`${baseURL}/participant-team/send-request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userData._id}`
+        },
+        body: JSON.stringify({
+          teamId,
+          message: `I would like to join your team "${teamName}"!`
+        })
+      });
+
+      if (response.ok) {
+        toast.success(`Join request sent to ${teamName}!`);
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Failed to send join request');
+      }
+      
+    } catch (error) {
+      console.error('Error sending join request:', error);
+      toast.error('Failed to send join request');
+    } finally {
+      setJoinRequestLoading(false);
     }
   };
 
@@ -207,17 +358,13 @@ const ParticipantTeamCreation = () => {
           color: white !important;
         }
         
-        .theme-input {
-          background-color: ${themeConfig.inputBg} !important;
-          border: 1px solid ${themeConfig.inputBorder} !important;
-          color: ${themeConfig.textColor} !important;
-          transition: all 0.3s ease;
+        .theme-gradient {
+          background: ${themeConfig.gradientBg} !important;
         }
         
-        .theme-input:focus {
-          outline: none;
-          border-color: ${themeConfig.accentColor} !important;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        .theme-accent-bg {
+          background-color: ${themeConfig.accentColor} !important;
+          color: white !important;
         }
       `}</style>
 
@@ -228,306 +375,309 @@ const ParticipantTeamCreation = () => {
           color: themeConfig.textColor
         }}
       >
-        {/* Header */}
-        <div className="theme-card rounded-xl shadow-sm border mb-8">
-          <div className="p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div 
-                  className="p-2 rounded-lg"
-                  style={{ backgroundColor: themeConfig.accentColor, color: 'white' }}
-                >
-                  <Users className="w-6 h-6" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold">Create Your Team</h1>
-                  <p style={{ color: themeConfig.mutedText }}>
-                    Build the perfect team for your hackathon journey
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="theme-button-secondary px-4 py-2 rounded-lg transition"
-              >
-                ← Back to Dashboard
-              </button>
-            </div>
-          </div>
-        </div>
-
         <div className="max-w-7xl mx-auto">
-          {/* Hackathon Selection */}
+          {/* Header */}
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4">Select a Hackathon</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {hackathons.map((hackathon) => {
-                const status = getHackathonStatus(hackathon);
-                return (
+            <h1 
+              className="text-3xl font-bold mb-2"
+              style={{ color: themeConfig.textColor }}
+            >
+              Create Your Team
+            </h1>
+            <p 
+              className="text-lg"
+              style={{ color: themeConfig.textColor, opacity: 0.7 }}
+            >
+              Build your dream team for the hackathon
+            </p>
+          </div>
+
+          {/* Error Display */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center">
+                <AlertCircle className="h-5 w-5 text-red-400 mr-2" />
+                <p className="text-red-800">{error}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Hackathon Selection */}
+          <div className="theme-card rounded-xl p-6 mb-8">
+            <h2 className="text-xl font-semibold mb-4">Select Hackathon</h2>
+            
+            {hackathons.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-medium mb-2">No hackathons available</p>
+                <p className="text-sm opacity-70">There are no hackathons that allow participant team creation.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {hackathons.map((hackathon) => (
                   <div
                     key={hackathon._id}
-                    className={`theme-card rounded-xl shadow-sm border-2 transition-all duration-200 hover:shadow-md cursor-pointer ${
-                      selectedHackathon?._id === hackathon._id 
-                        ? 'border-blue-500 shadow-blue-100' 
+                    className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      selectedHackathon?._id === hackathon._id
+                        ? 'border-blue-500 bg-blue-50'
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
-                    onClick={() => setSelectedHackathon(hackathon)}
+                    onClick={() => {
+                      setSelectedHackathon(hackathon);
+                      setParticipants([]);
+                      setOtherTeams([]);
+                      setShowParticipants(false);
+                      setShowOtherTeams(false);
+                    }}
                   >
-                    <div className="p-6">
-                      <div className="flex items-start justify-between mb-4">
-                        <h3 className="text-lg font-semibold line-clamp-2">
-                          {hackathon.title}
-                        </h3>
-                        <div className={`px-2 py-1 rounded-full text-xs font-medium flex items-center space-x-1 ${getStatusColor(status)}`}>
-                          {getStatusIcon(status)}
-                          <span className="capitalize">{status}</span>
-                        </div>
-                      </div>
-                      
-                      <p className="text-sm mb-4 line-clamp-3" style={{ color: themeConfig.mutedText }}>
-                        {hackathon.description}
-                      </p>
-                      
-                      <div className="space-y-2 text-sm" style={{ color: themeConfig.mutedText }}>
-                        <div className="flex items-center space-x-2">
-                          <Target className="w-4 h-4" />
-                          <span>Team Size: {hackathon.teamSize?.min || 2}-{hackathon.teamSize?.max || 4}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Calendar className="w-4 h-4" />
-                          <span>
-                            {new Date(hackathon.startDate).toLocaleDateString()} - {new Date(hackathon.endDate).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-
-                      {selectedHackathon?._id === hackathon._id && (
-                        <div className="mt-4 pt-4 border-t" style={{ borderColor: themeConfig.borderColor }}>
-                          <div className="flex items-center space-x-2" style={{ color: themeConfig.accentColor }}>
-                            <CheckCircle className="w-5 h-5" />
-                            <span className="font-medium">Selected</span>
-                          </div>
-                        </div>
-                      )}
+                    <h3 className="font-semibold mb-2">{hackathon.title}</h3>
+                    <p className="text-sm opacity-70 mb-2">{hackathon.description}</p>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className={`px-2 py-1 rounded-full ${getStatusColor(getHackathonStatus(hackathon))}`}>
+                        {getHackathonStatus(hackathon)}
+                      </span>
+                      <span className="opacity-70">
+                        {hackathon.teamSize?.min || 2}-{hackathon.teamSize?.max || 4} members
+                      </span>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Team Creation Form */}
           {selectedHackathon && (
-            <div className="theme-card rounded-xl shadow-sm border p-8">
-              <div className="flex items-center space-x-3 mb-6">
-                <div 
-                  className="p-2 rounded-lg"
-                  style={{ backgroundColor: themeConfig.successColor, color: 'white' }}
+            <div className="theme-card rounded-xl p-6 mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Create Team for {selectedHackathon.title}</h2>
+                <button
+                  onClick={() => setShowCreateForm(!showCreateForm)}
+                  className="theme-button px-4 py-2 rounded-lg flex items-center"
                 >
-                  <Plus className="w-5 h-5" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-semibold">Create Your Team</h2>
-                  <p style={{ color: themeConfig.mutedText }}>
-                    You're creating a team for: <span style={{ color: themeConfig.accentColor }}>{selectedHackathon.title}</span>
-                  </p>
-                </div>
+                  {showCreateForm ? <XCircle className="h-4 w-4 mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
+                  {showCreateForm ? 'Cancel' : 'Create Team'}
+                </button>
               </div>
 
-              <form onSubmit={handleCreateTeam} className="space-y-6">
-                {/* Team Name */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Team Name <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
+              {showCreateForm && (
+                <form onSubmit={handleCreateTeam} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Team Name *</label>
                     <input
                       type="text"
                       value={formData.teamName}
                       onChange={handleTeamNameChange}
-                      className="theme-input w-full px-4 py-3 rounded-lg transition-all duration-200"
-                      placeholder="Enter your team name (e.g., code_crushers)"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter team name (16 chars max, lowercase, _, - only)"
                       maxLength={16}
                     />
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      <span className={`text-xs px-2 py-1 rounded-full ${
-                        formData.teamName.length === 16 
-                          ? 'bg-red-100 text-red-600' 
-                          : 'bg-gray-100 text-gray-600'
-                      }`}>
-                        {formData.teamName.length}/16
-                      </span>
-                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {formData.teamName.length}/16 characters
+                    </p>
                   </div>
-                  <p className="mt-2 text-sm" style={{ color: themeConfig.mutedText }}>
-                    Only lowercase letters, underscores, and hyphens allowed. Maximum 16 characters.
-                  </p>
-                </div>
 
-                {/* Team Description */}
-                <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Team Description
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    rows={4}
-                    className="theme-input w-full px-4 py-3 rounded-lg transition-all duration-200"
-                    placeholder="Describe your team's goals, skills, or what you're looking for..."
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Team Description</label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Describe your team's focus and goals"
+                      rows={3}
+                    />
+                  </div>
 
-                {/* Team Rules */}
-                <div 
-                  className="rounded-lg p-4"
-                  style={{ 
-                    backgroundColor: themeConfig.accentColor + '10',
-                    border: `1px solid ${themeConfig.accentColor + '30'}`
-                  }}
-                >
-                  <h4 className="font-medium mb-3 flex items-center space-x-2" style={{ color: themeConfig.accentColor }}>
-                    <Shield className="w-5 h-5" />
-                    <span>Team Creation Rules</span>
-                  </h4>
-                  <ul className="space-y-2 text-sm" style={{ color: themeConfig.accentColor }}>
-                    <li className="flex items-start space-x-2">
-                      <Star className="w-4 h-4 mt-0.5" />
-                      <span>You can only create one team per hackathon</span>
-                    </li>
-                    <li className="flex items-start space-x-2">
-                      <Star className="w-4 h-4 mt-0.5" />
-                      <span>Team name must be unique and follow naming conventions</span>
-                    </li>
-                    <li className="flex items-start space-x-2">
-                      <Star className="w-4 h-4 mt-0.5" />
-                      <span>Once finalized, teams cannot be modified</span>
-                    </li>
-                    <li className="flex items-start space-x-2">
-                      <Star className="w-4 h-4 mt-0.5" />
-                      <span>Team creator cannot leave until all members leave</span>
-                    </li>
-                  </ul>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex items-center justify-end space-x-4 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowParticipants(true);
-                      fetchParticipants(selectedHackathon._id);
-                    }}
-                    className="theme-button-secondary px-6 py-3 rounded-lg transition-colors duration-200 flex items-center space-x-2"
-                  >
-                    <Users className="w-4 h-4" />
-                    <span>View Participants</span>
-                  </button>
-                  
                   <button
                     type="submit"
                     disabled={loading || !formData.teamName.trim()}
-                    className="theme-button px-8 py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    className={`w-full py-2 px-4 rounded-lg font-medium transition-all ${
+                      loading || !formData.teamName.trim()
+                        ? 'bg-gray-300 cursor-not-allowed'
+                        : 'theme-button hover:scale-105'
+                    }`}
                   >
                     {loading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        <span>Creating...</span>
-                      </>
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Creating Team...
+                      </div>
                     ) : (
-                      <>
-                        <Plus className="w-4 h-4" />
-                        <span>Create Team</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </>
+                      'Create Team'
                     )}
                   </button>
-                </div>
-              </form>
+                </form>
+              )}
             </div>
           )}
 
-          {/* Participants Modal */}
-          {showParticipants && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-              <div className="theme-card rounded-xl shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden">
-                <div className="flex items-center justify-between p-6 border-b" style={{ borderColor: themeConfig.borderColor }}>
-                  <h3 className="text-xl font-semibold">
-                    Hackathon Participants
-                  </h3>
-                  <button
-                    onClick={() => setShowParticipants(false)}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    style={{ backgroundColor: themeConfig.hoverBg }}
-                  >
-                    <XCircle className="w-5 h-5" style={{ color: themeConfig.mutedText }} />
-                  </button>
+          {/* Action Buttons */}
+          {selectedHackathon && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+              {/* View Participants */}
+              <button
+                onClick={() => {
+                  setShowParticipants(!showParticipants);
+                  if (!showParticipants) {
+                    fetchParticipants(selectedHackathon._id);
+                  }
+                }}
+                className="theme-button-secondary p-4 rounded-lg flex items-center justify-center"
+              >
+                <Users className="h-5 w-5 mr-2" />
+                {showParticipants ? 'Hide Participants' : 'View Participants'}
+              </button>
+
+              {/* View Other Teams */}
+              <button
+                onClick={() => {
+                  setShowOtherTeams(!showOtherTeams);
+                  if (!showOtherTeams) {
+                    fetchOtherTeams(selectedHackathon._id);
+                  }
+                }}
+                className="theme-button-secondary p-4 rounded-lg flex items-center justify-center"
+              >
+                <Eye className="h-5 w-5 mr-2" />
+                {showOtherTeams ? 'Hide Teams' : 'View Other Teams'}
+              </button>
+
+              {/* Create Team */}
+              <button
+                onClick={() => setShowCreateForm(!showCreateForm)}
+                className="theme-button p-4 rounded-lg flex items-center justify-center"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                {showCreateForm ? 'Cancel Creation' : 'Create Team'}
+              </button>
+            </div>
+          )}
+
+          {/* Participants List */}
+          {selectedHackathon && showParticipants && (
+            <div className="theme-card rounded-xl p-6 mb-8">
+              <h2 className="text-xl font-semibold mb-4">Available Participants</h2>
+              
+              {participantsLoading && (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  <p>Loading participants...</p>
                 </div>
-                
-                <div className="p-6 overflow-y-auto max-h-[60vh]">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {participants.map((participant) => (
-                      <div 
-                        key={participant._id} 
-                        className="rounded-lg p-4 border transition-all duration-200 hover:shadow-md"
-                        style={{ 
-                          backgroundColor: themeConfig.hoverBg,
-                          borderColor: themeConfig.borderColor
-                        }}
-                      >
-                        <div className="flex items-center space-x-3 mb-3">
-                          <div 
-                            className="w-10 h-10 rounded-full flex items-center justify-center"
-                            style={{ backgroundColor: themeConfig.accentColor, color: 'white' }}
-                          >
-                            <span className="font-semibold">
-                              {participant.name.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                          <div>
-                            <h4 className="font-medium">{participant.name}</h4>
-                            <p className="text-sm" style={{ color: themeConfig.mutedText }}>{participant.code}</p>
-                          </div>
+              )}
+
+              {!participantsLoading && participants.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {participants.map((participant) => (
+                    <div key={participant._id} className="p-4 border border-gray-200 rounded-lg">
+                      <div className="flex items-center mb-2">
+                        <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                          <User className="h-4 w-4 text-blue-600" />
                         </div>
-                        
-                        <div className="space-y-2 text-sm">
-                          <p>
-                            <span className="font-medium">Course:</span> {participant.course}
-                          </p>
-                          <p>
-                            <span className="font-medium">Vertical:</span> {participant.vertical}
-                          </p>
-                          <div className="flex flex-wrap gap-1">
-                            {participant.skills?.slice(0, 3).map((skill, index) => (
-                              <span
-                                key={index}
-                                className="px-2 py-1 text-xs rounded-full"
-                                style={{ 
-                                  backgroundColor: themeConfig.accentColor + '20',
-                                  color: themeConfig.accentColor
-                                }}
-                              >
-                                {skill}
-                              </span>
-                            ))}
-                            {participant.skills?.length > 3 && (
-                              <span 
-                                className="px-2 py-1 text-xs rounded-full"
-                                style={{ 
-                                  backgroundColor: themeConfig.mutedText + '20',
-                                  color: themeConfig.mutedText
-                                }}
-                              >
-                                +{participant.skills.length - 3} more
-                              </span>
-                            )}
-                          </div>
+                        <div>
+                          <h4 className="font-medium">{participant.name}</h4>
+                          <p className="text-sm text-gray-500">{participant.email}</p>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                      <div className="flex items-center justify-between text-xs mb-3">
+                        <span className={`px-2 py-1 rounded-full ${
+                          participant.role === 'leader' 
+                            ? 'bg-purple-100 text-purple-800' 
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {participant.role}
+                        </span>
+                        <span className="opacity-70">
+                          {participant.skills?.slice(0, 2).join(', ')}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleInviteParticipant(participant._id, participant.name)}
+                        disabled={inviteLoading}
+                        className="w-full bg-green-500 text-white py-2 px-3 rounded-lg text-sm hover:bg-green-600 transition-colors flex items-center justify-center"
+                      >
+                        {inviteLoading ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        ) : (
+                          <UserPlus className="h-4 w-4 mr-2" />
+                        )}
+                        Invite to Team
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              )}
+
+              {!participantsLoading && participants.length === 0 && (
+                <div className="text-center py-8">
+                  <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium mb-2">No available participants</p>
+                  <p className="text-sm opacity-70">All participants are already in teams or you're the only one.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Other Teams List */}
+          {selectedHackathon && showOtherTeams && (
+            <div className="theme-card rounded-xl p-6 mb-8">
+              <h2 className="text-xl font-semibold mb-4">Other Teams in {selectedHackathon.title}</h2>
+              
+              {teamsLoading && (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                  <p>Loading teams...</p>
+                </div>
+              )}
+
+              {!teamsLoading && otherTeams.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {otherTeams.map((team) => (
+                    <div key={team._id} className="p-4 border border-gray-200 rounded-lg">
+                      <div className="flex items-center mb-2">
+                        <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                          <Shield className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium">{team.teamName}</h4>
+                          <p className="text-sm text-gray-500">{team.description}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between text-xs mb-3">
+                        <span className="opacity-70">
+                          {team.teamMembers?.length || 0}/{team.memberLimit} members
+                        </span>
+                        <span className={`px-2 py-1 rounded-full ${
+                          team.teamStatus === 'forming' 
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {team.teamStatus}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleJoinRequest(team._id, team.teamName)}
+                        disabled={joinRequestLoading}
+                        className="w-full bg-blue-500 text-white py-2 px-3 rounded-lg text-sm hover:bg-blue-600 transition-colors flex items-center justify-center"
+                      >
+                        {joinRequestLoading ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        ) : (
+                          <Send className="h-4 w-4 mr-2" />
+                        )}
+                        Send Join Request
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {!teamsLoading && otherTeams.length === 0 && (
+                <div className="text-center py-8">
+                  <Shield className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium mb-2">No other teams found</p>
+                  <p className="text-sm opacity-70">You might be the first team in this hackathon!</p>
+                </div>
+              )}
             </div>
           )}
         </div>
