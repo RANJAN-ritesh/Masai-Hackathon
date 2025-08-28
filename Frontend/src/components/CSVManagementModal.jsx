@@ -44,12 +44,20 @@ const CSVManagementModal = ({ isOpen, onClose, hackathonId }) => {
 
     setIsProcessing(true);
     try {
-      // Convert CSV data to the format expected by the backend
+      // Map uploaded rows to backend-expected schema with robust key handling
       const participantsData = uploadedData.map(row => ({
-        name: row.name || row.Name || row.NAME || '',
-        email: row.email || row.Email || row.EMAIL || '',
-        role: row.role || row.Role || row.ROLE || 'member',
-        hackathonId: hackathonId
+        "First Name": row["First Name"] || row["first name"] || row["FirstName"] || row["firstname"] || (row.name || row.Name || "").split(" ")[0] || "",
+        "Last Name": row["Last Name"] || row["last name"] || row["LastName"] || row["lastname"] || (() => {
+          const n = (row.name || row.Name || "").trim();
+          const parts = n.split(" ");
+          return parts.length > 1 ? parts.slice(1).join(" ") : "";
+        })(),
+        "Email": row["Email"] || row["email"] || row["EMAIL"] || "",
+        "Phone": row["Phone"] || row["phone"] || row["PHONE"] || row["Contact"] || "",
+        "Course": row["Course"] || row["course"] || row["COURSE"] || "Not Specified",
+        "Skills": row["Skills"] || row["skills"] || row["SKILLS"] || "",
+        "Vertical": row["Vertical"] || row["vertical"] || row["VERTICAL"] || "Not Specified",
+        "Role": row["Role"] || row["role"] || row["ROLE"] || 'member'
       }));
 
       const response = await fetch(`${baseURL}/users/upload-participants`, {
