@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import Papa from 'papaparse';
 import { MyContext } from '../context/AuthContextProvider';
@@ -16,6 +16,38 @@ const CSVManagementModal = ({ isOpen, onClose, hackathonId }) => {
 
   // Resolve effective hackathon id from props, context, or localStorage
   const effectiveHackathonId = hackathonId || hackathon?._id || localStorage.getItem('currentHackathon') || '';
+
+  // BULLETPROOF HACKATHON ID VALIDATION
+  useEffect(() => {
+    console.log('�� CSV MODAL DEBUG:', {
+      propHackathonId: hackathonId,
+      contextHackathonId: hackathon?._id,
+      localStorageId: localStorage.getItem('currentHackathon'),
+      effectiveHackathonId: effectiveHackathonId
+    });
+  }, [hackathonId, hackathon, effectiveHackathonId]);
+
+  if (!effectiveHackathonId) {
+    console.error('❌ CSV MODAL: No valid hackathon ID found');
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-red-600 mb-4">⚠️ Hackathon ID Required</h2>
+            <p className="text-gray-600 mb-4">
+              No valid hackathon ID found. Please close this modal and open it from a specific hackathon card.
+            </p>
+            <button
+              onClick={onClose}
+              className="bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors"
+            >
+              Close Modal
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];

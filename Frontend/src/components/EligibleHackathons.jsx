@@ -169,11 +169,25 @@ const EligibleHackathons = () => {
   };
 
   const handleCreateTeam = async (hackathon) => {
+    // BULLETPROOF HACKATHON ID VALIDATION
+    if (!hackathon || !hackathon._id) {
+      console.error('❌ INVALID HACKATHON DATA:', hackathon);
+      toast.error('Invalid hackathon data. Please refresh and try again.');
+      return;
+    }
+
+    const hackathonId = hackathon._id;
+    console.log('🔍 CREATE TEAMS DEBUG:', {
+      hackathon: hackathon.title || hackathon.name,
+      hackathonId: hackathonId,
+      hackathonData: hackathon
+    });
+
     try {
       setLoading(true);
       
       // Get participants for THIS specific hackathon
-      const participantsResponse = await fetch(`${baseURL}/users/hackathon/${hackathon._id}/participants`);
+      const participantsResponse = await fetch(`${baseURL}/users/hackathon/${hackathonId}/participants`);
       if (!participantsResponse.ok) {
         throw new Error('Failed to fetch hackathon participants');
       }
@@ -218,7 +232,7 @@ const EligibleHackathons = () => {
         totalParticipants,
         minTeamSize,
         maxTeamSize,
-        hackathonId: hackathon._id
+        hackathonId: hackathonId
       });
       
       // SMART TEAM GENERATION ALGORITHM - Clean & Balanced
@@ -323,7 +337,7 @@ const EligibleHackathons = () => {
         const teamData = {
           teamName: teamName,
           createdBy: teamLeader._id,
-          hackathonId: hackathon._id, // Associate with specific hackathon
+          hackathonId: hackathonId, // Associate with specific hackathon
           memberLimit: Math.max(teamSize, maxTeamSize), // Allow room for growth
           teamMembers: teamMembers.map(p => p._id),
           description: `Auto-generated team for ${hackathon.title}`
@@ -333,7 +347,7 @@ const EligibleHackathons = () => {
           size: teamSize,
           members: teamMembers.map(p => p.name),
           leader: teamLeader.name,
-          hackathonId: hackathon._id,
+          hackathonId: hackathonId,
           teamData: teamData
         });
         
@@ -392,7 +406,7 @@ const EligibleHackathons = () => {
         
         console.log(`✅ Team Creation Summary for ${hackathon.title}:`, {
           hackathon: hackathon.title,
-          hackathonId: hackathon._id,
+          hackathonId: hackathonId,
           totalParticipants,
           teamsCreated: createdTeams.length,
           teamSizes: teamPlan.sizes,
@@ -401,7 +415,7 @@ const EligibleHackathons = () => {
             name: team.teamName,
             id: team._id,
             members: team.teamMembers?.length || 0,
-            hackathonId: hackathon._id
+            hackathonId: hackathonId
           }))
         });
         
