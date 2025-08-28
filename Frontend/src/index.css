@@ -1,5 +1,20 @@
 @import "tailwindcss";
 
+/* Form controls use theme variables */
+input,
+select,
+textarea {
+  background-color: var(--theme-input-bg, #f9fafb);
+  border-color: var(--theme-input-border, #e5e7eb);
+  color: var(--theme-text, #374151);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--theme-muted-text, #6b7280);
+  opacity: 1;
+}
+
 /* Global Theme Classes */
 .theme-card {
   background-color: var(--theme-card-bg, #ffffff);
