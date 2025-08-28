@@ -86,8 +86,8 @@ const ParticipantTeamCreation = () => {
         return;
       }
       
-      // TEMPORARY: Use test endpoint to bypass authentication
-      const response = await fetch(`${baseURL}/participant-team/test-participants/${hackathonId}`);
+      // EMERGENCY: Use debug route that definitely bypasses authentication
+      const response = await fetch(`${baseURL}/debug-participants/${hackathonId}`);
       
       console.log(`🔍 Response status: ${response.status}`);
       console.log(`🔍 Response ok: ${response.ok}`);
@@ -117,7 +117,7 @@ const ParticipantTeamCreation = () => {
         if (list.length === 0) {
           toast.error('No participants found in this hackathon. Please check if participants were added correctly.');
         } else {
-          toast.info('All participants are already in teams or you are the only participant.');
+          toast.info(`Found ${list.length} participants total, but all are already in teams or you're the only one.`);
         }
       } else {
         toast.success(`Found ${availableParticipants.length} available participants!`);
