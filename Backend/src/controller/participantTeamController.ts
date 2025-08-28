@@ -17,6 +17,11 @@ export const createParticipantTeam = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
+    // VALIDATION 1: Check if all required fields are present
+    if (!teamName || !hackathonId) {
+      return res.status(400).json({ message: 'Team name and hackathon ID are required' });
+    }
+
     // Validate team name
     if (!validateTeamName(teamName)) {
       return res.status(400).json({ 
@@ -24,7 +29,7 @@ export const createParticipantTeam = async (req: Request, res: Response) => {
       });
     }
 
-    // Check if hackathon allows participant teams
+    // VALIDATION 2: Check if hackathon exists and allows participant teams
     const hackathon = await Hackathon.findById(hackathonId);
     if (!hackathon) {
       return res.status(404).json({ message: 'Hackathon not found' });
@@ -32,6 +37,26 @@ export const createParticipantTeam = async (req: Request, res: Response) => {
 
     if (!hackathon.allowParticipantTeams && hackathon.teamCreationMode === 'admin') {
       return res.status(403).json({ message: 'This hackathon does not allow participant team creation' });
+    }
+
+    // VALIDATION 3: Check if user is actually a member of this hackathon
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!user.hackathonIds || !user.hackathonIds.includes(hackathonId)) {
+      return res.status(403).json({ message: 'You are not a member of this hackathon' });
+    }
+
+    // VALIDATION 4: Check for duplicate team names within the same hackathon
+    const existingTeamName = await Team.findOne({
+      hackathonId: hackathonId,
+      teamName: teamName.toLowerCase()
+    });
+
+    if (existingTeamName) {
+      return res.status(400).json({ message: 'A team with this name already exists in this hackathon' });
     }
 
     // Check if user already created a team in this hackathon
@@ -46,9 +71,16 @@ export const createParticipantTeam = async (req: Request, res: Response) => {
     }
 
     // Check if user is already in a team
-    const user = await User.findById(userId);
     if (user?.currentTeamId) {
       return res.status(400).json({ message: 'You are already in a team' });
+    }
+
+    // VALIDATION 5: Validate team size against hackathon limits
+    const minTeamSize = hackathon.teamSize?.min || 2;
+    const maxTeamSize = hackathon.teamSize?.max || 4;
+
+    if (minTeamSize < 1 || maxTeamSize > 10) {
+      return res.status(400).json({ message: 'Invalid team size configuration for this hackathon' });
     }
 
     // Create the team
@@ -58,7 +90,7 @@ export const createParticipantTeam = async (req: Request, res: Response) => {
       hackathonId,
       createdBy: userId,
       teamMembers: [userId],
-      memberLimit: hackathon.teamSize.max, // Fixed: use correct schema field
+      memberLimit: maxTeamSize, // Use validated team size
       creationMethod: 'participant',
       teamStatus: 'forming',
       canReceiveRequests: true,
@@ -75,6 +107,8 @@ export const createParticipantTeam = async (req: Request, res: Response) => {
       canReceiveRequests: false,
       lastTeamActivity: new Date()
     });
+
+    console.log(`✅ Team created successfully: ${teamName} for hackathon ${hackathon.title}`);
 
     res.status(201).json({
       message: 'Team created successfully',
