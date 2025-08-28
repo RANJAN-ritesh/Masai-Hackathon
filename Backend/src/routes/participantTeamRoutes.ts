@@ -18,7 +18,49 @@ import {
 
 const router = express.Router();
 
-// Apply authentication to all routes
+// TEMPORARY: Public endpoint to test participant fetching without auth
+router.get('/test-participants/:hackathonId', async (req, res) => {
+  try {
+    const { hackathonId } = req.params;
+    const User = (await import('../model/user')).default;
+    const Hackathon = (await import('../model/hackathon')).default;
+    
+    console.log(`🔍 TEST: Fetching participants for hackathon: ${hackathonId}`);
+    
+    // Check hackathon exists
+    const hackathon = await Hackathon.findById(hackathonId);
+    if (!hackathon) {
+      return res.status(404).json({ message: 'Hackathon not found' });
+    }
+    
+    console.log(`✅ TEST: Hackathon found: ${hackathon.title}`);
+    
+    // Get all users with this hackathonId
+    const participants = await User.find({
+      hackathonIds: { $in: [hackathonId] }
+    }).select('-password');
+    
+    console.log(`🔍 TEST: Found ${participants.length} participants`);
+    
+    res.json({
+      success: true,
+      hackathonTitle: hackathon.title,
+      participants,
+      count: participants.length,
+      message: `Found ${participants.length} participants in ${hackathon.title}`,
+      debug: {
+        hackathonId,
+        query: `hackathonIds: { $in: [${hackathonId}] }`
+      }
+    });
+    
+  } catch (error) {
+    console.error('TEST: Error fetching participants:', error);
+    res.status(500).json({ message: 'Internal server error', error: String(error) });
+  }
+});
+
+// Apply authentication to all routes EXCEPT the test route
 router.use(authenticateUser);
 
 // Team creation and management
