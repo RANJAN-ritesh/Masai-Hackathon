@@ -453,16 +453,12 @@ export const getHackathonParticipants = async (req: Request, res: Response) => {
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
-    // Get hackathon
-    const hackathon = await Hackathon.findById(hackathonId);
-    if (!hackathon) {
-      return res.status(404).json({ message: 'Hackathon not found' });
-    }
-
-    // Get participants
+    // FIXED: Get participants by finding users who have this hackathonId in their hackathonIds array
     const participants = await User.find({
-      _id: { $in: hackathon.participants }
+      hackathonIds: { $in: [hackathonId] }
     }).select('-password');
+
+    console.log(`🔍 Found ${participants.length} participants for hackathon ${hackathonId}`);
 
     res.json({ participants });
 

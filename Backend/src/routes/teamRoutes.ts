@@ -64,5 +64,4 @@ router.get("/hackathon/:hackathonId", async (req, res) => {
 });
 router.post("/delete-team", deleteTeam);
 
-export default router;
-
+export default router; 
