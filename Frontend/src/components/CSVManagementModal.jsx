@@ -5,7 +5,7 @@ import { MyContext } from '../context/AuthContextProvider';
 import { X, Upload, Eye, Mail, Users, Download } from 'lucide-react';
 
 const CSVManagementModal = ({ isOpen, onClose, hackathonId }) => {
-  const { userData } = useContext(MyContext);
+  const { userData, hackathon } = useContext(MyContext);
   const [csvData, setCsvData] = useState(null);
   const [uploadedData, setUploadedData] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -13,6 +13,9 @@ const CSVManagementModal = ({ isOpen, onClose, hackathonId }) => {
   const [participantsAdded, setParticipantsAdded] = useState(false);
   
   const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
+
+  // Resolve effective hackathon id from props, context, or localStorage
+  const effectiveHackathonId = hackathonId || hackathon?._id || localStorage.getItem('currentHackathon') || '';
 
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
@@ -37,6 +40,10 @@ const CSVManagementModal = ({ isOpen, onClose, hackathonId }) => {
   };
 
   const handleAddParticipants = async () => {
+    if (!effectiveHackathonId) {
+      toast.error('Valid hackathon ID is required. Please open this modal from a specific hackathon card or select a hackathon first.');
+      return;
+    }
     if (!uploadedData || uploadedData.length === 0) {
       toast.error('No data to add');
       return;
@@ -67,7 +74,7 @@ const CSVManagementModal = ({ isOpen, onClose, hackathonId }) => {
         },
         body: JSON.stringify({
           participants: participantsData,
-          hackathonId: hackathonId
+          hackathonId: effectiveHackathonId
         }),
       });
 
@@ -102,7 +109,7 @@ const CSVManagementModal = ({ isOpen, onClose, hackathonId }) => {
         
         setParticipantsAdded(true);
         // Store the uploaded data in localStorage for persistence
-        localStorage.setItem(`csvData_${hackathonId}`, JSON.stringify(uploadedData));
+        localStorage.setItem(`csvData_${effectiveHackathonId}`, JSON.stringify(uploadedData));
       } else {
         const error = await response.json();
         toast.error(error.message || 'Failed to add participants');
@@ -138,8 +145,8 @@ const CSVManagementModal = ({ isOpen, onClose, hackathonId }) => {
 
   // Load persisted data when component mounts
   React.useEffect(() => {
-    if (hackathonId) {
-      const persistedData = localStorage.getItem(`csvData_${hackathonId}`);
+    if (effectiveHackathonId) {
+      const persistedData = localStorage.getItem(`csvData_${effectiveHackathonId}`);
       if (persistedData) {
         try {
           const parsedData = JSON.parse(persistedData);
@@ -150,7 +157,7 @@ const CSVManagementModal = ({ isOpen, onClose, hackathonId }) => {
         }
       }
     }
-  }, [hackathonId]);
+  }, [effectiveHackathonId]);
 
   if (!isOpen) return null;
 

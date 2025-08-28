@@ -775,7 +775,7 @@ const EligibleHackathons = () => {
 
                               <div className="flex space-x-2">
                                 <button
-                                  onClick={() => setCsvModalOpen(true)}
+                                  onClick={() => handleCSVUploadClick(registration._id)}
                                   className="bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white p-2 rounded-lg transition-all duration-300 shadow-sm hover:shadow"
                                   title="Manage Participants"
                                 >
