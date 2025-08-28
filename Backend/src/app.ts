@@ -14,6 +14,8 @@ import teamRequestRoutes from "./routes/teamRequestRoutes";
 import problemStatementRoutes from "./routes/problemStatementRoutes";
 import participantTeamRoutes from "./routes/participantTeamRoutes";
 import cleanupService from "./services/cleanupService";
+import User from "./model/user";
+import Hackathon from "./model/hackathon";
 
 // Load environment variables
 dotenv.config();
@@ -79,22 +81,59 @@ app.use("/team-request", teamRequestRoutes);
 app.use("/hackathons", problemStatementRoutes); // Mount hackathon routes at /hackathons level
 app.use("/participant-team", participantTeamRoutes); // Enable participant team routes
 
-app.get("/health",(req, res)=>{
-    res.status(200).json({
-        status: "ok",
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environment: process.env.NODE_ENV || 'development',
-        debug: "Testing if new code is deployed - " + new Date().toISOString(), // Added for deployment verification
-        schemaVersion: "4.0 - COMPREHENSIVE THEME SYSTEM & USER ENROLLMENT", // Force complete restart
-        hackathonStatusEnum: ["upcoming", "active", "inactive", "completed"], // Show expected enum values
-        buildTime: new Date().toISOString(), // Build timestamp to verify deployment
-        services: {
-            autoTeamCreation: "running",
-            cleanupService: "running"
-        }
-    })
-})
+// EMERGENCY DEBUG ROUTE - NO AUTHENTICATION
+app.get("/debug-participants/:hackathonId", async (req, res) => {
+  try {
+    const { hackathonId } = req.params;
+    
+    console.log(`🔍 DEBUG: Fetching participants for hackathon: ${hackathonId}`);
+    
+    // Check hackathon exists
+    const hackathon = await Hackathon.findById(hackathonId);
+    if (!hackathon) {
+      return res.status(404).json({ message: 'Hackathon not found' });
+    }
+    
+    console.log(`✅ DEBUG: Hackathon found: ${hackathon.title}`);
+    
+    // Get all users with this hackathonId
+    const participants = await User.find({
+      hackathonIds: { $in: [hackathonId] }
+    }).select('-password');
+    
+    console.log(`🔍 DEBUG: Found ${participants.length} participants`);
+    
+    res.json({
+      success: true,
+      hackathonTitle: hackathon.title,
+      participants,
+      count: participants.length,
+      message: `Found ${participants.length} participants in ${hackathon.title}`,
+      debug: {
+        hackathonId,
+        query: `hackathonIds: { $in: [${hackathonId}] }`
+      }
+    });
+    
+  } catch (error) {
+    console.error('DEBUG: Error fetching participants:', error);
+    res.status(500).json({ message: 'Internal server error', error: String(error) });
+  }
+});
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({
+    status: "OK",
+    message: "Masai Hackathon Backend is running",
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || "development",
+    schemaVersion: "2.1.4", // Updated to force redeploy
+    buildTime: new Date().toISOString(),
+    autoTeamCreationService: "running",
+    cleanupService: "running"
+  });
+});
 
 app.get("/",(req, res)=>{
     res.send("health check - backend is live! CRUD operations fixed! Team routes added! Team member limit increased to 10! MONGODB INTEGRATION COMPLETE! Hackathons now persist in database! 🎯🚀") // Updated to force redeploy
