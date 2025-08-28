@@ -79,8 +79,20 @@ const ParticipantTeamCreation = () => {
       console.log(`🔍 Fetching participants for hackathon: ${hackathonId}`);
       console.log(`🔍 Current user: ${userData?.name} (${userData?._id})`);
       
+      // Check if user is authenticated
+      if (!userData?._id) {
+        setError('You must be logged in to view participants');
+        toast.error('Please log in to view participants');
+        return;
+      }
+      
       // Use the correct endpoint that I just fixed
-      const response = await fetch(`${baseURL}/participant-team/participants/${hackathonId}`);
+      const response = await fetch(`${baseURL}/participant-team/participants/${hackathonId}`, {
+        headers: {
+          'Authorization': `Bearer ${userData._id}`,
+          'Content-Type': 'application/json'
+        }
+      });
       
       console.log(`🔍 Response status: ${response.status}`);
       console.log(`🔍 Response ok: ${response.ok}`);
@@ -129,7 +141,19 @@ const ParticipantTeamCreation = () => {
       setTeamsLoading(true);
       setError(null);
       
-      const response = await fetch(`${baseURL}/team/hackathon/${hackathonId}`);
+      // Check if user is authenticated
+      if (!userData?._id) {
+        setError('You must be logged in to view teams');
+        toast.error('Please log in to view teams');
+        return;
+      }
+      
+      const response = await fetch(`${baseURL}/team/hackathon/${hackathonId}`, {
+        headers: {
+          'Authorization': `Bearer ${userData._id}`,
+          'Content-Type': 'application/json'
+        }
+      });
       
       if (!response.ok) {
         throw new Error('Failed to fetch teams');
@@ -386,6 +410,25 @@ const ParticipantTeamCreation = () => {
         }
       `}</style>
 
+      {/* Authentication Check */}
+      {!userData?._id && (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <AlertCircle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">Authentication Required</h1>
+            <p className="text-gray-600 mb-4">You must be logged in to access this page.</p>
+            <button
+              onClick={() => navigate('/login')}
+              className="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors"
+            >
+              Go to Login
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content - Only show if authenticated */}
+      {userData?._id && (
       <div 
         className="min-h-screen py-8 px-4"
         style={{ 
@@ -700,8 +743,9 @@ const ParticipantTeamCreation = () => {
           )}
         </div>
       </div>
+      )}
     </>
   );
 };
 
-export default ParticipantTeamCreation; 
+export default ParticipantTeamCreation;
