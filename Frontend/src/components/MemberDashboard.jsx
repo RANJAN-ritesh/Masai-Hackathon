@@ -34,14 +34,9 @@ const MemberDashboard = () => {
     
     // Fallback timeout to prevent infinite loading
     const fallbackTimeout = setTimeout(() => {
-      setMemberStats(prev => {
-        if (prev.loading) {
-          console.warn('⚠️ Fallback timeout triggered - forcing loading to false');
-          toast.warning('Dashboard loading is taking longer than expected. Some data may be incomplete.');
-          return { ...prev, loading: false };
-        }
-        return prev;
-      });
+      setLoading(false); // Changed from setMemberStats to setLoading
+      console.warn('⚠️ Fallback timeout triggered - forcing loading to false');
+      toast.warning('Dashboard loading is taking longer than expected. Some data may be incomplete.');
     }, 10000); // Reduced from 15 to 10 seconds
 
     return () => clearTimeout(fallbackTimeout);
@@ -51,101 +46,70 @@ const MemberDashboard = () => {
     if (!userData?._id) return;
 
     try {
-      setMemberStats(prev => ({ ...prev, loading: true }));
+      setLoading(true);
+      console.log('🔍 Fetching member data for user:', userData._id);
 
-      // Add timeout to prevent infinite loading
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Request timeout')), 8000); // Reduced to 8 seconds
-      });
-
-      // Get user's hackathons with timeout - OPTIMIZED: Parallel requests
-      const userResponse = await Promise.race([
-        fetch(`${baseURL}/users/get-user/${userData._id}`),
-        timeoutPromise
-      ]);
-
+      // 1. Get user info
+      const userResponse = await fetch(`${baseURL}/users/get-user/${userData._id}`);
+      
       if (userResponse.ok) {
         const userInfo = await userResponse.json();
+        console.log('✅ User info loaded:', userInfo);
         
-        // OPTIMIZATION: Make all requests in parallel instead of sequentially
-        const promises = [];
-        
-        // Get hackathons user is part of
+        // 2. Get hackathons user is part of
+        let userHackathons = [];
         if (userInfo.hackathonIds && userInfo.hackathonIds.length > 0) {
-          const hackathonPromises = userInfo.hackathonIds.map(async (hackathonId) => {
+          console.log('🔍 Fetching', userInfo.hackathonIds.length, 'hackathons');
+          
+          for (const hackathonId of userInfo.hackathonIds) {
             try {
-              const hackathonResponse = await Promise.race([
-                fetch(`${baseURL}/hackathons/${hackathonId}`),
-                timeoutPromise
-              ]);
+              const hackathonResponse = await fetch(`${baseURL}/hackathons/${hackathonId}`);
               if (hackathonResponse.ok) {
-                return await hackathonResponse.json();
+                const hackathon = await hackathonResponse.json();
+                userHackathons.push(hackathon);
               }
             } catch (error) {
               console.error(`Error fetching hackathon ${hackathonId}:`, error);
             }
-            return null;
-          });
-          promises.push(Promise.all(hackathonPromises));
-        } else {
-          promises.push(Promise.resolve([]));
+          }
         }
-
-        // Get team information if user has a team
-        let teamPromise = Promise.resolve({ currentTeam: null, teamMembers: [] });
-        if (userInfo.teamId) {
-          teamPromise = (async () => {
-            try {
-              const teamResponse = await Promise.race([
-                fetch(`${baseURL}/team/get-teams`),
-                timeoutPromise
-              ]);
-              
-              if (teamResponse.ok) {
-                const teams = await teamResponse.json();
-                const currentTeam = teams.find(team => team._id === userInfo.teamId);
-                if (currentTeam) {
-                  const teamMembers = currentTeam.teamMembers || [];
-                  return { currentTeam, teamMembers };
-                } else {
-                  return { currentTeam: null, teamMembers: [] };
-                }
-              } else {
-                console.error(`Failed to fetch teams: ${teamResponse.status}`);
-                return { currentTeam: null, teamMembers: [] };
-              }
-            } catch (error) {
-              console.error('Error fetching team data:', error);
-              return { currentTeam: null, teamMembers: [] };
+        
+        // 3. Get team information
+        let teamInfo = null;
+        if (userInfo.teamId && userInfo.hackathonIds && userInfo.hackathonIds.length > 0) {
+          // Get team for the first hackathon (or we could loop through all)
+          const currentHackathonId = userInfo.hackathonIds[0];
+          try {
+            const teamResponse = await fetch(`${baseURL}/team/user/${userData._id}/hackathon/${currentHackathonId}`);
+            if (teamResponse.ok) {
+              const teamData = await teamResponse.json();
+              teamInfo = teamData.team;
+              console.log('✅ Team info loaded:', teamInfo);
             }
-          })();
+          } catch (error) {
+            console.error('Error fetching team info:', error);
+          }
         }
-        promises.push(teamPromise);
-
-        // Execute all promises in parallel
-        const [hackathons, teamData] = await Promise.all(promises);
-        const { currentTeam, teamMembers } = teamData;
-
-        setMemberStats({
-          hackathons: hackathons.filter(Boolean),
-          currentTeam,
-          teamMembers,
-          loading: false,
-          error: null
+        
+        // 4. Set all the data
+        setMemberData({
+          user: userInfo,
+          hackathons: userHackathons,
+          team: teamInfo
         });
+        
+        setTeamInfo(teamInfo);
+        console.log('✅ Member data loaded successfully');
+        
       } else {
-        console.error(`Failed to fetch user data: ${userResponse.status}`);
-        toast.error('Failed to load user data');
-        setMemberStats(prev => ({ ...prev, loading: false, error: 'Failed to load user data' }));
+        console.error('Failed to fetch user info');
+        toast.error('Failed to load user information');
       }
     } catch (error) {
       console.error('Error fetching member data:', error);
-      if (error.message === 'Request timeout') {
-        toast.error('Dashboard loading timed out. Please refresh the page.');
-      } else {
-        toast.error('Failed to load dashboard data');
-      }
-      setMemberStats(prev => ({ ...prev, loading: false, error: 'Failed to load dashboard data' }));
+      toast.error('Failed to load member data');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -187,7 +151,7 @@ const MemberDashboard = () => {
     );
   }
 
-  if (memberStats.error) {
+  if (memberData?.error) { // Changed from memberStats to memberData
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto">
@@ -196,7 +160,7 @@ const MemberDashboard = () => {
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-3">Dashboard Loading Failed</h2>
           <p className="text-gray-600 text-lg mb-6">
-            {memberStats.error === 'Request timeout' 
+            {memberData?.error === 'Request timeout' 
               ? 'The dashboard is taking too long to load. This might be due to slow network or server issues.'
               : 'There was an error loading your dashboard data. Please try again.'
             }
