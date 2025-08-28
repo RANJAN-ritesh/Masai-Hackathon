@@ -401,14 +401,21 @@ const CreateHackathon = () => {
       // Format dates properly for backend
       const submissionData = {
         ...eventData,
+        // Map to backend schema
+        teamSize: {
+          min: Number(eventData.minTeamSize) || 2,
+          max: Number(eventData.maxTeamSize) || 4,
+        },
         startDate: new Date(eventData.startDate).toISOString(),
         endDate: new Date(eventData.endDate).toISOString(),
-        submissionStart: eventData.submissionStart ? new Date(eventData.submissionStart).toISOString() : undefined,
-        submissionEnd: eventData.submissionEnd ? new Date(eventData.submissionEnd).toISOString() : undefined,
+        submissionStartDate: eventData.submissionStart ? new Date(eventData.submissionStart).toISOString() : undefined,
+        submissionEndDate: eventData.submissionEnd ? new Date(eventData.submissionEnd).toISOString() : undefined,
+        eventPlan: Array.isArray(eventData.eventPlan) ? JSON.stringify(eventData.eventPlan) : (eventData.eventPlan || ""),
         schedule: eventData.schedule
-          .filter(item => item.date && item.date.trim() !== '') // Only include items with valid dates
+          .filter(item => item.date && item.date.trim() !== '')
           .map(item => ({
             ...item,
+            time: item.time || "",
             date: new Date(item.date).toISOString()
           }))
       };
