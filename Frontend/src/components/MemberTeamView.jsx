@@ -18,20 +18,42 @@ const MemberTeamView = () => {
   }, [userData]);
 
   const fetchMemberTeamData = async () => {
-    if (!userData?._id || !userData?.teamId) {
+    if (!userData?._id) {
       setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
-      console.log(`🔍 Fetching team data for member ${userData.name} with teamId: ${userData.teamId}`);
+      console.log(`🔍 Fetching team data for member ${userData.name} (${userData._id})`);
 
       // Get all teams and find the user's team
       const teamResponse = await fetch(`${baseURL}/team/get-teams`);
       if (teamResponse.ok) {
         const teams = await teamResponse.json();
-        const userTeam = teams.find(team => team._id === userData.teamId);
+        // Try multiple ways to find the user's team
+        let userTeam = null;
+        
+        // Method 1: Check if user is in teamMembers array
+        userTeam = teams.find(team => 
+          team.teamMembers && 
+          team.teamMembers.some(member => 
+            member._id === userData._id || member === userData._id
+          )
+        );
+        
+        // Method 2: Check if user is the creator
+        if (!userTeam) {
+          userTeam = teams.find(team => 
+            team.createdBy && 
+            (team.createdBy._id === userData._id || team.createdBy === userData._id)
+          );
+        }
+        
+        // Method 3: Check if userData has teamId (fallback)
+        if (!userTeam && userData.teamId) {
+          userTeam = teams.find(team => team._id === userData.teamId);
+        }
         
         if (userTeam) {
           setTeamData(userTeam);
@@ -47,7 +69,8 @@ const MemberTeamView = () => {
             }
           }
         } else {
-          console.warn(`⚠️ Team with ID ${userData.teamId} not found`);
+          console.warn(`⚠️ No team found for user ${userData.name} (${userData._id})`);
+          console.log('Available teams:', teams.map(t => ({ id: t._id, name: t.teamName, members: t.teamMembers?.length || 0 })));
         }
       } else {
         console.error(`❌ Failed to fetch teams: ${teamResponse.status}`);
