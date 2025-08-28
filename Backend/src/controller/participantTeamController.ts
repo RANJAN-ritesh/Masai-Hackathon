@@ -563,18 +563,46 @@ export const getHackathonParticipants = async (req: Request, res: Response) => {
     const { hackathonId } = req.params;
     const userId = req.user?.id;
 
+    console.log(`🔍 getHackathonParticipants called for hackathon: ${hackathonId}`);
+    console.log(`🔍 User ID: ${userId}`);
+
     if (!userId) {
+      console.log('❌ No user ID found in request');
       return res.status(401).json({ message: 'User not authenticated' });
     }
+
+    // Verify hackathon exists
+    const hackathon = await Hackathon.findById(hackathonId);
+    if (!hackathon) {
+      console.log(`❌ Hackathon not found: ${hackathonId}`);
+      return res.status(404).json({ message: 'Hackathon not found' });
+    }
+
+    console.log(`✅ Hackathon found: ${hackathon.title}`);
 
     // FIXED: Get participants by finding users who have this hackathonId in their hackathonIds array
     const participants = await User.find({
       hackathonIds: { $in: [hackathonId] }
     }).select('-password');
 
+    console.log(`🔍 Raw query: hackathonIds: { $in: [${hackathonId}] }`);
     console.log(`🔍 Found ${participants.length} participants for hackathon ${hackathonId}`);
 
-    res.json({ participants });
+    // Debug: Show first few participants
+    if (participants.length > 0) {
+      console.log('🔍 First 3 participants:');
+      participants.slice(0, 3).forEach((p, i) => {
+        console.log(`  ${i + 1}. ${p.name} - hackathonIds: ${JSON.stringify(p.hackathonIds)}`);
+      });
+    }
+
+    // Return all participants (not filtering by team status here)
+    res.json({ 
+      participants,
+      hackathonTitle: hackathon.title,
+      totalCount: participants.length,
+      message: `Found ${participants.length} participants in ${hackathon.title}`
+    });
 
   } catch (error) {
     console.error('Error getting hackathon participants:', error);
