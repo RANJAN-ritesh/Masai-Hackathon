@@ -25,6 +25,7 @@ import CreateUser from "./components/CreateUser";
 import EditHackathon from "./components/EditHackathon";
 import AdminRoute from "./components/AdminRoute";
 import MemberDashboard from "./components/MemberDashboard";
+import MemberTeamView from "./components/MemberTeamView";
 import ParticipantTeamCreation from "./components/ParticipantTeamCreation";
 import AllUsers from "./components/AllUsers";
 
@@ -47,7 +48,7 @@ function App() {
     if (role === "admin") {
       return <EligibleHackathons />;
     } else {
-      return <MemberDashboard />;
+      return <MemberTeamView />;
     }
   };
 
@@ -101,7 +102,7 @@ function App() {
             path="/my-team"
             element={
               <ProtectedRoute>
-                <MemberDashboard />
+                <MemberTeamView />
               </ProtectedRoute>
             }
           />

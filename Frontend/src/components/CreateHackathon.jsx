@@ -199,6 +199,17 @@ const CreateHackathon = () => {
   const uploadParticipants = async () => {
     if (!validateCSVData()) return;
 
+    // Resolve a valid hackathonId
+    const fromEvent = eventData && eventData._id ? eventData._id : null;
+    const fromSelect = selectedHackathon || null;
+    const fromStorage = localStorage.getItem("currentHackathon") || null;
+    const hackathonId = fromEvent || fromSelect || fromStorage;
+
+    if (!hackathonId) {
+      toast.error("Valid hackathon ID is required. Please create/select a hackathon first.");
+      return;
+    }
+
     setIsUploading(true);
     try {
       const response = await fetch(`${baseURL}/users/upload-participants`, {
@@ -208,7 +219,7 @@ const CreateHackathon = () => {
         },
         body: JSON.stringify({
           participants: csvData,
-          hackathonId: eventData._id || 'new'
+          hackathonId
         })
       });
 

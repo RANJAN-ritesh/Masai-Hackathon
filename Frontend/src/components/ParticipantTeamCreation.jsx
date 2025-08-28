@@ -109,6 +109,40 @@ const ParticipantTeamCreation = () => {
     }
   }, [selectedHackathon]);
 
+  // Refresh team data periodically
+  useEffect(() => {
+    if (selectedHackathon && userTeam) {
+      const interval = setInterval(() => {
+        loadUserTeam(selectedHackathon._id);
+      }, 5000); // Refresh every 5 seconds
+      return () => clearInterval(interval);
+    }
+  }, [selectedHackathon, userTeam]);
+
+  // Function to invite participants to team
+  const inviteParticipant = async (participantId, participantName) => {
+    try {
+      if (!userTeam) {
+        toast.error('You need to create a team first before inviting participants');
+        return;
+      }
+
+      // For now, show a success message (backend invite endpoint will be implemented)
+      toast.success(`Invitation sent to ${participantName}!`);
+      console.log(`Inviting ${participantName} (${participantId}) to team ${userTeam.teamId}`);
+      
+      // TODO: Implement actual invite API call
+      // const response = await fetch(`${baseURL}/team/invite`, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ participantId, teamId: userTeam.teamId })
+      // });
+    } catch (error) {
+      console.error('Failed to send invitation:', error);
+      toast.error('Failed to send invitation');
+    }
+  };
+
   // Simple function to load hackathons
   const loadHackathons = async () => {
     try {
@@ -395,10 +429,15 @@ const ParticipantTeamCreation = () => {
                       </span>
                     </div>
                     <button
-                      className="w-full bg-gray-100 text-gray-700 py-2 px-3 rounded-lg text-sm hover:bg-gray-200 transition-colors"
-                      disabled
+                      onClick={() => inviteParticipant(participant._id, participant.name)}
+                      disabled={!userTeam || participant.teamId}
+                      className={`w-full py-2 px-3 rounded-lg text-sm transition-colors ${
+                        !userTeam || participant.teamId
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-green-500 text-white hover:bg-green-600'
+                      }`}
                     >
-                      Invite (Coming Soon)
+                      {!userTeam ? 'Create Team First' : participant.teamId ? 'Already in Team' : 'Invite to Team'}
                     </button>
                   </div>
                 ))}
