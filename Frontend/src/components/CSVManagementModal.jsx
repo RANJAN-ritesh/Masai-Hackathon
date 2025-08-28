@@ -72,6 +72,14 @@ const CSVManagementModal = ({ isOpen, onClose, hackathonId }) => {
   };
 
   const handleAddParticipants = async () => {
+    console.log('🔍 CSV UPLOAD DEBUG:', {
+      effectiveHackathonId,
+      propHackathonId: hackathonId,
+      contextHackathonId: hackathon?._id,
+      localStorageId: localStorage.getItem('currentHackathon'),
+      uploadedDataLength: uploadedData?.length
+    });
+
     if (!effectiveHackathonId) {
       toast.error('Valid hackathon ID is required. Please open this modal from a specific hackathon card or select a hackathon first.');
       return;
@@ -99,6 +107,12 @@ const CSVManagementModal = ({ isOpen, onClose, hackathonId }) => {
         "Role": row["Role"] || row["role"] || row["ROLE"] || 'member'
       }));
 
+      console.log('🔍 CSV PAYLOAD:', {
+        hackathonId: effectiveHackathonId,
+        participantsCount: participantsData.length,
+        firstParticipant: participantsData[0]
+      });
+
       const response = await fetch(`${baseURL}/users/upload-participants`, {
         method: 'POST',
         headers: {
@@ -110,8 +124,15 @@ const CSVManagementModal = ({ isOpen, onClose, hackathonId }) => {
         }),
       });
 
+      console.log('🔍 CSV UPLOAD RESPONSE:', {
+        status: response.status,
+        ok: response.ok,
+        url: response.url
+      });
+
       if (response.ok) {
         const result = await response.json();
+        console.log('🔍 CSV UPLOAD SUCCESS:', result);
         toast.success(result.message || 'Participants added successfully!');
         
         // Display notifications if any

@@ -183,16 +183,33 @@ const EligibleHackathons = () => {
       hackathonData: hackathon
     });
 
+    // DEBUG: Check what's in localStorage and context
+    const localStorageHackathon = localStorage.getItem('currentHackathon');
+    console.log('🔍 STORAGE DEBUG:', {
+      localStorageHackathon,
+      contextHackathon: hackathon?._id,
+      allHackathons: hackathons.map(h => ({ id: h._id, title: h.title }))
+    });
+
     try {
       setLoading(true);
       
       // Get participants for THIS specific hackathon
+      console.log('🔍 FETCHING PARTICIPANTS FOR:', hackathonId);
       const participantsResponse = await fetch(`${baseURL}/users/hackathon/${hackathonId}/participants`);
+      console.log('🔍 PARTICIPANTS RESPONSE:', {
+        status: participantsResponse.status,
+        ok: participantsResponse.ok,
+        url: participantsResponse.url
+      });
+
       if (!participantsResponse.ok) {
         throw new Error('Failed to fetch hackathon participants');
       }
       
       const participantsData = await participantsResponse.json();
+      console.log('🔍 PARTICIPANTS DATA:', participantsData);
+
       const allParticipants = participantsData.participants || [];
       // Normalize roles and teamId before filtering
       const normalizedParticipants = allParticipants.map((user) => ({
@@ -201,6 +218,13 @@ const EligibleHackathons = () => {
         teamId: user.teamId || ''
       }));
       
+      console.log('🔍 NORMALIZED PARTICIPANTS:', normalizedParticipants.map(p => ({
+        name: p.name,
+        role: p.role,
+        teamId: p.teamId,
+        hackathonIds: p.hackathonIds
+      })));
+
       // Filter participants who are not already in teams
       const availableParticipants = normalizedParticipants.filter(user => 
         (user.role === 'member' || user.role === 'leader') && 
