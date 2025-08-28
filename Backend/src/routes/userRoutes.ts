@@ -81,12 +81,32 @@ router.post("/upload-participants", async (req, res) => {
                 status: { $in: ['upcoming', 'active'] }
               });
               
+              // Get ALL hackathons (including deleted ones) for better admin visibility
+              const allOtherHackathons = await Hackathon.find({
+                _id: { $in: otherHackathons }
+              }).select('title status createdAt');
+              
+              console.log(`🔍 User ${email} hackathon history:`, {
+                totalHackathons: otherHackathons.length,
+                ongoingHackathons: ongoingHackathons.length,
+                allHackathons: allOtherHackathons.map(h => ({ id: h._id, title: h.title, status: h.status }))
+              });
+              
               if (ongoingHackathons.length > 0) {
                 errors.push({
                   email: email,
-                  error: `User is already part of ongoing hackathon: ${ongoingHackathons[0].title}`
+                  error: `User is already part of ongoing hackathon: ${ongoingHackathons[0].title}`,
+                  hackathonDetails: {
+                    ongoing: ongoingHackathons.map(h => ({ id: h._id, title: h.title, status: h.status })),
+                    all: allOtherHackathons.map(h => ({ id: h._id, title: h.title, status: h.status }))
+                  }
                 });
                 continue; // Skip this user
+              } else {
+                // User has been in other hackathons but none are ongoing - add them to this one
+                console.log(`✅ User ${email} can join this hackathon (previous hackathons completed):`, 
+                  allOtherHackathons.map(h => ({ title: h.title, status: h.status }))
+                );
               }
             }
             
@@ -191,16 +211,33 @@ router.post("/upload-participants", async (req, res) => {
 
     // Prepare admin-friendly notifications
     const notifications = [];
+    // Show participants in other hackathons
     if (errors.length > 0) {
-      const ongoingHackathonErrors = errors.filter(e => e.error.includes('already part of ongoing hackathon'));
-      if (ongoingHackathonErrors.length > 0) {
+      const otherHackathonErrors = errors.filter(e => e.error.includes('already part of ongoing hackathon'));
+      if (otherHackathonErrors.length > 0) {
+        notifications.push({
+          type: 'warning',
+          title: 'Participants in Other Ongoing Hackathons',
+          message: `${otherHackathonErrors.length} participants are currently enrolled in other ongoing hackathons and cannot join this one.`,
+          details: otherHackathonErrors.map(e => ({
+            email: e.email,
+            currentHackathon: e.error.split(': ')[1],
+            hackathonDetails: e.hackathonDetails
+          }))
+        });
+      }
+      
+      // Show participants with hackathon history
+      const participantsWithHistory = errors.filter(e => e.hackathonDetails?.all?.length > 0);
+      if (participantsWithHistory.length > 0) {
         notifications.push({
           type: 'info',
-          title: 'Participants in Other Hackathons',
-          message: `${ongoingHackathonErrors.length} participants are currently enrolled in other ongoing hackathons and will be available after those hackathons complete.`,
-          details: ongoingHackathonErrors.map(e => ({
+          title: 'Participants with Hackathon History',
+          message: `${participantsWithHistory.length} participants have been in other hackathons (completed or deleted).`,
+          details: participantsWithHistory.map(e => ({
             email: e.email,
-            currentHackathon: e.error.split(': ')[1]
+            totalHackathons: e.hackathonDetails.all.length,
+            hackathons: e.hackathonDetails.all.slice(0, 3).map(h => `${h.title} (${h.status})`)
           }))
         });
       }
