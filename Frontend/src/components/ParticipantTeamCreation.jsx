@@ -44,10 +44,11 @@ const ParticipantTeamCreation = () => {
       setLoading(true);
       console.log('Loading participants for hackathon:', hackathonId);
       
-      const response = await fetch(`${baseURL}/participants/${hackathonId}`);
+      // TEMPORARY: Use debug endpoint until new one is deployed
+      const response = await fetch(`${baseURL}/debug-participants/${hackathonId}`);
       const data = await response.json();
       
-      if (data.success) {
+      if (data.participants) {
         setParticipants(data.participants);
         toast.success(`Found ${data.participants.length} participants in ${data.hackathonTitle}`);
         console.log('Participants loaded:', data.participants);
@@ -75,14 +76,41 @@ const ParticipantTeamCreation = () => {
         return;
       }
 
-      // For now, just show success and redirect
-      toast.success('Team creation endpoint will be implemented next');
-      navigate('/my-team');
+      // Create team logic
+      const response = await fetch(`${baseURL}/participant-team/create-team`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          teamName: teamName.trim(),
+          description: description.trim(),
+          hackathonId: selectedHackathon._id
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('Team created successfully! 🎉');
+        setFormData({ teamName: '', description: '' });
+        setShowCreateForm(false);
+        navigate('/my-team');
+      } else {
+        toast.error(data.message || 'Failed to create team');
+      }
     } catch (error) {
       console.error('Failed to create team:', error);
       toast.error('Failed to create team');
     }
   };
+
+  // Add form state back
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [formData, setFormData] = useState({
+    teamName: '',
+    description: ''
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -134,6 +162,55 @@ const ParticipantTeamCreation = () => {
             </div>
           )}
         </div>
+
+        {/* Team Creation Form */}
+        {selectedHackathon && (
+          <div className="bg-white rounded-xl p-6 mb-8 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Create Team for {selectedHackathon.title}</h2>
+              <button
+                onClick={() => setShowCreateForm(!showCreateForm)}
+                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors flex items-center"
+              >
+                {showCreateForm ? 'Cancel' : 'Create Team'}
+              </button>
+            </div>
+
+            {showCreateForm && (
+              <form onSubmit={(e) => { e.preventDefault(); createTeam(formData.teamName, formData.description); }} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Team Name *</label>
+                  <input
+                    type="text"
+                    value={formData.teamName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, teamName: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter team name"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Team Description</label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Describe your team's focus and goals"
+                    rows={3}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full bg-green-500 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-600 transition-colors"
+                >
+                  Create Team
+                </button>
+              </form>
+            )}
+          </div>
+        )}
 
         {/* Action Buttons */}
         {selectedHackathon && (
@@ -216,20 +293,6 @@ const ParticipantTeamCreation = () => {
                 <p className="text-sm text-gray-500">This hackathon doesn't have any participants yet.</p>
               </div>
             )}
-          </div>
-        )}
-
-        {/* Simple Team Creation */}
-        {selectedHackathon && (
-          <div className="bg-white rounded-xl p-6 shadow-sm">
-            <h2 className="text-xl font-semibold mb-4">Create Team for {selectedHackathon.title}</h2>
-            <p className="text-gray-600 mb-4">Team creation functionality will be implemented next.</p>
-            <button
-              onClick={() => navigate('/my-team')}
-              className="bg-purple-500 text-white px-6 py-3 rounded-lg hover:bg-purple-600 transition-colors"
-            >
-              Go to Team Management
-            </button>
           </div>
         )}
       </div>
