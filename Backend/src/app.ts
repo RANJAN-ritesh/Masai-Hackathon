@@ -13,6 +13,7 @@ import teamRoutes from "./routes/teamRoutes";
 import teamRequestRoutes from "./routes/teamRequestRoutes";
 import problemStatementRoutes from "./routes/problemStatementRoutes";
 import participantTeamRoutes from "./routes/participantTeamRoutes";
+import cleanupService from "./services/cleanupService";
 
 // Load environment variables
 dotenv.config();
@@ -87,7 +88,11 @@ app.get("/health",(req, res)=>{
         debug: "Testing if new code is deployed - " + new Date().toISOString(), // Added for deployment verification
         schemaVersion: "4.0 - COMPREHENSIVE THEME SYSTEM & USER ENROLLMENT", // Force complete restart
         hackathonStatusEnum: ["upcoming", "active", "inactive", "completed"], // Show expected enum values
-        buildTime: new Date().toISOString() // Build timestamp to verify deployment
+        buildTime: new Date().toISOString(), // Build timestamp to verify deployment
+        services: {
+            autoTeamCreation: "running",
+            cleanupService: "running"
+        }
     })
 })
 
@@ -124,4 +129,6 @@ app.listen(PORT, () => {
     
     // Start auto-team creation service
     autoTeamCreationService.start();
+    // Start automatic cleanup service
+    cleanupService.startPeriodicCleanup(24 * 60 * 60 * 1000); // Every 24 hours
 });
