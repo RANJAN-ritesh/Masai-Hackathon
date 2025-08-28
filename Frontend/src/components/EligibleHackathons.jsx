@@ -169,211 +169,83 @@ const EligibleHackathons = () => {
   };
 
   const handleCreateTeam = async (hackathon) => {
-    // BULLETPROOF HACKATHON ID VALIDATION
-    if (!hackathon || !hackathon._id) {
-      console.error('❌ INVALID HACKATHON DATA:', hackathon);
-      toast.error('Invalid hackathon data. Please refresh and try again.');
+    // SIMPLE: Validate hackathon data
+    if (!hackathon?._id) {
+      toast.error('Invalid hackathon data');
       return;
     }
 
     const hackathonId = hackathon._id;
-    console.log('🔍 CREATE TEAMS DEBUG:', {
-      hackathon: hackathon.title || hackathon.name,
-      hackathonId: hackathonId,
-      hackathonData: hackathon
-    });
-
-    // DEBUG: Check what's in localStorage and context
-    const localStorageHackathon = localStorage.getItem('currentHackathon');
-    console.log('🔍 STORAGE DEBUG:', {
-      localStorageHackathon,
-      contextHackathon: hackathon?._id,
-      allHackathons: hackathons.map(h => ({ id: h._id, title: h.title }))
-    });
+    console.log('🎯 Creating teams for:', hackathon.title, 'ID:', hackathonId);
 
     try {
       setLoading(true);
       
-      // Get participants for THIS specific hackathon
-      console.log('🔍 FETCHING PARTICIPANTS FOR:', hackathonId);
+      // 1. Get all participants for this hackathon
       const participantsResponse = await fetch(`${baseURL}/users/hackathon/${hackathonId}/participants`);
-      console.log('🔍 PARTICIPANTS RESPONSE:', {
-        status: participantsResponse.status,
-        ok: participantsResponse.ok,
-        url: participantsResponse.url
-      });
-
       if (!participantsResponse.ok) {
         throw new Error('Failed to fetch hackathon participants');
       }
       
       const participantsData = await participantsResponse.json();
-      console.log('🔍 PARTICIPANTS DATA:', participantsData);
-
       const allParticipants = participantsData.participants || [];
-      // Normalize roles and teamId before filtering
-      const normalizedParticipants = allParticipants.map((user) => ({
-        ...user,
-        role: (user.role || 'member').toLowerCase(),
-        teamId: user.teamId || ''
-      }));
       
-      console.log('🔍 NORMALIZED PARTICIPANTS:', normalizedParticipants.map(p => ({
-        name: p.name,
-        role: p.role,
-        teamId: p.teamId,
-        hackathonIds: p.hackathonIds
-      })));
-
-      // Filter participants who are not already in teams
-      const availableParticipants = normalizedParticipants.filter(user => 
-        (user.role === 'member' || user.role === 'leader') && 
-        (!user.teamId || user.teamId === '')
-      );
- 
-      console.log(`🔍 Available participants for ${hackathon.title}:`, {
-        total: allParticipants.length,
-        available: availableParticipants.length,
-        participants: availableParticipants.map(p => ({ name: p.name, role: p.role, teamId: p.teamId }))
-      });
+      console.log('📊 Participants found:', allParticipants.length);
       
-      // Shuffle participants for fair team distribution
-      const participants = [...availableParticipants].sort(() => Math.random() - 0.5);
-      
-      if (participants.length === 0) {
-        toast.error(`No available participants found in ${hackathon.title} to create teams. Please add participants first.`, {
-          autoClose: 5000
-        });
+      if (allParticipants.length === 0) {
+        toast.error('No participants found in this hackathon. Please add participants first.');
         return;
       }
       
-      // Calculate team size and number of teams using SMART ALGORITHM
-      const minTeamSize = (hackathon.teamSize && hackathon.teamSize.min) ? hackathon.teamSize.min : (hackathon.minTeamSize || 2);
-      const maxTeamSize = (hackathon.teamSize && hackathon.teamSize.max) ? hackathon.teamSize.max : (hackathon.maxTeamSize || 4);
-      const totalParticipants = participants.length;
+      // 2. Filter to only members/leaders (no admins)
+      const eligibleParticipants = allParticipants.filter(user => 
+        user.role === 'member' || user.role === 'leader'
+      );
       
-      console.log(`🎯 Creating teams for ${hackathon.title}:`, {
-        totalParticipants,
-        minTeamSize,
-        maxTeamSize,
-        hackathonId: hackathonId
-      });
+      if (eligibleParticipants.length === 0) {
+        toast.error('No eligible participants (members/leaders) found.');
+        return;
+      }
       
-      // SMART TEAM GENERATION ALGORITHM - Clean & Balanced
-      const calculateOptimalTeams = (total, min, max) => {
-        console.log(`🧮 Calculating teams for ${total} participants (min: ${min}, max: ${max})`);
+      console.log('✅ Eligible participants:', eligibleParticipants.length);
+      
+      // 3. Simple team creation - 4 people per team
+      const teamSize = 4;
+      const teams = [];
+      let currentTeam = [];
+      
+      for (const participant of eligibleParticipants) {
+        currentTeam.push(participant);
         
-        // Strategy: Create more balanced teams instead of always maximizing size
-        let bestSolution = null;
-        let minWaste = Infinity;
-        
-        // Try different numbers of teams from minimum possible to maximum possible
-        const minPossibleTeams = Math.ceil(total / max);
-        const maxPossibleTeams = Math.floor(total / min);
-        
-        for (let numTeams = minPossibleTeams; numTeams <= maxPossibleTeams; numTeams++) {
-          const baseSize = Math.floor(total / numTeams);
-          const remainder = total % numTeams;
-          
-          // Check if this configuration is valid
-          const smallTeamSize = baseSize;
-          const largeTeamSize = baseSize + 1;
-          
-          if (smallTeamSize >= min && largeTeamSize <= max) {
-            // Valid configuration
-            const numLargeTeams = remainder;
-            const numSmallTeams = numTeams - remainder;
-            
-            const sizes = Array(numLargeTeams).fill(largeTeamSize)
-              .concat(Array(numSmallTeams).fill(smallTeamSize));
-            
-            // Calculate "waste" (preference for more balanced teams)
-            const avgSize = total / numTeams;
-            const variance = sizes.reduce((sum, size) => sum + Math.pow(size - avgSize, 2), 0);
-            
-            if (variance < minWaste) {
-              minWaste = variance;
-              bestSolution = { teams: numTeams, sizes: sizes };
-            }
-          }
+        if (currentTeam.length === teamSize) {
+          teams.push([...currentTeam]);
+          currentTeam = [];
         }
-        
-        if (bestSolution) {
-          console.log(`✅ Optimal team distribution:`, bestSolution);
-          return bestSolution;
-        }
-        
-        // Fallback to max-size approach if no balanced solution found
-        console.log(`⚠️ Using fallback approach`);
-        let numTeams = Math.floor(total / max);
-        let remainder = total % max;
-        
-        if (remainder > 0 && remainder < min) {
-          const shortfall = min - remainder;
-          if (numTeams >= shortfall) {
-            return {
-              teams: numTeams + 1,
-              sizes: Array(numTeams - shortfall).fill(max)
-                .concat(Array(shortfall).fill(max - 1))
-                .concat([remainder + shortfall])
-            };
-          }
-        }
-        
-        const teamSizes = Array(numTeams).fill(max);
-        if (remainder >= min) {
-          teamSizes.push(remainder);
-          numTeams++;
-        } else if (remainder > 0) {
-          for (let i = 0; i < remainder; i++) {
-            teamSizes[i]++;
-          }
-        }
-        
-        return { teams: numTeams, sizes: teamSizes };
-      };
+      }
       
-      const teamPlan = calculateOptimalTeams(totalParticipants, minTeamSize, maxTeamSize);
+      // Add remaining participants to last team
+      if (currentTeam.length > 0) {
+        teams.push(currentTeam);
+      }
       
-      console.log(`📊 Team Plan for ${hackathon.title}:`, {
-        totalParticipants,
-        minSize: minTeamSize,
-        maxSize: maxTeamSize,
-        plan: teamPlan
-      });
+      console.log('🏗️ Creating', teams.length, 'teams');
       
-      // Create teams using SMART ALGORITHM
+      // 4. Create teams
       const createdTeams = [];
-      let participantIndex = 0;
-      
-      for (let i = 0; i < teamPlan.teams; i++) {
-        const teamSize = teamPlan.sizes[i];
-        const teamMembers = participants.slice(participantIndex, participantIndex + teamSize);
-        participantIndex += teamSize;
-        
-        if (teamMembers.length === 0) break;
-        
-        const teamName = `${hackathon.title} - Team ${i + 1}`;
-        
-        // Smart leader selection: prefer someone with 'leader' role from CSV, otherwise first member
-        const teamLeader = teamMembers.find(member => member.role === 'leader') || teamMembers[0];
+      for (let i = 0; i < teams.length; i++) {
+        const teamMembers = teams[i];
+        const teamLeader = teamMembers.find(p => p.role === 'leader') || teamMembers[0];
         
         const teamData = {
-          teamName: teamName,
+          teamName: `${hackathon.title} - Team ${i + 1}`,
           createdBy: teamLeader._id,
-          hackathonId: hackathonId, // Associate with specific hackathon
-          memberLimit: Math.max(teamSize, maxTeamSize), // Allow room for growth
+          hackathonId: hackathonId,
+          memberLimit: teamSize,
           teamMembers: teamMembers.map(p => p._id),
           description: `Auto-generated team for ${hackathon.title}`
         };
         
-        console.log(`🏗️ Creating ${teamName}:`, {
-          size: teamSize,
-          members: teamMembers.map(p => p.name),
-          leader: teamLeader.name,
-          hackathonId: hackathonId,
-          teamData: teamData
-        });
+        console.log(`Creating team ${i + 1}:`, teamData.teamName);
         
         const teamResponse = await fetch(`${baseURL}/team/create-team`, {
           method: 'POST',
@@ -384,82 +256,27 @@ const EligibleHackathons = () => {
         if (teamResponse.ok) {
           const newTeam = await teamResponse.json();
           createdTeams.push(newTeam);
-          
-          // Update user teamId in localStorage and context
-          teamMembers.forEach(member => {
-            const storedUserData = localStorage.getItem('userData');
-            if (storedUserData) {
-              try {
-                const userData = JSON.parse(storedUserData);
-                if (userData._id === member._id) {
-                  userData.teamId = newTeam._id;
-                  userData.role = member._id === teamLeader._id ? 'leader' : userData.role;
-                  localStorage.setItem('userData', JSON.stringify(userData));
-                }
-              } catch (e) {
-                console.error('Error updating user data:', e);
-              }
-            }
-        });
-      } else {
-          const errorData = await teamResponse.json();
-          console.error(`Failed to create ${teamName}:`, errorData);
-          toast.error(`Failed to create ${teamName}: ${errorData.message}`, {
-            autoClose: 5000
-          });
+          console.log(`✅ Team ${i + 1} created:`, newTeam.teamName);
+        } else {
+          const error = await teamResponse.json();
+          console.error(`❌ Failed to create team ${i + 1}:`, error);
         }
       }
       
+      // 5. Success message
       if (createdTeams.length > 0) {
-        const teamSummary = teamPlan.sizes.map((size, i) => `Team ${i + 1}: ${size} members`).join(', ');
-        
-        // Create detailed team information
-        let detailedMessage = `🎯 Smart Team Generation Complete!\n\n`;
-        detailedMessage += `📊 Summary for ${hackathon.title}:\n`;
-        detailedMessage += `• ${createdTeams.length} teams created\n`;
-        detailedMessage += `• ${totalParticipants} participants assigned\n`;
-        detailedMessage += `• Team sizes: ${teamPlan.sizes.join(', ')}\n`;
-        detailedMessage += `• Hackathon: ${hackathon.title}\n\n`;
-        detailedMessage += `💡 Teams are now ready for collaboration!`;
-        
-        toast.success(detailedMessage, {
-          position: 'top-right',
-          autoClose: 10000,
-          style: { whiteSpace: 'pre-line', maxWidth: '400px' }
+        toast.success(`Successfully created ${createdTeams.length} teams for ${hackathon.title}!`, {
+          autoClose: 5000
         });
         
-        console.log(`✅ Team Creation Summary for ${hackathon.title}:`, {
-          hackathon: hackathon.title,
-          hackathonId: hackathonId,
-          totalParticipants,
-          teamsCreated: createdTeams.length,
-          teamSizes: teamPlan.sizes,
-          adminSettings: { minTeamSize, maxTeamSize },
-          createdTeams: createdTeams.map(team => ({
-            name: team.teamName,
-            id: team._id,
-            members: team.teamMembers?.length || 0,
-            hackathonId: hackathonId
-          }))
-        });
-        
-        // Show additional info about viewing teams
-        setTimeout(() => {
-          toast.info(`👥 You can now view the created teams in the "Select Team" page. Teams are specific to ${hackathon.title}.`, {
-            position: 'top-right',
-            autoClose: 6000,
-          });
-        }, 2000);
-        
-        // Refresh hackathons to show updated data
-        fetchHackathons(userData);
+        console.log('🎉 Team creation complete:', createdTeams.length, 'teams created');
       } else {
-        toast.error(`Failed to create any teams for ${hackathon.title}. Please check the console for errors.`);
+        toast.error('Failed to create any teams. Please check the console for errors.');
       }
-      
+       
     } catch (error) {
       console.error('Error creating teams:', error);
-      toast.error(`Failed to create teams for ${hackathon.title}: ${error.message}`);
+      toast.error('Failed to create teams. Please try again.');
     } finally {
       setLoading(false);
     }

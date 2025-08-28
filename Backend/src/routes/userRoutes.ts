@@ -362,18 +362,24 @@ router.get("/hackathon/:hackathonId/participants", async (req, res) => {
       return res.status(400).json({ message: "Hackathon ID is required" });
     }
 
-    // Find all users associated with this hackathon who are NOT already in teams
+    // SIMPLE: Just get all users for this hackathon
     const participants = await User.find({ 
-      hackathonIds: { $in: [hackathonId] },
-      $or: [
-        { teamId: { $exists: false } },
-        { teamId: "" },
-        { teamId: null }
-      ]
-    }).select('-password'); // Exclude password field
+      hackathonIds: { $in: [hackathonId] } 
+    }).select('-password');
+
+    console.log(`🔍 Participants for hackathon ${hackathonId}:`, {
+      count: participants.length,
+      participants: participants.map(p => ({ 
+        name: p.name, 
+        email: p.email, 
+        role: p.role, 
+        teamId: p.teamId || 'none',
+        hackathonIds: p.hackathonIds?.length || 0
+      }))
+    });
 
     res.status(200).json({
-      message: `Found ${participants.length} available participants for hackathon`,
+      message: `Found ${participants.length} participants for hackathon`,
       participants,
       count: participants.length
     });
