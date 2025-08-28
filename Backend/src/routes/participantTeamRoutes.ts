@@ -12,7 +12,8 @@ import {
   getUserNotifications, 
   markNotificationAsRead, 
   markAllNotificationsAsRead, 
-  deleteNotification 
+  deleteNotification,
+  sendInvitation
 } from '../controller/participantTeamController';
 
 const router = express.Router();
@@ -23,6 +24,7 @@ router.use(authenticateUser);
 // Team creation and management
 router.post('/create-team', createParticipantTeam);
 router.post('/send-request', sendJoinRequest);
+router.post('/send-invitation', sendInvitation);
 router.put('/respond-request/:requestId', respondToRequest);
 router.put('/finalize-team/:teamId', finalizeTeam);
 router.put('/leave-team/:teamId', leaveTeam);

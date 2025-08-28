@@ -152,7 +152,7 @@ export const sendJoinRequest = async (req: Request, res: Response) => {
 
     // Check if team can receive requests
     if (!canTeamReceiveRequests(team)) {
-      return res.status(400).json({ message: 'This team is not accepting new members' });
+      return res.status(400).json({ message: 'This team is not accepting join requests' });
     }
 
     // Check if user is already in a team
@@ -160,64 +160,144 @@ export const sendJoinRequest = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'You are already in a team' });
     }
 
-    // Check if request already exists
+    // Check if user is already a member of this team
+    if (team.teamMembers.includes(fromUserId)) {
+      return res.status(400).json({ message: 'You are already a member of this team' });
+    }
+
+    // Check if user has already sent a request to this team
     const existingRequest = await TeamRequest.findOne({
-      fromUserId,
       teamId,
+      fromUser: fromUserId,
       status: 'pending'
     });
 
     if (existingRequest) {
-      return res.status(400).json({ message: 'You already have a pending request to this team' });
+      return res.status(400).json({ message: 'You have already sent a join request to this team' });
     }
 
-    // Calculate expiry time
-    if (!team.hackathonId) {
-      return res.status(400).json({ message: 'Team is not associated with a hackathon' });
-    }
-    
-    const expiresAt = await calculateRequestExpiry(team.hackathonId, Hackathon);
-
-    // Create request
-    const request = new TeamRequest({
-      fromUserId,
-      toUserId: team.createdBy,
+    // Create join request
+    const teamRequest = new TeamRequest({
       teamId,
-      hackathonId: team.hackathonId,
-      requestType: 'join',
-      message,
-      expiresAt
+      fromUser: fromUserId,
+      message: message || 'I would like to join your team!',
+      status: 'pending',
+      expiresAt: calculateRequestExpiry()
     });
 
-    await request.save();
+    await teamRequest.save();
 
     // Add to team's pending requests
     await Team.findByIdAndUpdate(teamId, {
-      $push: { pendingRequests: request._id }
+      $push: { pendingRequests: teamRequest._id }
     });
 
-    // Send notification to team creator
-    const fromUser = await User.findById(fromUserId);
-    if (fromUser && team.hackathonId) {
+    // Create notification for team leader
+    const teamLeader = await User.findById(team.teamLeader);
+    if (teamLeader) {
       createRequestReceivedNotification(
-        team.createdBy.toString(),
-        team.hackathonId,
-        fromUser.name || 'Unknown User',
-        team.teamName
+        teamLeader._id.toString(),
+        user.name,
+        team.teamName,
+        teamRequest._id.toString()
       );
     }
 
     res.status(201).json({
       message: 'Join request sent successfully',
       request: {
-        id: request._id,
-        expiresAt: request.expiresAt,
-        status: request.status
+        id: teamRequest._id,
+        status: teamRequest.status,
+        message: teamRequest.message
       }
     });
 
   } catch (error) {
     console.error('Error sending join request:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Send invitation to a participant
+export const sendInvitation = async (req: Request, res: Response) => {
+  try {
+    const { participantId, teamId, message } = req.body;
+    const fromUserId = req.user?.id;
+
+    if (!fromUserId) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    // Check if user is team leader
+    const team = await Team.findById(teamId);
+    if (!team) {
+      return res.status(404).json({ message: 'Team not found' });
+    }
+
+    if (team.teamLeader.toString() !== fromUserId) {
+      return res.status(403).json({ message: 'Only team leaders can send invitations' });
+    }
+
+    // Check if team can receive new members
+    if (team.teamMembers.length >= team.memberLimit) {
+      return res.status(400).json({ message: 'Team is already at maximum capacity' });
+    }
+
+    // Check if participant exists and is available
+    const participant = await User.findById(participantId);
+    if (!participant) {
+      return res.status(404).json({ message: 'Participant not found' });
+    }
+
+    if (participant.currentTeamId) {
+      return res.status(400).json({ message: 'Participant is already in a team' });
+    }
+
+    // Check if invitation already exists
+    const existingInvitation = await TeamRequest.findOne({
+      teamId,
+      fromUser: fromUserId,
+      toUser: participantId,
+      type: 'invitation',
+      status: 'pending'
+    });
+
+    if (existingInvitation) {
+      return res.status(400).json({ message: 'Invitation already sent to this participant' });
+    }
+
+    // Create invitation
+    const invitation = new TeamRequest({
+      teamId,
+      fromUser: fromUserId,
+      toUser: participantId,
+      message: message || 'You are invited to join our team!',
+      type: 'invitation',
+      status: 'pending',
+      expiresAt: calculateRequestExpiry()
+    });
+
+    await invitation.save();
+
+    // Create notification for participant
+    createRequestReceivedNotification(
+      participantId,
+      team.teamName,
+      'Team Invitation',
+      invitation._id.toString()
+    );
+
+    res.status(201).json({
+      message: 'Invitation sent successfully',
+      invitation: {
+        id: invitation._id,
+        status: invitation.status,
+        message: invitation.message
+      }
+    });
+
+  } catch (error) {
+    console.error('Error sending invitation:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
