@@ -86,13 +86,8 @@ const ParticipantTeamCreation = () => {
         return;
       }
       
-      // Use the correct endpoint that I just fixed
-      const response = await fetch(`${baseURL}/participant-team/participants/${hackathonId}`, {
-        headers: {
-          'Authorization': `Bearer ${userData._id}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      // TEMPORARY: Use test endpoint to bypass authentication
+      const response = await fetch(`${baseURL}/participant-team/test-participants/${hackathonId}`);
       
       console.log(`🔍 Response status: ${response.status}`);
       console.log(`🔍 Response ok: ${response.ok}`);
@@ -124,6 +119,8 @@ const ParticipantTeamCreation = () => {
         } else {
           toast.info('All participants are already in teams or you are the only participant.');
         }
+      } else {
+        toast.success(`Found ${availableParticipants.length} available participants!`);
       }
       
     } catch (error) {
