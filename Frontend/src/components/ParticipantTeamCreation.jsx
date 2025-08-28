@@ -76,29 +76,47 @@ const ParticipantTeamCreation = () => {
       setParticipantsLoading(true);
       setError(null);
       
+      console.log(`🔍 Fetching participants for hackathon: ${hackathonId}`);
+      console.log(`🔍 Current user: ${userData?.name} (${userData?._id})`);
+      
       // Use the correct endpoint that I just fixed
       const response = await fetch(`${baseURL}/participant-team/participants/${hackathonId}`);
       
+      console.log(`🔍 Response status: ${response.status}`);
+      console.log(`🔍 Response ok: ${response.ok}`);
+      
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ Response not ok: ${response.status} - ${errorText}`);
         throw new Error('Failed to fetch participants');
       }
       
       const data = await response.json();
+      console.log(`🔍 Response data:`, data);
+      
       const list = Array.isArray(data.participants) ? data.participants : [];
+      console.log(`🔍 Participants list:`, list);
       
       // Filter out the current user and users already in teams
       const availableParticipants = list.filter(p => 
         p._id !== userData?._id && !p.currentTeamId
       );
       
+      console.log(`🔍 Available participants (filtered):`, availableParticipants);
+      
       setParticipants(availableParticipants);
       
       if (availableParticipants.length === 0) {
-        toast.info('No available participants found in this hackathon.');
+        if (list.length === 0) {
+          toast.error('No participants found in this hackathon. Please check if participants were added correctly.');
+        } else {
+          toast.info('All participants are already in teams or you are the only participant.');
+        }
       }
       
     } catch (error) {
       console.error('Error fetching participants:', error);
+      console.error('Full error details:', error);
       setError('Failed to load participants. Please try again.');
       toast.error('Failed to load participants');
     } finally {
