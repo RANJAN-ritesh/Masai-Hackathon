@@ -186,7 +186,7 @@ const EligibleHackathons = () => {
         (user.role === 'member' || user.role === 'leader') && 
         (!user.teamId || user.teamId === '')
       );
-
+ 
       console.log(`🔍 Available participants for ${hackathon.title}:`, {
         total: allParticipants.length,
         available: availableParticipants.length,
@@ -204,8 +204,8 @@ const EligibleHackathons = () => {
       }
       
       // Calculate team size and number of teams using SMART ALGORITHM
-      const minTeamSize = hackathon.minTeamSize || 2;
-      const maxTeamSize = hackathon.maxTeamSize || 4;
+      const minTeamSize = (hackathon.teamSize && hackathon.teamSize.min) ? hackathon.teamSize.min : (hackathon.minTeamSize || 2);
+      const maxTeamSize = (hackathon.teamSize && hackathon.teamSize.max) ? hackathon.teamSize.max : (hackathon.maxTeamSize || 4);
       const totalParticipants = participants.length;
       
       console.log(`🎯 Creating teams for ${hackathon.title}:`, {

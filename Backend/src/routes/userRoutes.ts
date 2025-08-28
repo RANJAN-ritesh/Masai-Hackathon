@@ -127,6 +127,8 @@ router.post("/upload-participants", async (req, res) => {
           const hashedPassword = await bcrypt.hash("password123", 10);
           
           try {
+            const csvRoleRaw = participant["Role"] || "member";
+            const csvRole = String(csvRoleRaw).toLowerCase() === 'leader' ? 'leader' : 'member';
             const newUser = await User.create({
               userId,
               name: `${participant["First Name"] || "Unknown"} ${participant["Last Name"] || "User"}`,
@@ -140,7 +142,7 @@ router.post("/upload-participants", async (req, res) => {
               teamId: "",
               hackathonIds: [hackathonId], // Associate with this hackathon
               isVerified: true,
-              role: participant["Role"] || "member"
+              role: csvRole
             });
             
             uploadedCount++;
@@ -154,6 +156,12 @@ router.post("/upload-participants", async (req, res) => {
               if (duplicateUser && !duplicateUser.hackathonIds?.includes(hackathonId)) {
                 duplicateUser.hackathonIds = duplicateUser.hackathonIds || [];
                 duplicateUser.hackathonIds.push(hackathonId);
+                // If CSV specifies leader and existing is member, upgrade
+                const csvRoleRaw = participant["Role"] || "member";
+                const csvRole = String(csvRoleRaw).toLowerCase();
+                if (csvRole === 'leader' && duplicateUser.role === 'member') {
+                  duplicateUser.role = 'leader';
+                }
                 await duplicateUser.save();
                 updatedCount++;
               } else {

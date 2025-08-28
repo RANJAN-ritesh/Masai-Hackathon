@@ -60,11 +60,14 @@ const ParticipantTeamCreation = () => {
     try {
       const response = await fetch(`${baseURL}/participant-team/participants/${hackathonId}`, {
         headers: {
-          'Authorization': `Bearer ${userData._id}` // Add authentication header
+          'Authorization': `Bearer ${userData?._id || ''}` // Add authentication header
         }
       });
       const data = await response.json();
-      setParticipants(data.participants || []);
+      const list = Array.isArray(data.participants) ? data.participants : [];
+      // Normalize roles to lowercase for filtering
+      const normalized = list.map(u => ({ ...u, role: (u.role || 'member').toLowerCase() }));
+      setParticipants(normalized);
     } catch (error) {
       console.error('Error fetching participants:', error);
       toast.error('Failed to load participants');
@@ -81,6 +84,11 @@ const ParticipantTeamCreation = () => {
 
     if (!validateTeamName(formData.teamName)) {
       toast.error('Team name must be 16 characters or less and contain only lowercase letters, underscores, and hyphens');
+      return;
+    }
+
+    if (!userData?._id) {
+      toast.error('You must be logged in to create a team');
       return;
     }
 
