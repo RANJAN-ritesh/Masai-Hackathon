@@ -44,24 +44,37 @@ const ParticipantTeamCreation = () => {
       setLoading(true);
       console.log('Loading participants for hackathon:', hackathonId);
       
-      // TEMPORARY: Use debug endpoint until new one is deployed
-      const response = await fetch(`${baseURL}/debug-participants/${hackathonId}`);
+      // Use the existing working endpoint
+      const response = await fetch(`${baseURL}/users/hackathon/${hackathonId}/participants`);
       const data = await response.json();
       
-      if (data.participants) {
+      if (data.success && data.participants) {
         setParticipants(data.participants);
         toast.success(`Found ${data.participants.length} participants in ${data.hackathonTitle}`);
         console.log('Participants loaded:', data.participants);
+      } else if (data.message) {
+        toast.info(data.message);
+        setParticipants([]);
       } else {
         toast.error('Failed to load participants');
+        setParticipants([]);
       }
     } catch (error) {
       console.error('Failed to load participants:', error);
       toast.error('Failed to load participants');
+      setParticipants([]);
     } finally {
       setLoading(false);
     }
   };
+
+  // Add form state back
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [formData, setFormData] = useState({
+    teamName: '',
+    description: ''
+  });
+  const [selectedParticipantId, setSelectedParticipantId] = useState('');
 
   // Simple function to create team
   const createTeam = async (teamName, description) => {
@@ -76,8 +89,13 @@ const ParticipantTeamCreation = () => {
         return;
       }
 
-      // Create team logic
-      const response = await fetch(`${baseURL}/participant-team/create-team`, {
+      if (!selectedParticipantId) {
+        toast.error('Please select a participant to create the team for');
+        return;
+      }
+
+      // Use the existing working team creation endpoint
+      const response = await fetch(`${baseURL}/team/create-team`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -85,7 +103,8 @@ const ParticipantTeamCreation = () => {
         body: JSON.stringify({
           teamName: teamName.trim(),
           description: description.trim(),
-          hackathonId: selectedHackathon._id
+          hackathonId: selectedHackathon._id,
+          createdBy: selectedParticipantId // Use selected participant ID
         })
       });
 
@@ -95,6 +114,7 @@ const ParticipantTeamCreation = () => {
         toast.success('Team created successfully! 🎉');
         setFormData({ teamName: '', description: '' });
         setShowCreateForm(false);
+        setSelectedParticipantId('');
         navigate('/my-team');
       } else {
         toast.error(data.message || 'Failed to create team');
@@ -104,13 +124,6 @@ const ParticipantTeamCreation = () => {
       toast.error('Failed to create team');
     }
   };
-
-  // Add form state back
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [formData, setFormData] = useState({
-    teamName: '',
-    description: ''
-  });
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
@@ -178,6 +191,27 @@ const ParticipantTeamCreation = () => {
 
             {showCreateForm && (
               <form onSubmit={(e) => { e.preventDefault(); createTeam(formData.teamName, formData.description); }} className="space-y-4">
+                {/* Participant Selection */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Select Participant *</label>
+                  <select
+                    value={selectedParticipantId}
+                    onChange={(e) => setSelectedParticipantId(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">Choose a participant...</option>
+                    {participants.map((participant) => (
+                      <option key={participant._id} value={participant._id}>
+                        {participant.name} ({participant.email})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Select which participant will be the team creator
+                  </p>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium mb-2">Team Name *</label>
                   <input
