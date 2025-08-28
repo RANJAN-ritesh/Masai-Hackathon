@@ -14,10 +14,100 @@ const ParticipantTeamCreation = () => {
   const [loading, setLoading] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
 
+  // Add form state back
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [formData, setFormData] = useState({
+    teamName: '',
+    description: ''
+  });
+  const [selectedParticipantId, setSelectedParticipantId] = useState('');
+  const [userTeam, setUserTeam] = useState(null);
+  const [teamLoading, setTeamLoading] = useState(false);
+
+  // Load user's team if they have one
+  const loadUserTeam = async (hackathonId) => {
+    try {
+      setTeamLoading(true);
+      // Check if any participant in this hackathon has a team
+      const response = await fetch(`${baseURL}/users/hackathon/${hackathonId}/participants`);
+      const data = await response.json();
+      
+      if (data.participants && Array.isArray(data.participants)) {
+        // Find participants who have teams
+        const participantsWithTeams = data.participants.filter(p => p.teamId && p.teamId.trim() !== '');
+        if (participantsWithTeams.length > 0) {
+          setUserTeam(participantsWithTeams[0]); // Show first team found
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load user team:', error);
+    } finally {
+      setTeamLoading(false);
+    }
+  };
+
+  // Simple function to create team
+  const createTeam = async (teamName, description) => {
+    try {
+      if (!teamName.trim()) {
+        toast.error('Team name is required');
+        return;
+      }
+
+      if (!selectedHackathon) {
+        toast.error('Please select a hackathon first');
+        return;
+      }
+
+      if (!selectedParticipantId) {
+        toast.error('Please select a participant to create the team for');
+        return;
+      }
+
+      // Use the existing working team creation endpoint
+      const response = await fetch(`${baseURL}/team/create-team`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          teamName: teamName.trim(),
+          description: description.trim(),
+          hackathonId: selectedHackathon._id,
+          createdBy: selectedParticipantId // Use selected participant ID
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success('Team created successfully! 🎉');
+        setFormData({ teamName: '', description: '' });
+        setShowCreateForm(false);
+        setSelectedParticipantId('');
+        // Reload user team data instead of full page refresh
+        await loadUserTeam(selectedHackathon._id);
+        toast.info('Your team has been created! Check the "Your Team" section below.');
+      } else {
+        toast.error(data.message || 'Failed to create team');
+      }
+    } catch (error) {
+      console.error('Failed to create team:', error);
+      toast.error('Failed to create team');
+    }
+  };
+
   // Load hackathons on mount
   useEffect(() => {
     loadHackathons();
   }, []);
+
+  // Load user team when hackathon is selected
+  useEffect(() => {
+    if (selectedHackathon) {
+      loadUserTeam(selectedHackathon._id);
+    }
+  }, [selectedHackathon]);
 
   // Simple function to load hackathons
   const loadHackathons = async () => {
@@ -65,63 +155,6 @@ const ParticipantTeamCreation = () => {
       setParticipants([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Add form state back
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [formData, setFormData] = useState({
-    teamName: '',
-    description: ''
-  });
-  const [selectedParticipantId, setSelectedParticipantId] = useState('');
-
-  // Simple function to create team
-  const createTeam = async (teamName, description) => {
-    try {
-      if (!teamName.trim()) {
-        toast.error('Team name is required');
-        return;
-      }
-
-      if (!selectedHackathon) {
-        toast.error('Please select a hackathon first');
-        return;
-      }
-
-      if (!selectedParticipantId) {
-        toast.error('Please select a participant to create the team for');
-        return;
-      }
-
-      // Use the existing working team creation endpoint
-      const response = await fetch(`${baseURL}/team/create-team`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          teamName: teamName.trim(),
-          description: description.trim(),
-          hackathonId: selectedHackathon._id,
-          createdBy: selectedParticipantId // Use selected participant ID
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        toast.success('Team created successfully! 🎉');
-        setFormData({ teamName: '', description: '' });
-        setShowCreateForm(false);
-        setSelectedParticipantId('');
-        navigate('/my-team');
-      } else {
-        toast.error(data.message || 'Failed to create team');
-      }
-    } catch (error) {
-      console.error('Failed to create team:', error);
-      toast.error('Failed to create team');
     }
   };
 
@@ -242,6 +275,58 @@ const ParticipantTeamCreation = () => {
                   Create Team
                 </button>
               </form>
+            )}
+          </div>
+        )}
+
+        {/* Your Team Section */}
+        {selectedHackathon && (
+          <div className="bg-white rounded-xl p-6 mb-8 shadow-sm">
+            <h2 className="text-xl font-semibold mb-4">Your Team</h2>
+            
+            {teamLoading && (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                <p>Loading team information...</p>
+              </div>
+            )}
+
+            {!teamLoading && userTeam ? (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center mb-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                    <Shield className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-green-800">Team Created Successfully!</h3>
+                    <p className="text-sm text-green-600">You are now part of a team in this hackathon.</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-medium text-green-700">Team Member:</span>
+                    <p className="text-green-600">{userTeam.name} ({userTeam.email})</p>
+                  </div>
+                  <div>
+                    <span className="font-medium text-green-700">Role:</span>
+                    <p className="text-green-600">{userTeam.role}</p>
+                  </div>
+                </div>
+                <div className="mt-4 pt-4 border-t border-green-200">
+                  <button
+                    onClick={() => navigate('/my-team')}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-sm"
+                  >
+                    Go to Team Management
+                  </button>
+                </div>
+              </div>
+            ) : !teamLoading && (
+              <div className="text-center py-8">
+                <Shield className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <p className="text-lg font-medium text-gray-900 mb-2">No Team Yet</p>
+                <p className="text-sm text-gray-500">Create a team above to get started with the hackathon.</p>
+              </div>
             )}
           </div>
         )}
