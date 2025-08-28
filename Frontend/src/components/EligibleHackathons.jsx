@@ -44,7 +44,7 @@ const EligibleHackathons = () => {
   const [hackathonCount, setHackathonCount] = useState(0);
   const [previousCount, setPreviousCount] = useState(0);
 
-
+  
   
   // Teams display modal state
   const [teamsModalOpen, setTeamsModalOpen] = useState(false);
@@ -682,6 +682,11 @@ const EligibleHackathons = () => {
                   <Link to="/create-hackathon">
                     <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center shadow-md">
                       <Sparkles className="w-5 h-5 mr-2" />Create New Hackathon
+                    </button>
+                  </Link>
+                  <Link to="/users-list">
+                    <button className="bg-gray-800 hover:bg-gray-900 text-white px-4 py-3 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 flex items-center shadow-md">
+                      <Users className="w-5 h-5 mr-2" />All Users
                     </button>
                   </Link>
                 </div>

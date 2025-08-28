@@ -26,6 +26,7 @@ import EditHackathon from "./components/EditHackathon";
 import AdminRoute from "./components/AdminRoute";
 import MemberDashboard from "./components/MemberDashboard";
 import ParticipantTeamCreation from "./components/ParticipantTeamCreation";
+import AllUsers from "./components/AllUsers";
 
 function App() {
   const { isAuth, hackathon, role } = useContext(MyContext);
@@ -182,6 +183,14 @@ function App() {
               <ProtectedRoute>
                 <ParticipantTeamCreation />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/users-list"
+            element={
+              <AdminRoute>
+                <AllUsers />
+              </AdminRoute>
             }
           />
         </Routes>

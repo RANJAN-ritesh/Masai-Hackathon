@@ -6,7 +6,7 @@ import { Palette, Type, Eye, Save, X, Sun, Moon } from 'lucide-react';
 
 const HackathonCustomization = ({ isOpen, onClose, hackathonId, currentTheme, currentFont }) => {
   const { hackathon } = useContext(MyContext);
-  const { themeConfig, isDarkMode, toggleDarkMode } = useTheme();
+  const { themeConfig, isDarkMode, toggleDarkMode, applyGlobalTheme } = useTheme();
   const [selectedTheme, setSelectedTheme] = useState(currentTheme || 'modern-tech');
   const [selectedFont, setSelectedFont] = useState(currentFont || 'roboto');
   const [isSaving, setIsSaving] = useState(false);
@@ -144,6 +144,10 @@ const HackathonCustomization = ({ isOpen, onClose, hackathonId, currentTheme, cu
 
       if (response.ok) {
         toast.success('Hackathon customization saved successfully!');
+        // Apply the newly selected theme immediately across app
+        const variant = isDarkMode ? 'dark' : 'light';
+        const cfg = themes[selectedTheme].variants[variant];
+        applyGlobalTheme(cfg, fonts[selectedFont].family);
         onClose();
       } else {
         const error = await response.json();
@@ -157,6 +161,9 @@ const HackathonCustomization = ({ isOpen, onClose, hackathonId, currentTheme, cu
     }
   };
 
+  const variantKey = isDarkMode ? 'dark' : 'light';
+  const previewTheme = themes[selectedTheme].variants[variantKey];
+
   const ThemePreview = ({ themeKey, theme }) => (
     <div className="space-y-3">
       <div
@@ -167,7 +174,6 @@ const HackathonCustomization = ({ isOpen, onClose, hackathonId, currentTheme, cu
       >
         <div className="font-semibold mb-2 text-gray-800">{theme.name}</div>
         <div className="text-sm text-gray-600 mb-3">{theme.description}</div>
-        
         {/* Light Variant Preview */}
         <div className="mb-3">
           <div className="text-xs font-medium text-gray-500 mb-2 flex items-center">
@@ -181,20 +187,13 @@ const HackathonCustomization = ({ isOpen, onClose, hackathonId, currentTheme, cu
               color: theme.variants.light.textColor
             }}
           >
-            <div
-              className="h-2 rounded"
-              style={{ backgroundColor: theme.variants.light.accentColor }}
-            ></div>
+            <div className="h-2 rounded" style={{ backgroundColor: theme.variants.light.accentColor }}></div>
             <div
               className="h-8 rounded p-2"
-              style={{ 
-                backgroundColor: theme.variants.light.cardBg,
-                border: `1px solid ${theme.variants.light.borderColor}`
-              }}
+              style={{ backgroundColor: theme.variants.light.cardBg, border: `1px solid ${theme.variants.light.borderColor}` }}
             ></div>
           </div>
         </div>
-
         {/* Dark Variant Preview */}
         <div>
           <div className="text-xs font-medium text-gray-500 mb-2 flex items-center">
@@ -208,16 +207,10 @@ const HackathonCustomization = ({ isOpen, onClose, hackathonId, currentTheme, cu
               color: theme.variants.dark.textColor
             }}
           >
-            <div
-              className="h-2 rounded"
-              style={{ backgroundColor: theme.variants.dark.accentColor }}
-            ></div>
+            <div className="h-2 rounded" style={{ backgroundColor: theme.variants.dark.accentColor }}></div>
             <div
               className="h-8 rounded p-2"
-              style={{ 
-                backgroundColor: theme.variants.dark.cardBg,
-                border: `1px solid ${theme.variants.dark.borderColor}`
-              }}
+              style={{ backgroundColor: theme.variants.dark.cardBg, border: `1px solid ${theme.variants.dark.borderColor}` }}
             ></div>
           </div>
         </div>
@@ -234,16 +227,10 @@ const HackathonCustomization = ({ isOpen, onClose, hackathonId, currentTheme, cu
     >
       <div className="font-semibold mb-2 text-gray-800">{font.name}</div>
       <div className="text-sm text-gray-600 mb-3">{font.description}</div>
-      <div
-        className="text-lg"
-        style={{ fontFamily: font.family }}
-      >
+      <div className="text-lg" style={{ fontFamily: font.family }}>
         The quick brown fox jumps over the lazy dog
       </div>
-      <div
-        className="text-sm mt-2"
-        style={{ fontFamily: font.family }}
-      >
+      <div className="text-sm mt-2" style={{ fontFamily: font.family }}>
         1234567890
       </div>
     </div>
@@ -256,10 +243,7 @@ const HackathonCustomization = ({ isOpen, onClose, hackathonId, currentTheme, cu
       <div className="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-2xl font-bold text-gray-800">Customize Hackathon</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
             <X size={24} />
           </button>
         </div>
@@ -274,27 +258,14 @@ const HackathonCustomization = ({ isOpen, onClose, hackathonId, currentTheme, cu
             <button
               onClick={toggleDarkMode}
               className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
-                isDarkMode 
-                  ? 'bg-gray-800 text-white hover:bg-gray-700' 
-                  : 'bg-yellow-400 text-gray-800 hover:bg-yellow-500'
+                isDarkMode ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-yellow-400 text-gray-800 hover:bg-yellow-500'
               }`}
             >
-              {isDarkMode ? (
-                <>
-                  <Sun className="w-5 h-5" />
-                  <span>Light Mode</span>
-                </>
-              ) : (
-                <>
-                  <Moon className="w-5 h-5" />
-                  <span>Dark Mode</span>
-                </>
-              )}
+              {isDarkMode ? (<><Sun className="w-5 h-5" /><span>Light Mode</span></>) : (<><Moon className="w-5 h-5" /><span>Dark Mode</span></>)}
             </button>
           </div>
           <div className="mt-3 text-sm text-gray-600">
-            <strong>Current:</strong> {isDarkMode ? 'Dark Mode' : 'Light Mode'} - 
-            Switch to see how your selected theme looks in both variants!
+            <strong>Current:</strong> {isDarkMode ? 'Dark Mode' : 'Light Mode'} - Switch to see how your selected theme looks in both variants!
           </div>
         </div>
 
@@ -326,52 +297,40 @@ const HackathonCustomization = ({ isOpen, onClose, hackathonId, currentTheme, cu
           </div>
         </div>
 
-        {/* Live Preview */}
+        {/* Live Preview bound to current selections */}
         <div className="mt-8">
           <div className="flex items-center mb-4">
             <Eye className="h-5 w-5 text-purple-600 mr-2" />
             <h3 className="text-lg font-semibold text-gray-800">Live Preview</h3>
           </div>
-          <div 
-            className="p-6 rounded-lg border-2 border-gray-200"
+          <div
+            className="p-6 rounded-lg border-2"
             style={{
-              backgroundColor: themeConfig.backgroundColor,
-              color: themeConfig.textColor,
-              fontFamily: fonts[selectedFont]?.family
+              backgroundColor: previewTheme.backgroundColor,
+              color: previewTheme.textColor,
+              fontFamily: fonts[selectedFont]?.family,
+              borderColor: previewTheme.borderColor
             }}
           >
             <h4 className="text-xl font-bold mb-4">Sample Content</h4>
-            <p className="mb-4">
-              This is how your hackathon page will look with the selected theme and font. 
-              The preview shows the {isDarkMode ? 'dark' : 'light'} variant of the {themes[selectedTheme]?.name} theme.
-            </p>
+            <p className="mb-4">This is how your hackathon page will look with the selected theme and font.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div 
+              <div
                 className="p-4 rounded-lg"
-                style={{
-                  backgroundColor: themeConfig.cardBg,
-                  border: `1px solid ${themeConfig.borderColor}`
-                }}
+                style={{ backgroundColor: previewTheme.cardBg, border: `1px solid ${previewTheme.borderColor}` }}
               >
                 <h5 className="font-semibold mb-2">Sample Card</h5>
-                <p className="text-sm" style={{ color: themeConfig.mutedText }}>
+                <p className="text-sm" style={{ color: previewTheme.mutedText || previewTheme.textColor }}>
                   This card shows the theme's card background and border colors.
                 </p>
               </div>
               <div className="space-y-2">
-                <button 
-                  className="w-full px-4 py-2 rounded-lg text-white font-medium"
-                  style={{ backgroundColor: themeConfig.buttonBg }}
-                >
+                <button className="w-full px-4 py-2 rounded-lg text-white font-medium" style={{ backgroundColor: previewTheme.buttonBg }}>
                   Primary Button
                 </button>
-                <button 
+                <button
                   className="w-full px-4 py-2 rounded-lg font-medium"
-                  style={{
-                    border: `1px solid ${themeConfig.accentColor}`,
-                    color: themeConfig.accentColor,
-                    backgroundColor: 'transparent'
-                  }}
+                  style={{ border: `1px solid ${previewTheme.accentColor}`, color: previewTheme.accentColor, backgroundColor: 'transparent' }}
                 >
                   Secondary Button
                 </button>
@@ -382,28 +341,9 @@ const HackathonCustomization = ({ isOpen, onClose, hackathonId, currentTheme, cu
 
         {/* Action Buttons */}
         <div className="mt-8 flex justify-end space-x-4">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition flex items-center"
-          >
-            {isSaving ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Saving...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                Save Changes
-              </>
-            )}
+          <button onClick={onClose} className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">Cancel</button>
+          <button onClick={handleSave} disabled={isSaving} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition flex items-center">
+            {isSaving ? (<><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>Saving...</>) : (<><Save className="w-4 h-4 mr-2" />Save Changes</>)}
           </button>
         </div>
       </div>
