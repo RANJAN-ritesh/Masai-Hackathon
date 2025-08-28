@@ -48,11 +48,11 @@ const ParticipantTeamCreation = () => {
       const response = await fetch(`${baseURL}/users/hackathon/${hackathonId}/participants`);
       const data = await response.json();
       
-      if (data.success && data.participants) {
+      if (data.participants && Array.isArray(data.participants)) {
         setParticipants(data.participants);
         toast.success(`Found ${data.participants.length} participants in ${data.hackathonTitle}`);
         console.log('Participants loaded:', data.participants);
-      } else if (data.message) {
+      } else if (data.message && !data.participants) {
         toast.info(data.message);
         setParticipants([]);
       } else {
