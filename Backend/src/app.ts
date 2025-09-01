@@ -8,6 +8,7 @@ import team from "./model/team";
 import teamRequests from "./model/teamRequests";
 import problemStatement from "./model/problemStatement";
 import { autoTeamCreationService } from "./services/autoTeamCreationService";
+import { problemSelectionService } from "./services/problemSelectionService";
 import userRoutes from "./routes/userRoutes";
 import teamRoutes from "./routes/teamRoutes";
 import teamRequestRoutes from "./routes/teamRequestRoutes";
@@ -121,6 +122,36 @@ app.get("/debug-participants/:hackathonId", async (req, res) => {
   }
 });
 
+// SIMPLE PARTICIPANTS ENDPOINT - NO AUTH, NO COMPLEXITY, JUST WORKS
+app.get("/participants/:hackathonId", async (req, res) => {
+  try {
+    const { hackathonId } = req.params;
+    
+    // 1. Get hackathon
+    const hackathon = await Hackathon.findById(hackathonId);
+    if (!hackathon) {
+      return res.status(404).json({ message: 'Hackathon not found' });
+    }
+    
+    // 2. Get participants
+    const participants = await User.find({
+      hackathonIds: { $in: [hackathonId] }
+    }).select('-password');
+    
+    // 3. Return data
+    res.json({
+      success: true,
+      hackathonTitle: hackathon.title,
+      participants,
+      count: participants.length
+    });
+    
+  } catch (error) {
+    console.error('Error fetching participants:', error);
+    res.status(500).json({ message: 'Error fetching participants' });
+  }
+});
+
 // Health check endpoint
 app.get("/health", (req, res) => {
   res.json({
@@ -128,10 +159,11 @@ app.get("/health", (req, res) => {
     message: "Masai Hackathon Backend is running",
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || "development",
-    schemaVersion: "2.1.4", // Updated to force redeploy
+    schemaVersion: "2.2.0", // Updated for problem selection system
     buildTime: new Date().toISOString(),
     autoTeamCreationService: "running",
-    cleanupService: "running"
+    cleanupService: "running",
+    problemSelectionService: "running"
   });
 });
 
@@ -170,4 +202,8 @@ app.listen(PORT, () => {
     autoTeamCreationService.start();
     // Start automatic cleanup service
     cleanupService.startPeriodicCleanup(24 * 60 * 60 * 1000); // Every 24 hours
+    // Start problem selection service
+    problemSelectionService.startServices();
+    // Start problem selection service
+    problemSelectionService.startServices();
 });
