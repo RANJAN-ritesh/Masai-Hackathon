@@ -23,32 +23,47 @@ const MemberTeamView = () => {
       setLoading(true);
       console.log(`🔍 Fetching team data for member ${userData.name} (${userData._id})`);
 
-      // Get user's current hackathon from context or localStorage
-      const currentHackathonId = userData?.hackathonIds?.[0] || 
-                                 localStorage.getItem('currentHackathon') ||
-                                 userData?.currentHackathon?._id;
-
-      if (!currentHackathonId) {
-        console.warn('⚠️ No hackathon ID found for user');
-        setLoading(false);
-        return;
-      }
-
-      console.log(`🔍 Looking for team in hackathon: ${currentHackathonId}`);
-
-      // Use the dedicated user team endpoint
-      const teamResponse = await fetch(`${baseURL}/team/user/${userData._id}/hackathon/${currentHackathonId}`);
+      // Get all teams and find the user's team
+      const teamResponse = await fetch(`${baseURL}/team/get-teams`);
       if (teamResponse.ok) {
-        const data = await teamResponse.json();
-        console.log('📊 Team response:', data);
+        const teams = await teamResponse.json();
+        console.log('📊 All teams:', teams);
         
-        if (data.team && data.isInTeam) {
-          setTeamData(data.team);
-          console.log(`✅ Found user's team: ${data.team.teamName}`);
+        // Try multiple ways to find the user's team
+        let userTeam = null;
+        
+        // Method 1: Check if user is in teamMembers array (handle both populated and unpopulated)
+        userTeam = teams.find(team => {
+          if (!team.teamMembers) return false;
+          return team.teamMembers.some(member => {
+            // Handle both populated objects and ObjectId strings
+            const memberId = typeof member === 'object' ? member._id : member;
+            return memberId === userData._id || memberId === userData._id.toString();
+          });
+        });
+        
+        // Method 2: Check if user is the creator (handle both populated and unpopulated)
+        if (!userTeam) {
+          userTeam = teams.find(team => {
+            if (!team.createdBy) return false;
+            const creatorId = typeof team.createdBy === 'object' ? team.createdBy._id : team.createdBy;
+            return creatorId === userData._id || creatorId === userData._id.toString();
+          });
+        }
+        
+        // Method 3: Check if userData has teamId (fallback)
+        if (!userTeam && userData.teamId) {
+          userTeam = teams.find(team => team._id === userData.teamId);
+        }
+        
+        if (userTeam) {
+          setTeamData(userTeam);
+          console.log(`✅ Found user's team: ${userTeam.teamName}`);
+          console.log('🎯 Team details:', userTeam);
           
           // Get hackathon data if team has hackathonId
-          if (data.team.hackathonId) {
-            const hackathonResponse = await fetch(`${baseURL}/hackathons/${data.team.hackathonId}`);
+          if (userTeam.hackathonId) {
+            const hackathonResponse = await fetch(`${baseURL}/hackathons/${userTeam.hackathonId}`);
             if (hackathonResponse.ok) {
               const hackathon = await hackathonResponse.json();
               setHackathonData(hackathon);
@@ -56,12 +71,17 @@ const MemberTeamView = () => {
             }
           }
         } else {
-          console.warn(`⚠️ No team found for user ${userData.name} in hackathon ${currentHackathonId}`);
+          console.warn(`⚠️ No team found for user ${userData.name} (${userData._id})`);
+          console.log('Available teams:', teams.map(t => ({ 
+            id: t._id, 
+            name: t.teamName, 
+            members: t.teamMembers?.length || 0,
+            creator: t.createdBy,
+            hackathonId: t.hackathonId
+          })));
         }
       } else {
-        console.error(`❌ Failed to fetch user team: ${teamResponse.status}`);
-        const errorData = await teamResponse.json();
-        console.error('Error details:', errorData);
+        console.error(`❌ Failed to fetch teams: ${teamResponse.status}`);
         toast.error('Failed to fetch team data');
       }
     } catch (error) {
@@ -89,13 +109,30 @@ const MemberTeamView = () => {
     // Add team leader first
     const leader = teamData.createdBy;
     if (leader) {
-      csvContent += `${leader.name || 'Unknown'}\t${leader.email || 'N/A'}\tleader\t${leader.course || 'N/A'}\t${leader.skills ? leader.skills.join(', ') : 'N/A'}\t${leader.vertical || 'N/A'}\t${leader.phoneNumber || 'N/A'}\n`;
+      const leaderName = typeof leader === 'object' ? leader.name : 'Unknown';
+      const leaderEmail = typeof leader === 'object' ? leader.email : 'N/A';
+      const leaderCourse = typeof leader === 'object' ? leader.course : 'N/A';
+      const leaderSkills = typeof leader === 'object' ? (leader.skills ? leader.skills.join(', ') : 'N/A') : 'N/A';
+      const leaderVertical = typeof leader === 'object' ? leader.vertical : 'N/A';
+      const leaderPhone = typeof leader === 'object' ? leader.phoneNumber : 'N/A';
+      
+      csvContent += `${leaderName}\t${leaderEmail}\tleader\t${leaderCourse}\t${leaderSkills}\t${leaderVertical}\t${leaderPhone}\n`;
     }
     
     // Add team members
     teamData.teamMembers?.forEach(member => {
-      if (member._id !== teamData.createdBy?._id) {
-        csvContent += `${member.name || 'Unknown'}\t${member.email || 'N/A'}\tmember\t${member.course || 'N/A'}\t${member.skills ? member.skills.join(', ') : 'N/A'}\t${member.vertical || 'N/A'}\t${member.phoneNumber || 'N/A'}\n`;
+      const memberId = typeof member === 'object' ? member._id : member;
+      const leaderId = typeof teamData.createdBy === 'object' ? teamData.createdBy._id : teamData.createdBy;
+      
+      if (memberId !== leaderId) {
+        const memberName = typeof member === 'object' ? member.name : 'Unknown';
+        const memberEmail = typeof member === 'object' ? member.email : 'N/A';
+        const memberCourse = typeof member === 'object' ? member.course : 'N/A';
+        const memberSkills = typeof member === 'object' ? (member.skills ? member.skills.join(', ') : 'N/A') : 'N/A';
+        const memberVertical = typeof member === 'object' ? member.vertical : 'N/A';
+        const memberPhone = typeof member === 'object' ? member.phoneNumber : 'N/A';
+        
+        csvContent += `${memberName}\t${memberEmail}\tmember\t${memberCourse}\t${memberSkills}\t${memberVertical}\t${memberPhone}\n`;
       }
     });
     
@@ -250,15 +287,17 @@ const MemberTeamView = () => {
                 <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-lg border border-yellow-200">
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                      {teamData.createdBy.name?.charAt(0) || 'L'}
+                      {typeof teamData.createdBy === 'object' ? (teamData.createdBy.name?.charAt(0) || 'L') : 'L'}
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900">{teamData.createdBy.name}</h4>
+                      <h4 className="font-semibold text-gray-900">
+                        {typeof teamData.createdBy === 'object' ? teamData.createdBy.name : 'Unknown Leader'}
+                      </h4>
                       <p className="text-sm text-gray-600 flex items-center">
                         <Mail className="w-4 h-4 mr-1" />
-                        {teamData.createdBy.email}
+                        {typeof teamData.createdBy === 'object' ? teamData.createdBy.email : 'N/A'}
                       </p>
-                      {teamData.createdBy.phoneNumber && (
+                      {typeof teamData.createdBy === 'object' && teamData.createdBy.phoneNumber && (
                         <p className="text-sm text-gray-600 flex items-center">
                           <Phone className="w-4 h-4 mr-1" />
                           {teamData.createdBy.phoneNumber}
@@ -283,37 +322,45 @@ const MemberTeamView = () => {
                   Team Members ({teamData.teamMembers.length})
                 </h3>
                 <div className="grid gap-4">
-                  {teamData.teamMembers.map((member, index) => (
-                    <div key={member._id || index} className="bg-white border border-gray-200 p-4 rounded-lg hover:shadow-md transition-shadow">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold">
-                          {member.name?.charAt(0) || 'M'}
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-medium text-gray-900">{member.name}</h4>
-                          <p className="text-sm text-gray-600 flex items-center">
-                            <Mail className="w-4 h-4 mr-1" />
-                            {member.email}
-                          </p>
-                          {member.phoneNumber && (
+                  {teamData.teamMembers.map((member, index) => {
+                    const memberId = typeof member === 'object' ? member._id : member;
+                    const leaderId = typeof teamData.createdBy === 'object' ? teamData.createdBy._id : teamData.createdBy;
+                    const isLeader = memberId === leaderId;
+                    
+                    return (
+                      <div key={memberId || index} className="bg-white border border-gray-200 p-4 rounded-lg hover:shadow-md transition-shadow">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold">
+                            {typeof member === 'object' ? (member.name?.charAt(0) || 'M') : 'M'}
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="font-medium text-gray-900">
+                              {typeof member === 'object' ? member.name : 'Unknown Member'}
+                            </h4>
                             <p className="text-sm text-gray-600 flex items-center">
-                              <Phone className="w-4 h-4 mr-1" />
-                              {member.phoneNumber}
+                              <Mail className="w-4 h-4 mr-1" />
+                              {typeof member === 'object' ? member.email : 'N/A'}
                             </p>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                            member._id === teamData.createdBy?._id 
-                              ? 'bg-yellow-100 text-yellow-800' 
-                              : 'bg-blue-100 text-blue-800'
-                          }`}>
-                            {member._id === teamData.createdBy?._id ? 'Leader' : 'Member'}
-                          </span>
+                            {typeof member === 'object' && member.phoneNumber && (
+                              <p className="text-sm text-gray-600 flex items-center">
+                                <Phone className="w-4 h-4 mr-1" />
+                                {member.phoneNumber}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                              isLeader 
+                                ? 'bg-yellow-100 text-yellow-800' 
+                                : 'bg-blue-100 text-blue-800'
+                            }`}>
+                              {isLeader ? 'Leader' : 'Member'}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
