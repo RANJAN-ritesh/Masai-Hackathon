@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from "react";
 import HeroSection from "./HeroSection";
-import ProblemStatement from "./ProblemStatement";
+import ProblemStatementEnhanced from "./ProblemStatementEnhanced";
 import EventSchedule from "./EventSchedule";
 import LeaderBoard from "./Leaderboard";
 import SocialMedia from "./SocialMedia";
@@ -197,7 +197,7 @@ const MainContent = () => {
         }}
       >
         <HeroSection hackathonData={hackathonData} themeConfig={themeConfig} />
-        <ProblemStatement hackathonData={hackathonData} themeConfig={themeConfig} />
+        <ProblemStatementEnhanced hackathonData={hackathonData} themeConfig={themeConfig} />
         <EventSchedule hackathonData={hackathonData} themeConfig={themeConfig} />
         <LeaderBoard hackathonData={hackathonData} themeConfig={themeConfig} />
         <SocialMedia hackathonData={hackathonData} themeConfig={themeConfig} />
