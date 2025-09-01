@@ -1,21 +1,17 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MyContext } from '../context/AuthContextProvider';
-import { Users, Mail, Phone, Award, ArrowLeft, Copy, CheckCircle } from 'lucide-react';
+import { Users, ArrowLeft, Copy, User, Mail, Phone, Calendar, Award } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useAuth } from '../context/AuthContextProvider';
 
 const MemberTeamView = () => {
-  const { userData } = useContext(MyContext);
   const navigate = useNavigate();
-  const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
-  
+  const { userData } = useAuth();
   const [teamData, setTeamData] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [hackathonData, setHackathonData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchMemberTeamData();
-  }, [userData]);
+  const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
 
   const fetchMemberTeamData = async () => {
     if (!userData?._id) {
@@ -27,41 +23,32 @@ const MemberTeamView = () => {
       setLoading(true);
       console.log(`🔍 Fetching team data for member ${userData.name} (${userData._id})`);
 
-      // Get all teams and find the user's team
-      const teamResponse = await fetch(`${baseURL}/team/get-teams`);
+      // Get user's current hackathon from context or localStorage
+      const currentHackathonId = userData?.hackathonIds?.[0] || 
+                                 localStorage.getItem('currentHackathon') ||
+                                 userData?.currentHackathon?._id;
+
+      if (!currentHackathonId) {
+        console.warn('⚠️ No hackathon ID found for user');
+        setLoading(false);
+        return;
+      }
+
+      console.log(`🔍 Looking for team in hackathon: ${currentHackathonId}`);
+
+      // Use the dedicated user team endpoint
+      const teamResponse = await fetch(`${baseURL}/team/user/${userData._id}/hackathon/${currentHackathonId}`);
       if (teamResponse.ok) {
-        const teams = await teamResponse.json();
-        // Try multiple ways to find the user's team
-        let userTeam = null;
+        const data = await teamResponse.json();
+        console.log('📊 Team response:', data);
         
-        // Method 1: Check if user is in teamMembers array
-        userTeam = teams.find(team => 
-          team.teamMembers && 
-          team.teamMembers.some(member => 
-            member._id === userData._id || member === userData._id
-          )
-        );
-        
-        // Method 2: Check if user is the creator
-        if (!userTeam) {
-          userTeam = teams.find(team => 
-            team.createdBy && 
-            (team.createdBy._id === userData._id || team.createdBy === userData._id)
-          );
-        }
-        
-        // Method 3: Check if userData has teamId (fallback)
-        if (!userTeam && userData.teamId) {
-          userTeam = teams.find(team => team._id === userData.teamId);
-        }
-        
-        if (userTeam) {
-          setTeamData(userTeam);
-          console.log(`✅ Found user's team: ${userTeam.teamName}`);
+        if (data.team && data.isInTeam) {
+          setTeamData(data.team);
+          console.log(`✅ Found user's team: ${data.team.teamName}`);
           
           // Get hackathon data if team has hackathonId
-          if (userTeam.hackathonId) {
-            const hackathonResponse = await fetch(`${baseURL}/hackathons/${userTeam.hackathonId}`);
+          if (data.team.hackathonId) {
+            const hackathonResponse = await fetch(`${baseURL}/hackathons/${data.team.hackathonId}`);
             if (hackathonResponse.ok) {
               const hackathon = await hackathonResponse.json();
               setHackathonData(hackathon);
@@ -69,11 +56,12 @@ const MemberTeamView = () => {
             }
           }
         } else {
-          console.warn(`⚠️ No team found for user ${userData.name} (${userData._id})`);
-          console.log('Available teams:', teams.map(t => ({ id: t._id, name: t.teamName, members: t.teamMembers?.length || 0 })));
+          console.warn(`⚠️ No team found for user ${userData.name} in hackathon ${currentHackathonId}`);
         }
       } else {
-        console.error(`❌ Failed to fetch teams: ${teamResponse.status}`);
+        console.error(`❌ Failed to fetch user team: ${teamResponse.status}`);
+        const errorData = await teamResponse.json();
+        console.error('Error details:', errorData);
         toast.error('Failed to fetch team data');
       }
     } catch (error) {
@@ -114,42 +102,16 @@ const MemberTeamView = () => {
     copyToClipboard(csvContent, 'Team data');
   };
 
+  useEffect(() => {
+    fetchMemberTeamData();
+  }, [userData]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white">
         <div className="p-6 md:p-8 max-w-4xl mx-auto">
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-indigo-600"></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!userData?.teamId) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white">
-        <div className="p-6 md:p-8 max-w-4xl mx-auto">
-          {/* Header */}
-          <div className="flex items-center mb-8">
-            <button
-              onClick={() => navigate('/')}
-              className="flex items-center text-indigo-600 hover:text-indigo-800 font-medium"
-            >
-              <ArrowLeft className="w-5 h-5 mr-2" />
-              Back to Dashboard
-            </button>
-          </div>
-
-          {/* No Team Message */}
-          <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-            <div className="bg-indigo-50 p-5 rounded-full inline-block mb-6">
-              <Users className="w-16 h-16 text-indigo-400" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-3">No Team Assigned</h2>
-            <p className="text-gray-600 text-lg mb-6 max-w-md mx-auto">
-              You haven't been assigned to a team yet. Please contact your hackathon organizer.
-            </p>
           </div>
         </div>
       </div>
@@ -178,14 +140,39 @@ const MemberTeamView = () => {
             </div>
             <h2 className="text-2xl font-bold text-gray-800 mb-3">Team Not Found</h2>
             <p className="text-gray-600 text-lg mb-6 max-w-md mx-auto">
-              Your team information couldn't be loaded. Please try refreshing the page.
+              Your team information couldn't be loaded. This could mean:
             </p>
-            <button
-              onClick={fetchMemberTeamData}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold"
-            >
-              Retry
-            </button>
+            
+            <div className="text-left bg-gray-50 rounded-lg p-4 mb-6 max-w-md mx-auto">
+              <ul className="text-sm text-gray-600 space-y-2">
+                <li>• You haven't joined a team yet</li>
+                <li>• Your team was recently created and needs to refresh</li>
+                <li>• There was an issue loading team data</li>
+              </ul>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={fetchMemberTeamData}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold"
+              >
+                Retry
+              </button>
+              
+              <button
+                onClick={() => navigate('/create-participant-team')}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold"
+              >
+                Create Team
+              </button>
+              
+              <button
+                onClick={() => navigate('/')}
+                className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-semibold"
+              >
+                Back to Dashboard
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -227,166 +214,125 @@ const MemberTeamView = () => {
           <div className="h-3 bg-gradient-to-r from-indigo-500 to-purple-600"></div>
           
           <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                  {teamData.teamName}
-                </h2>
-                <p className="text-gray-600">
-                  {teamData.description || 'No description provided'}
-                </p>
-              </div>
-              
-              <div className="text-right">
-                <div className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm font-medium">
-                  {teamData.teamMembers?.length || 0} / {teamData.memberLimit || 4} Members
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">{teamData.teamName}</h2>
+                <div className="flex items-center space-x-4 text-sm text-gray-600">
+                  <span className="flex items-center">
+                    <Users className="w-4 h-4 mr-1" />
+                    {teamData.teamMembers?.length || 0} members
+                  </span>
+                  <span className="flex items-center">
+                    <Calendar className="w-4 h-4 mr-1" />
+                    {hackathonData?.startDate ? new Date(hackathonData.startDate).toLocaleDateString() : 'TBD'}
+                  </span>
+                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                    {teamData.status || 'Active'}
+                  </span>
                 </div>
               </div>
             </div>
+
+            {/* Team Description */}
+            {teamData.description && (
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <p className="text-gray-700">{teamData.description}</p>
+              </div>
+            )}
+
+            {/* Team Leader */}
+            {teamData.createdBy && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <Award className="w-5 h-5 mr-2 text-yellow-500" />
+                  Team Leader
+                </h3>
+                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-lg border border-yellow-200">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                      {teamData.createdBy.name?.charAt(0) || 'L'}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900">{teamData.createdBy.name}</h4>
+                      <p className="text-sm text-gray-600 flex items-center">
+                        <Mail className="w-4 h-4 mr-1" />
+                        {teamData.createdBy.email}
+                      </p>
+                      {teamData.createdBy.phoneNumber && (
+                        <p className="text-sm text-gray-600 flex items-center">
+                          <Phone className="w-4 h-4 mr-1" />
+                          {teamData.createdBy.phoneNumber}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">
+                        Leader
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Team Members */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Team Members</h3>
-              
-              {/* Team Leader */}
-              {teamData.createdBy && (
-                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-12 h-12 bg-yellow-500 text-white rounded-full flex items-center justify-center font-bold text-lg">
-                        {teamData.createdBy.name?.charAt(0) || 'L'}
-                      </div>
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <h4 className="font-semibold text-gray-900">
-                            {teamData.createdBy.name || 'Unknown'}
-                          </h4>
-                          <span className="bg-yellow-500 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center">
-                            <Award className="w-3 h-3 mr-1" />
-                            LEADER
-                          </span>
-                        </div>
-                        <div className="text-sm text-gray-600 space-y-1">
-                          <div className="flex items-center">
-                            <Mail className="w-4 h-4 mr-2" />
-                            {teamData.createdBy.email || 'No email'}
-                          </div>
-                          {teamData.createdBy.phoneNumber && (
-                            <div className="flex items-center">
-                              <Phone className="w-4 h-4 mr-2" />
-                              {teamData.createdBy.phoneNumber}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="text-right">
-                      <div className="text-sm text-gray-600">
-                        <div><strong>Course:</strong> {teamData.createdBy.course || 'N/A'}</div>
-                        <div><strong>Vertical:</strong> {teamData.createdBy.vertical || 'N/A'}</div>
-                        {teamData.createdBy.skills && (
-                          <div><strong>Skills:</strong> {teamData.createdBy.skills.join(', ')}</div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Team Members */}
-              {teamData.teamMembers?.filter(member => member._id !== teamData.createdBy?._id).map((member, index) => {
-                const isCurrentUser = member._id === userData._id;
-                return (
-                  <div
-                    key={member._id}
-                    className={`border rounded-lg p-4 ${
-                      isCurrentUser 
-                        ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200' 
-                        : 'bg-gray-50 border-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
+            {teamData.teamMembers && teamData.teamMembers.length > 0 && (
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                  <Users className="w-5 h-5 mr-2 text-blue-500" />
+                  Team Members ({teamData.teamMembers.length})
+                </h3>
+                <div className="grid gap-4">
+                  {teamData.teamMembers.map((member, index) => (
+                    <div key={member._id || index} className="bg-white border border-gray-200 p-4 rounded-lg hover:shadow-md transition-shadow">
                       <div className="flex items-center space-x-4">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
-                          isCurrentUser 
-                            ? 'bg-blue-500 text-white' 
-                            : 'bg-gray-500 text-white'
-                        }`}>
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold">
                           {member.name?.charAt(0) || 'M'}
                         </div>
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <h4 className="font-semibold text-gray-900">
-                              {member.name || 'Unknown'}
-                              {isCurrentUser && (
-                                <span className="text-blue-600 ml-2">(You)</span>
-                              )}
-                            </h4>
-                            <span className="bg-gray-500 text-white px-2 py-1 rounded-full text-xs font-medium">
-                              MEMBER
-                            </span>
-                          </div>
-                          <div className="text-sm text-gray-600 space-y-1">
-                            <div className="flex items-center">
-                              <Mail className="w-4 h-4 mr-2" />
-                              {member.email || 'No email'}
-                            </div>
-                            {member.phoneNumber && (
-                              <div className="flex items-center">
-                                <Phone className="w-4 h-4 mr-2" />
-                                {member.phoneNumber}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="text-right">
-                        <div className="text-sm text-gray-600">
-                          <div><strong>Course:</strong> {member.course || 'N/A'}</div>
-                          <div><strong>Vertical:</strong> {member.vertical || 'N/A'}</div>
-                          {member.skills && (
-                            <div><strong>Skills:</strong> {member.skills.join(', ')}</div>
+                        <div className="flex-1">
+                          <h4 className="font-medium text-gray-900">{member.name}</h4>
+                          <p className="text-sm text-gray-600 flex items-center">
+                            <Mail className="w-4 h-4 mr-1" />
+                            {member.email}
+                          </p>
+                          {member.phoneNumber && (
+                            <p className="text-sm text-gray-600 flex items-center">
+                              <Phone className="w-4 h-4 mr-1" />
+                              {member.phoneNumber}
+                            </p>
                           )}
+                        </div>
+                        <div className="text-right">
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            member._id === teamData.createdBy?._id 
+                              ? 'bg-yellow-100 text-yellow-800' 
+                              : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {member._id === teamData.createdBy?._id ? 'Leader' : 'Member'}
+                          </span>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Hackathon Information */}
         {hackathonData && (
           <div className="bg-white rounded-xl shadow-lg p-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Hackathon Details</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Hackathon Details</h3>
+            <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <h4 className="font-medium text-gray-900 mb-2">Event Information</h4>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div><strong>Title:</strong> {hackathonData.title}</div>
-                  <div><strong>Type:</strong> {hackathonData.eventType}</div>
-                  <div><strong>Team Size:</strong> {hackathonData.minTeamSize}-{hackathonData.maxTeamSize} members</div>
-                  <div><strong>Status:</strong> <span className="capitalize">{hackathonData.status}</span></div>
-                </div>
+                <h4 className="font-medium text-gray-900">{hackathonData.title}</h4>
+                <p className="text-sm text-gray-600">{hackathonData.description}</p>
               </div>
-              
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Timeline</h4>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div><strong>Start:</strong> {new Date(hackathonData.startDate).toLocaleDateString()}</div>
-                  <div><strong>End:</strong> {new Date(hackathonData.endDate).toLocaleDateString()}</div>
-                  {hackathonData.submissionStart && (
-                    <div><strong>Submission Start:</strong> {new Date(hackathonData.submissionStart).toLocaleDateString()}</div>
-                  )}
-                  {hackathonData.submissionEnd && (
-                    <div><strong>Submission End:</strong> {new Date(hackathonData.submissionEnd).toLocaleDateString()}</div>
-                  )}
-                </div>
+              <div className="text-sm text-gray-600">
+                <p><strong>Start:</strong> {hackathonData.startDate ? new Date(hackathonData.startDate).toLocaleDateString() : 'TBD'}</p>
+                <p><strong>End:</strong> {hackathonData.endDate ? new Date(hackathonData.endDate).toLocaleDateString() : 'TBD'}</p>
+                <p><strong>Status:</strong> <span className="capitalize">{hackathonData.status}</span></p>
               </div>
             </div>
           </div>
@@ -396,4 +342,4 @@ const MemberTeamView = () => {
   );
 };
 
-export default MemberTeamView; 
+export default MemberTeamView;
