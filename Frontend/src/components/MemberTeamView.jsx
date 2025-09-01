@@ -12,35 +12,32 @@ const MemberTeamView = () => {
   const [loading, setLoading] = useState(true);
 
   const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
+  const userId = localStorage.getItem("userId"); // SAME as SelectTeamPage
 
   const fetchUserTeam = async () => {
     console.log('🚀 fetchUserTeam called');
     console.log('👤 userData:', userData);
+    console.log('�� userId from localStorage:', userId);
     console.log('🏆 hackathon from context:', hackathon);
     
-    if (!userData?._id) {
-      console.log('❌ No userData._id found');
+    if (!userId) {
+      console.log('❌ No userId found in localStorage');
       setLoading(false);
       return;
     }
 
-    // Get hackathon ID from multiple sources
-    let hackathonId = hackathon?._id || 
-                     localStorage.getItem('currentHackathon') ||
-                     userData?.hackathonIds?.[0];
-
-    if (!hackathonId) {
-      console.log('❌ No hackathon ID found from any source');
+    if (!hackathon?._id) {
+      console.log('❌ No hackathon._id found');
       setLoading(false);
       return;
     }
 
     try {
       setLoading(true);
-      console.log(`🔍 Fetching teams for hackathon ${hackathonId}`);
+      console.log(`🔍 Fetching teams for hackathon ${hackathon._id}`);
 
-      // Use the SAME pattern as SelectTeamPage - fetch teams by hackathon
-      const response = await fetch(`${baseURL}/team/hackathon/${hackathonId}`);
+      // Use the EXACT SAME pattern as SelectTeamPage
+      const response = await fetch(`${baseURL}/team/hackathon/${hackathon._id}`);
       const data = await response.json();
       
       if (!response.ok) {
@@ -48,35 +45,22 @@ const MemberTeamView = () => {
       }
       
       const teams = data.teams || data || [];
-      console.log(`📋 Loaded ${teams.length} teams for hackathon ${hackathonId}`);
-      console.log('📊 Teams:', teams);
+      console.log(`📋 Loaded ${teams.length} teams for hackathon ${hackathon._id}`);
       
-      // Find user's team using the SAME logic as SelectTeamPage
+      // Find user's team using the EXACT SAME logic as SelectTeamPage
       const userTeam = teams.find(team => {
-        const isMember = team.teamMembers.some(member => member._id === userData._id);
-        const isCreator = team.createdBy?._id === userData._id;
+        const isMember = team.teamMembers.some(member => member._id === userId);
+        const isCreator = team.createdBy?._id === userId;
+        console.log(`Checking team ${team.teamName}: isMember=${isMember}, isCreator=${isCreator}`);
         return isMember || isCreator;
       });
       
       if (userTeam) {
         setTeamData(userTeam);
+        setHackathonData(hackathon);
         console.log(`✅ Found user's team: ${userTeam.teamName}`);
-        console.log('🎯 Team details:', userTeam);
-        
-        // Set hackathon data from context or fetch it
-        if (hackathon) {
-          setHackathonData(hackathon);
-        } else if (userTeam.hackathonId) {
-          // Fetch hackathon data if not in context
-          const hackathonResponse = await fetch(`${baseURL}/hackathons/${userTeam.hackathonId}`);
-          if (hackathonResponse.ok) {
-            const hackathonData = await hackathonResponse.json();
-            setHackathonData(hackathonData);
-            console.log(`✅ Fetched hackathon: ${hackathonData.title}`);
-          }
-        }
       } else {
-        console.warn(`⚠️ No team found for user ${userData.name} in hackathon ${hackathonId}`);
+        console.warn(`⚠️ No team found for user ${userId} in hackathon ${hackathon._id}`);
       }
       
     } catch (error) {
@@ -156,7 +140,7 @@ const MemberTeamView = () => {
             </div>
             <h2 className="text-2xl font-bold text-gray-800 mb-3">Team Not Found</h2>
             <p className="text-gray-600 text-lg mb-6 max-w-md mx-auto">
-              You haven't been assigned to a team yet for {hackathonData?.title || 'this hackathon'}.
+              You haven't been assigned to a team yet for {hackathon?.title || 'this hackathon'}.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
