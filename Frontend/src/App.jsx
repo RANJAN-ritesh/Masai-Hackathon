@@ -48,7 +48,12 @@ function App() {
     if (role === "admin") {
       return <EligibleHackathons />;
     } else {
-      return <MemberTeamView />;
+      // For participants, show the full hackathon dashboard instead of just team view
+      return hackathon && hackathon.eventType === "Interactive Hackathon" ? (
+        <CSBT />
+      ) : (
+        <MainContent />
+      );
     }
   };
 
