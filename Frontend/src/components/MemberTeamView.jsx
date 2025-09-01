@@ -6,16 +6,17 @@ import { useAuth } from '../context/AuthContextProvider';
 
 const MemberTeamView = () => {
   const navigate = useNavigate();
-  const { userData } = useAuth();
+  const { userData, hackathon } = useAuth();
   const [teamData, setTeamData] = useState(null);
   const [hackathonData, setHackathonData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
 
-  const fetchMemberTeamData = async () => {
-    console.log('🚀 fetchMemberTeamData called');
+  const fetchUserTeam = async () => {
+    console.log('🚀 fetchUserTeam called');
     console.log('👤 userData:', userData);
+    console.log('🏆 hackathon:', hackathon);
     
     if (!userData?._id) {
       console.log('❌ No userData._id found');
@@ -23,88 +24,46 @@ const MemberTeamView = () => {
       return;
     }
 
+    if (!hackathon?._id) {
+      console.log('❌ No hackathon._id found');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      console.log(`🔍 Fetching team data for member ${userData.name} (${userData._id})`);
+      console.log(`🔍 Fetching teams for hackathon ${hackathon._id}`);
 
-      // Get all teams and find the user's team
-      const teamResponse = await fetch(`${baseURL}/team/get-teams`);
-      console.log('📡 Team response status:', teamResponse.status);
+      // Use the SAME pattern as SelectTeamPage - fetch teams by hackathon
+      const response = await fetch(`${baseURL}/team/hackathon/${hackathon._id}`);
+      const data = await response.json();
       
-      if (teamResponse.ok) {
-        const teams = await teamResponse.json();
-        console.log('📊 All teams:', teams);
-        console.log('🔍 Looking for user ID:', userData._id);
-        
-        // Try multiple ways to find the user's team
-        let userTeam = null;
-        
-        // Method 1: Check if user is in teamMembers array (handle both populated and unpopulated)
-        userTeam = teams.find(team => {
-          if (!team.teamMembers) return false;
-          const found = team.teamMembers.some(member => {
-            // Handle both populated objects and ObjectId strings
-            const memberId = typeof member === 'object' ? member._id : member;
-            const match = memberId === userData._id || memberId === userData._id.toString();
-            if (match) {
-              console.log('✅ Found user in teamMembers:', team.teamName, 'member:', member);
-            }
-            return match;
-          });
-          return found;
-        });
-        
-        // Method 2: Check if user is the creator (handle both populated and unpopulated)
-        if (!userTeam) {
-          userTeam = teams.find(team => {
-            if (!team.createdBy) return false;
-            const creatorId = typeof team.createdBy === 'object' ? team.createdBy._id : team.createdBy;
-            const match = creatorId === userData._id || creatorId === userData._id.toString();
-            if (match) {
-              console.log('✅ Found user as creator:', team.teamName, 'creator:', team.createdBy);
-            }
-            return match;
-          });
-        }
-        
-        // Method 3: Check if userData has teamId (fallback)
-        if (!userTeam && userData.teamId) {
-          userTeam = teams.find(team => team._id === userData.teamId);
-          if (userTeam) {
-            console.log('✅ Found user by teamId:', userTeam.teamName);
-          }
-        }
-        
-        if (userTeam) {
-          setTeamData(userTeam);
-          console.log(`✅ Found user's team: ${userTeam.teamName}`);
-          console.log('🎯 Team details:', userTeam);
-          
-          // Get hackathon data if team has hackathonId
-          if (userTeam.hackathonId) {
-            const hackathonResponse = await fetch(`${baseURL}/hackathons/${userTeam.hackathonId}`);
-            if (hackathonResponse.ok) {
-              const hackathon = await hackathonResponse.json();
-              setHackathonData(hackathon);
-              console.log(`✅ Found hackathon: ${hackathon.title}`);
-            }
-          }
-        } else {
-          console.warn(`⚠️ No team found for user ${userData.name} (${userData._id})`);
-          console.log('Available teams:', teams.map(t => ({ 
-            id: t._id, 
-            name: t.teamName, 
-            members: t.teamMembers?.length || 0,
-            creator: t.createdBy,
-            hackathonId: t.hackathonId
-          })));
-        }
-      } else {
-        console.error(`❌ Failed to fetch teams: ${teamResponse.status}`);
-        toast.error('Failed to fetch team data');
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to fetch teams');
       }
+      
+      const teams = data.teams || data || [];
+      console.log(`📋 Loaded ${teams.length} teams for hackathon ${hackathon._id}`);
+      console.log('📊 Teams:', teams);
+      
+      // Find user's team using the SAME logic as SelectTeamPage
+      const userTeam = teams.find(team => {
+        const isMember = team.teamMembers.some(member => member._id === userData._id);
+        const isCreator = team.createdBy?._id === userData._id;
+        return isMember || isCreator;
+      });
+      
+      if (userTeam) {
+        setTeamData(userTeam);
+        setHackathonData(hackathon);
+        console.log(`✅ Found user's team: ${userTeam.teamName}`);
+        console.log('🎯 Team details:', userTeam);
+      } else {
+        console.warn(`⚠️ No team found for user ${userData.name} in hackathon ${hackathon.title}`);
+      }
+      
     } catch (error) {
-      console.error('❌ Error fetching team data:', error);
+      console.error('❌ Error fetching user team:', error);
       toast.error('Error loading team information');
     } finally {
       setLoading(false);
@@ -128,30 +87,13 @@ const MemberTeamView = () => {
     // Add team leader first
     const leader = teamData.createdBy;
     if (leader) {
-      const leaderName = typeof leader === 'object' ? leader.name : 'Unknown';
-      const leaderEmail = typeof leader === 'object' ? leader.email : 'N/A';
-      const leaderCourse = typeof leader === 'object' ? leader.course : 'N/A';
-      const leaderSkills = typeof leader === 'object' ? (leader.skills ? leader.skills.join(', ') : 'N/A') : 'N/A';
-      const leaderVertical = typeof leader === 'object' ? leader.vertical : 'N/A';
-      const leaderPhone = typeof leader === 'object' ? leader.phoneNumber : 'N/A';
-      
-      csvContent += `${leaderName}\t${leaderEmail}\tleader\t${leaderCourse}\t${leaderSkills}\t${leaderVertical}\t${leaderPhone}\n`;
+      csvContent += `${leader.name || 'Unknown'}\t${leader.email || 'N/A'}\tleader\t${leader.course || 'N/A'}\t${leader.skills ? leader.skills.join(', ') : 'N/A'}\t${leader.vertical || 'N/A'}\t${leader.phoneNumber || 'N/A'}\n`;
     }
     
     // Add team members
     teamData.teamMembers?.forEach(member => {
-      const memberId = typeof member === 'object' ? member._id : member;
-      const leaderId = typeof teamData.createdBy === 'object' ? teamData.createdBy._id : teamData.createdBy;
-      
-      if (memberId !== leaderId) {
-        const memberName = typeof member === 'object' ? member.name : 'Unknown';
-        const memberEmail = typeof member === 'object' ? member.email : 'N/A';
-        const memberCourse = typeof member === 'object' ? member.course : 'N/A';
-        const memberSkills = typeof member === 'object' ? (member.skills ? member.skills.join(', ') : 'N/A') : 'N/A';
-        const memberVertical = typeof member === 'object' ? member.vertical : 'N/A';
-        const memberPhone = typeof member === 'object' ? member.phoneNumber : 'N/A';
-        
-        csvContent += `${memberName}\t${memberEmail}\tmember\t${memberCourse}\t${memberSkills}\t${memberVertical}\t${memberPhone}\n`;
+      if (member._id !== teamData.createdBy?._id) {
+        csvContent += `${member.name || 'Unknown'}\t${member.email || 'N/A'}\tmember\t${member.course || 'N/A'}\t${member.skills ? member.skills.join(', ') : 'N/A'}\t${member.vertical || 'N/A'}\t${member.phoneNumber || 'N/A'}\n`;
       }
     });
     
@@ -159,9 +101,9 @@ const MemberTeamView = () => {
   };
 
   useEffect(() => {
-    console.log('🔄 useEffect triggered, userData:', userData);
-    fetchMemberTeamData();
-  }, [userData]);
+    console.log('🔄 useEffect triggered');
+    fetchUserTeam();
+  }, [userData, hackathon]);
 
   if (loading) {
     return (
@@ -197,30 +139,15 @@ const MemberTeamView = () => {
             </div>
             <h2 className="text-2xl font-bold text-gray-800 mb-3">Team Not Found</h2>
             <p className="text-gray-600 text-lg mb-6 max-w-md mx-auto">
-              Your team information couldn't be loaded. This could mean:
+              You haven't been assigned to a team yet for {hackathon?.title || 'this hackathon'}.
             </p>
-            
-            <div className="text-left bg-gray-50 rounded-lg p-4 mb-6 max-w-md mx-auto">
-              <ul className="text-sm text-gray-600 space-y-2">
-                <li>• You haven't joined a team yet</li>
-                <li>• Your team was recently created and needs to refresh</li>
-                <li>• There was an issue loading team data</li>
-              </ul>
-            </div>
             
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
-                onClick={fetchMemberTeamData}
+                onClick={fetchUserTeam}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold"
               >
                 Retry
-              </button>
-              
-              <button
-                onClick={() => navigate('/create-participant-team')}
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold"
-              >
-                Create Team
               </button>
               
               <button
@@ -307,17 +234,15 @@ const MemberTeamView = () => {
                 <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-lg border border-yellow-200">
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                      {typeof teamData.createdBy === 'object' ? (teamData.createdBy.name?.charAt(0) || 'L') : 'L'}
+                      {teamData.createdBy.name?.charAt(0) || 'L'}
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900">
-                        {typeof teamData.createdBy === 'object' ? teamData.createdBy.name : 'Unknown Leader'}
-                      </h4>
+                      <h4 className="font-semibold text-gray-900">{teamData.createdBy.name}</h4>
                       <p className="text-sm text-gray-600 flex items-center">
                         <Mail className="w-4 h-4 mr-1" />
-                        {typeof teamData.createdBy === 'object' ? teamData.createdBy.email : 'N/A'}
+                        {teamData.createdBy.email}
                       </p>
-                      {typeof teamData.createdBy === 'object' && teamData.createdBy.phoneNumber && (
+                      {teamData.createdBy.phoneNumber && (
                         <p className="text-sm text-gray-600 flex items-center">
                           <Phone className="w-4 h-4 mr-1" />
                           {teamData.createdBy.phoneNumber}
@@ -343,25 +268,21 @@ const MemberTeamView = () => {
                 </h3>
                 <div className="grid gap-4">
                   {teamData.teamMembers.map((member, index) => {
-                    const memberId = typeof member === 'object' ? member._id : member;
-                    const leaderId = typeof teamData.createdBy === 'object' ? teamData.createdBy._id : teamData.createdBy;
-                    const isLeader = memberId === leaderId;
+                    const isLeader = member._id === teamData.createdBy?._id;
                     
                     return (
-                      <div key={memberId || index} className="bg-white border border-gray-200 p-4 rounded-lg hover:shadow-md transition-shadow">
+                      <div key={member._id || index} className="bg-white border border-gray-200 p-4 rounded-lg hover:shadow-md transition-shadow">
                         <div className="flex items-center space-x-4">
                           <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center text-white font-bold">
-                            {typeof member === 'object' ? (member.name?.charAt(0) || 'M') : 'M'}
+                            {member.name?.charAt(0) || 'M'}
                           </div>
                           <div className="flex-1">
-                            <h4 className="font-medium text-gray-900">
-                              {typeof member === 'object' ? member.name : 'Unknown Member'}
-                            </h4>
+                            <h4 className="font-medium text-gray-900">{member.name}</h4>
                             <p className="text-sm text-gray-600 flex items-center">
                               <Mail className="w-4 h-4 mr-1" />
-                              {typeof member === 'object' ? member.email : 'N/A'}
+                              {member.email}
                             </p>
-                            {typeof member === 'object' && member.phoneNumber && (
+                            {member.phoneNumber && (
                               <p className="text-sm text-gray-600 flex items-center">
                                 <Phone className="w-4 h-4 mr-1" />
                                 {member.phoneNumber}
