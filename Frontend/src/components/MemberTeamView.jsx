@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Users, ArrowLeft, Copy, User, Mail, Phone, Calendar, Award } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { useAuth } from '../context/AuthContextProvider';
+import { MyContext } from '../context/AuthContextProvider';
 
 const MemberTeamView = () => {
   const navigate = useNavigate();
-  const { userData, hackathon } = useAuth();
+  const { userData, hackathon } = useContext(MyContext);
   const [teamData, setTeamData] = useState(null);
   const [hackathonData, setHackathonData] = useState(null);
   const [loading, setLoading] = useState(true);
