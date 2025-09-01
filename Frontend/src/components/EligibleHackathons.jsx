@@ -18,7 +18,8 @@ import {
   X,
   Eye,
   Crown,
-  Palette
+  Palette,
+  Code
 } from "lucide-react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
