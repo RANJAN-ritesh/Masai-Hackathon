@@ -19,11 +19,16 @@ router.get("/user/:userId/hackathon/:hackathonId", async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
     
-    // Find team where user is a member
-    const team = await Team.findOne({
+    // Find team where user is a member or team creator
+    const teams = await Team.find({
       hackathonId: hackathonId,
-      teamMembers: { $in: [userId] }
+      $or: [
+        { teamMembers: { $in: [user._id] } },
+        { createdBy: user._id }
+      ]
     }).populate('teamMembers', 'name email role').populate('createdBy', 'name email');
+
+    const team = teams && teams.length > 0 ? teams[0] : null;
     
     if (!team) {
       return res.status(200).json({

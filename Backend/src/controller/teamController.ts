@@ -64,26 +64,26 @@ export const createTeams = async( req:Request<{}, {}, {teamName: string, created
             return;
         }
 
-        // Process team members - convert string IDs to ObjectIds
-        let teamMemberIds: mongoose.Types.ObjectId[] = [createdByObjectId]; // Always include creator
+        // Process team members - always include creator first
+        const teamMemberIdSet = new Set<string>([createdByObjectId.toString()]);
         
         if (teamMembers && Array.isArray(teamMembers)) {
-            // Convert all team member IDs to ObjectIds and validate them
-            const validMemberIds = [];
             for (const memberId of teamMembers) {
                 try {
                     const memberObjectId = new mongoose.Types.ObjectId(memberId);
-                    // Check if user exists
                     const memberExists = await user.findById(memberObjectId);
                     if (memberExists) {
-                        validMemberIds.push(memberObjectId);
+                        // Skip if already in a different team
+                        if (memberExists.teamId && memberExists.teamId !== "") continue;
+                        teamMemberIdSet.add(memberObjectId.toString());
                     }
                 } catch (error) {
                     console.log(`Invalid member ID: ${memberId}`);
                 }
             }
-            teamMemberIds = validMemberIds;
         }
+        
+        const teamMemberIds: mongoose.Types.ObjectId[] = Array.from(teamMemberIdSet).map(id => new mongoose.Types.ObjectId(id));
 
         // Create the team with hackathon association
         const newTeam = await team.create({
@@ -97,12 +97,18 @@ export const createTeams = async( req:Request<{}, {}, {teamName: string, created
         });
 
         if (newTeam) {
-            // Update all team members with teamId
-            await Promise.all(
-                teamMemberIds.map(memberId => 
-                    user.findByIdAndUpdate(memberId, { teamId: newTeam._id })
+            // Update all team members (including creator) with teamId and hackathon association
+            const userUpdateOps = teamMemberIds.map(memberId => 
+                user.findByIdAndUpdate(
+                    memberId,
+                    { 
+                        teamId: newTeam._id,
+                        $addToSet: { hackathonIds: hackathonId || null }
+                    },
+                    { new: true }
                 )
             );
+            await Promise.all(userUpdateOps);
 
             // Update team leader role if not already admin
             if (userExists.role === 'member') {
