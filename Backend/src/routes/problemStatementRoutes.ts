@@ -1,50 +1,43 @@
 import express from 'express';
-import { 
-  createProblemStatement, 
-  getProblemStatements, 
-  updateProblemStatement, 
-  deleteProblemStatement 
-} from '../controller/problemStatementController';
+import { authenticateUser } from '../middleware/auth';
 import {
-  getSelectionWindowStatus,
-  getTeamSelection,
+  getProblemStatements,
+  createProblemStatement,
+  getTeamProblemSelection,
   selectProblemStatement,
-  createProblemPoll,
-  voteOnPoll,
-  completePoll,
-  submitSolution,
+  createProblemSelectionPoll,
+  voteOnProblemSelectionPoll,
+  completeProblemSelectionPoll,
+  submitTeamSolution,
   getTeamSubmission,
-  getSubmissionWindowStatus,
-  getTeamPolls,
-  exportHackathonData
+  getAdminTeamData
 } from '../controller/problemStatementController';
-import { verifyToken } from '../middleware/auth';
 
 const router = express.Router();
 
-// Existing problem statement CRUD routes
-router.post('/create', verifyToken, createProblemStatement);
+// Public routes
 router.get('/hackathon/:hackathonId', getProblemStatements);
-router.put('/update/:id', verifyToken, updateProblemStatement);
-router.delete('/delete/:id', verifyToken, deleteProblemStatement);
 
-// New selection system routes
-router.get('/selection-window/:hackathonId', verifyToken, getSelectionWindowStatus);
-router.get('/team-selection/:teamId/:hackathonId', verifyToken, getTeamSelection);
-router.post('/select', verifyToken, selectProblemStatement);
+// Protected routes
+router.use(authenticateUser);
 
-// Poll system routes
-router.post('/create-poll', verifyToken, createProblemPoll);
-router.post('/vote', verifyToken, voteOnPoll);
-router.put('/complete-poll/:pollId', verifyToken, completePoll);
-router.get('/team-polls/:teamId/:hackathonId', verifyToken, getTeamPolls);
+// Problem statement management
+router.post('/', createProblemStatement);
 
-// Submission system routes
-router.post('/submit', verifyToken, submitSolution);
-router.get('/team-submission/:teamId/:hackathonId', verifyToken, getTeamSubmission);
-router.get('/submission-window/:hackathonId', verifyToken, getSubmissionWindowStatus);
+// Team problem selection
+router.get('/team/:teamId/hackathon/:hackathonId/selection', getTeamProblemSelection);
+router.post('/select', selectProblemStatement);
 
-// Admin export route
-router.get('/export/:hackathonId', verifyToken, exportHackathonData);
+// Poll management
+router.post('/poll/create', createProblemSelectionPoll);
+router.post('/poll/vote', voteOnProblemSelectionPoll);
+router.post('/poll/:pollId/complete', completeProblemSelectionPoll);
+
+// Submission management
+router.post('/submit', submitTeamSolution);
+router.get('/team/:teamId/hackathon/:hackathonId/submission', getTeamSubmission);
+
+// Admin routes
+router.get('/admin/hackathon/:hackathonId/team-data', getAdminTeamData);
 
 export default router;

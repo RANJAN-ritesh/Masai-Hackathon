@@ -1,20 +1,42 @@
-import mongoose, { Schema, Document } from "mongoose";
+import mongoose from 'mongoose';
 
-export interface IProblemStatement extends Document {
-    problemId: string;
-    problemNo: number;
-    techStack: string[]; 
-    link: string; 
-}
+const problemStatementSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  description: {
+    type: String,
+    required: true
+  },
+  category: {
+    type: String,
+    required: true
+  },
+  difficulty: {
+    type: String,
+    enum: ['Easy', 'Medium', 'Hard'],
+    default: 'Medium'
+  },
+  hackathonId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Hackathon',
+    required: true
+  },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
 
-const ProblemStatementSchema = new Schema<IProblemStatement>(
-    {
-        problemId: { type: String, required: true, unique: true },
-        problemNo: { type: Number, required: true, unique: true },
-        techStack: { type: [String], required: true }, 
-        link: { type: String, required: true }
-    },
-    { timestamps: true } // Adds createdAt and updatedAt fields
-);
-
-export default mongoose.model<IProblemStatement>("ProblemStatement", ProblemStatementSchema);
+export const ProblemStatement = mongoose.model('ProblemStatement', problemStatementSchema);

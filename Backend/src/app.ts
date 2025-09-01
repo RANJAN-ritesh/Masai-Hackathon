@@ -8,13 +8,15 @@ import team from "./model/team";
 import teamRequests from "./model/teamRequests";
 import problemStatement from "./model/problemStatement";
 import { autoTeamCreationService } from "./services/autoTeamCreationService";
-import { problemSelectionService } from "./services/problemSelectionService";
 import userRoutes from "./routes/userRoutes";
 import teamRoutes from "./routes/teamRoutes";
 import teamRequestRoutes from "./routes/teamRequestRoutes";
 import problemStatementRoutes from "./routes/problemStatementRoutes";
 import participantTeamRoutes from "./routes/participantTeamRoutes";
+import problemStatementManagementRoutes from "./routes/problemStatementRoutes";
 import cleanupService from "./services/cleanupService";
+import { alertService } from "./services/alertService";
+import { problemManagementService } from "./services/problemManagementService";
 import User from "./model/user";
 import Hackathon from "./model/hackathon";
 
@@ -81,6 +83,7 @@ app.use("/team", teamRoutes);
 app.use("/team-request", teamRequestRoutes);
 app.use("/hackathons", problemStatementRoutes); // Mount hackathon routes at /hackathons level
 app.use("/participant-team", participantTeamRoutes); // Enable participant team routes
+app.use("/problem-statements", problemStatementManagementRoutes); // Problem statement management routes
 
 // EMERGENCY DEBUG ROUTE - NO AUTHENTICATION
 app.get("/debug-participants/:hackathonId", async (req, res) => {
@@ -159,11 +162,10 @@ app.get("/health", (req, res) => {
     message: "Masai Hackathon Backend is running",
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || "development",
-    schemaVersion: "2.2.0", // Updated for problem selection system
+    schemaVersion: "2.1.4", // Updated to force redeploy
     buildTime: new Date().toISOString(),
     autoTeamCreationService: "running",
-    cleanupService: "running",
-    problemSelectionService: "running"
+    cleanupService: "running"
   });
 });
 
@@ -202,8 +204,8 @@ app.listen(PORT, () => {
     autoTeamCreationService.start();
     // Start automatic cleanup service
     cleanupService.startPeriodicCleanup(24 * 60 * 60 * 1000); // Every 24 hours
-    // Start problem selection service
-    problemSelectionService.startServices();
-    // Start problem selection service
-    problemSelectionService.startServices();
+    // Start alert service
+    alertService.startAlertService();
+    // Start problem management service
+    problemManagementService.startProblemManagementService();
 });

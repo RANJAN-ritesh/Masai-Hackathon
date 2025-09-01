@@ -1,27 +1,13 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose from 'mongoose';
 
-export interface ITeamSubmission extends Document {
-  teamId: mongoose.Types.ObjectId;
-  hackathonId: mongoose.Types.ObjectId;
-  submissionUrl: string;
-  submittedBy: mongoose.Types.ObjectId;
-  submittedAt: Date;
-  isValidUrl: boolean;
-  urlCheckedAt: Date;
-  submissionTitle?: string;
-  submissionDescription?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const teamSubmissionSchema = new Schema<ITeamSubmission>({
+const teamSubmissionSchema = new mongoose.Schema({
   teamId: {
-    type: Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.ObjectId,
     ref: 'Team',
     required: true
   },
   hackathonId: {
-    type: Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.ObjectId,
     ref: 'Hackathon',
     required: true
   },
@@ -36,7 +22,7 @@ const teamSubmissionSchema = new Schema<ITeamSubmission>({
     }
   },
   submittedBy: {
-    type: Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
   },
@@ -44,30 +30,13 @@ const teamSubmissionSchema = new Schema<ITeamSubmission>({
     type: Date,
     default: Date.now
   },
-  isValidUrl: {
+  isFinal: {
     type: Boolean,
-    default: false
-  },
-  urlCheckedAt: {
-    type: Date,
-    default: Date.now
-  },
-  submissionTitle: {
-    type: String,
-    maxlength: 200
-  },
-  submissionDescription: {
-    type: String,
-    maxlength: 1000
+    default: true
   }
-}, {
-  timestamps: true
 });
 
-// Indexes for efficient querying
+// Ensure one submission per team per hackathon
 teamSubmissionSchema.index({ teamId: 1, hackathonId: 1 }, { unique: true });
-teamSubmissionSchema.index({ hackathonId: 1 });
-teamSubmissionSchema.index({ submittedBy: 1 });
-teamSubmissionSchema.index({ submittedAt: 1 });
 
-export const TeamSubmission = mongoose.model<ITeamSubmission>('TeamSubmission', teamSubmissionSchema); 
+export const TeamSubmission = mongoose.model('TeamSubmission', teamSubmissionSchema);

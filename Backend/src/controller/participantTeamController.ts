@@ -161,7 +161,7 @@ export const sendJoinRequest = async (req: Request, res: Response) => {
     }
 
     // Check if user is already a member of this team
-    if (team.teamMembers.map(m => m.toString()).includes(fromUserId)) {
+    if (team.teamMembers.includes(fromUserId)) {
       return res.status(400).json({ message: 'You are already a member of this team' });
     }
 
@@ -182,7 +182,7 @@ export const sendJoinRequest = async (req: Request, res: Response) => {
       fromUser: fromUserId,
       message: message || 'I would like to join your team!',
       status: 'pending',
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      expiresAt: calculateRequestExpiry()
     });
 
     await teamRequest.save();
@@ -274,7 +274,7 @@ export const sendInvitation = async (req: Request, res: Response) => {
       message: message || 'You are invited to join our team!',
       type: 'invitation',
       status: 'pending',
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      expiresAt: calculateRequestExpiry()
     });
 
     await invitation.save();

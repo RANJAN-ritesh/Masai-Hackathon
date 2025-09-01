@@ -25,6 +25,7 @@ import "react-toastify/dist/ReactToastify.css";
 import ConfirmationModal from "./ConfirmationModal";
 import CSVManagementModal from "./CSVManagementModal";
 import HackathonCustomization from "./HackathonCustomization";
+import ProblemStatementManagement from "./ProblemStatementManagement";
 
 const EligibleHackathons = () => {
   const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
@@ -37,6 +38,7 @@ const EligibleHackathons = () => {
   const [modalConfig, setModalConfig] = useState({});
   const [csvModalOpen, setCsvModalOpen] = useState(false);
   const [customizationModalOpen, setCustomizationModalOpen] = useState(false);
+  const [problemStatementModalOpen, setProblemStatementModalOpen] = useState(false);
   const [selectedHackathonId, setSelectedHackathonId] = useState(null);
   const location = useLocation(); // Add this line
 
@@ -654,6 +656,17 @@ const EligibleHackathons = () => {
                                 <button
                                   onClick={() => {
                                     setSelectedHackathonId(registration._id);
+                                    setProblemStatementModalOpen(true);
+                                  }}
+                                  className="bg-gradient-to-r from-orange-400 to-red-500 hover:from-orange-500 hover:to-red-600 text-white p-2 rounded-lg transition-all duration-300 shadow-sm hover:shadow"
+                                  title="Manage Problem Statements"
+                                >
+                                  <Code className="w-5 h-5" />
+                                </button>
+
+                                <button
+                                  onClick={() => {
+                                    setSelectedHackathonId(registration._id);
                                     setCustomizationModalOpen(true);
                                   }}
                                   className="bg-gradient-to-r from-pink-400 to-purple-500 hover:from-pink-500 hover:to-purple-600 text-white p-2 rounded-lg transition-all duration-300 shadow-sm hover:shadow"
@@ -961,6 +974,11 @@ const EligibleHackathons = () => {
           isOpen={csvModalOpen}
           onClose={() => setCsvModalOpen(false)}
           hackathonId={selectedHackathonId}
+        />
+
+        {/* Problem Statement Management Modal */}
+        <ProblemStatementManagement
+          hackathonData={hackathons.find((h) => h._id === selectedHackathonId)}
         />
 
         {/* Hackathon Customization Modal */}
