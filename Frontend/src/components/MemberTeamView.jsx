@@ -14,7 +14,11 @@ const MemberTeamView = () => {
   const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
 
   const fetchMemberTeamData = async () => {
+    console.log('🚀 fetchMemberTeamData called');
+    console.log('👤 userData:', userData);
+    
     if (!userData?._id) {
+      console.log('❌ No userData._id found');
       setLoading(false);
       return;
     }
@@ -25,9 +29,12 @@ const MemberTeamView = () => {
 
       // Get all teams and find the user's team
       const teamResponse = await fetch(`${baseURL}/team/get-teams`);
+      console.log('📡 Team response status:', teamResponse.status);
+      
       if (teamResponse.ok) {
         const teams = await teamResponse.json();
         console.log('📊 All teams:', teams);
+        console.log('🔍 Looking for user ID:', userData._id);
         
         // Try multiple ways to find the user's team
         let userTeam = null;
@@ -35,11 +42,16 @@ const MemberTeamView = () => {
         // Method 1: Check if user is in teamMembers array (handle both populated and unpopulated)
         userTeam = teams.find(team => {
           if (!team.teamMembers) return false;
-          return team.teamMembers.some(member => {
+          const found = team.teamMembers.some(member => {
             // Handle both populated objects and ObjectId strings
             const memberId = typeof member === 'object' ? member._id : member;
-            return memberId === userData._id || memberId === userData._id.toString();
+            const match = memberId === userData._id || memberId === userData._id.toString();
+            if (match) {
+              console.log('✅ Found user in teamMembers:', team.teamName, 'member:', member);
+            }
+            return match;
           });
+          return found;
         });
         
         // Method 2: Check if user is the creator (handle both populated and unpopulated)
@@ -47,13 +59,20 @@ const MemberTeamView = () => {
           userTeam = teams.find(team => {
             if (!team.createdBy) return false;
             const creatorId = typeof team.createdBy === 'object' ? team.createdBy._id : team.createdBy;
-            return creatorId === userData._id || creatorId === userData._id.toString();
+            const match = creatorId === userData._id || creatorId === userData._id.toString();
+            if (match) {
+              console.log('✅ Found user as creator:', team.teamName, 'creator:', team.createdBy);
+            }
+            return match;
           });
         }
         
         // Method 3: Check if userData has teamId (fallback)
         if (!userTeam && userData.teamId) {
           userTeam = teams.find(team => team._id === userData.teamId);
+          if (userTeam) {
+            console.log('✅ Found user by teamId:', userTeam.teamName);
+          }
         }
         
         if (userTeam) {
@@ -140,6 +159,7 @@ const MemberTeamView = () => {
   };
 
   useEffect(() => {
+    console.log('🔄 useEffect triggered, userData:', userData);
     fetchMemberTeamData();
   }, [userData]);
 
