@@ -182,7 +182,7 @@ export const sendJoinRequest = async (req: Request, res: Response) => {
       fromUser: fromUserId,
       message: message || 'I would like to join your team!',
       status: 'pending',
-      expiresAt: await calculateRequestExpiry(team.hackathonId?.toString() || '', Hackathon)
+      expiresAt: await calculateRequestExpiry(team.hackathonId || '', Hackathon)
     });
 
     await teamRequest.save();
@@ -243,7 +243,7 @@ export const sendInvitation = async (req: Request, res: Response) => {
 
     console.log('🔍 Team found:', { teamId: team._id, teamLeader: team.teamLeader, fromUserId });
 
-    if (team.teamLeader.toString() !== fromUserId) {
+    if (!team.teamLeader || team.teamLeader.toString() !== fromUserId) {
       console.log('❌ User is not team leader');
       return res.status(403).json({ message: 'Only team leaders can send invitations' });
     }
