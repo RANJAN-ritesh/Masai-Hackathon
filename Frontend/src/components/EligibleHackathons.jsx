@@ -26,7 +26,7 @@ import "react-toastify/dist/ReactToastify.css";
 import ConfirmationModal from "./ConfirmationModal";
 import CSVManagementModal from "./CSVManagementModal";
 import HackathonCustomization from "./HackathonCustomization";
-import ProblemStatementManagement from "./ProblemStatementManagement";
+
 
 const EligibleHackathons = () => {
   const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
@@ -977,10 +977,7 @@ const EligibleHackathons = () => {
           hackathonId={selectedHackathonId}
         />
 
-        {/* Problem Statement Management Modal */}
-        <ProblemStatementManagement
-          hackathonData={hackathons.find((h) => h._id === selectedHackathonId)}
-        />
+        {/* Problem Statement Management Modal - Temporarily removed */}
 
         {/* Hackathon Customization Modal */}
         <HackathonCustomization
