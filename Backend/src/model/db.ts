@@ -20,8 +20,7 @@ export const connectDB = async () => {
             maxPoolSize: 10,
             serverSelectionTimeoutMS: 5000,
             socketTimeoutMS: 45000,
-            bufferCommands: false,
-            bufferMaxEntries: 0
+            bufferCommands: false
         });
         console.log("MongoDB Connected Successfully");
         
@@ -39,27 +38,33 @@ async function createIndexes() {
     try {
         console.log("🔍 Creating database indexes...");
         
+        const db = mongoose.connection.db;
+        if (!db) {
+            console.error("❌ Database connection not available for indexing");
+            return;
+        }
+
         // User collection indexes
-        await mongoose.connection.db.collection('users').createIndex({ email: 1 }, { unique: true });
-        await mongoose.connection.db.collection('users').createIndex({ hackathonIds: 1 });
-        await mongoose.connection.db.collection('users').createIndex({ currentTeamId: 1 });
-        await mongoose.connection.db.collection('users').createIndex({ role: 1 });
-        
+        await db.collection('users').createIndex({ email: 1 }, { unique: true });
+        await db.collection('users').createIndex({ hackathonIds: 1 });
+        await db.collection('users').createIndex({ currentTeamId: 1 });
+        await db.collection('users').createIndex({ role: 1 });
+
         // Team collection indexes
-        await mongoose.connection.db.collection('teams').createIndex({ hackathonId: 1 });
-        await mongoose.connection.db.collection('teams').createIndex({ teamMembers: 1 });
-        await mongoose.connection.db.collection('teams').createIndex({ createdBy: 1 });
-        await mongoose.connection.db.collection('teams').createIndex({ teamName: 1, hackathonId: 1 }, { unique: true });
-        
+        await db.collection('teams').createIndex({ hackathonId: 1 });
+        await db.collection('teams').createIndex({ teamMembers: 1 });
+        await db.collection('teams').createIndex({ createdBy: 1 });
+        await db.collection('teams').createIndex({ teamName: 1, hackathonId: 1 }, { unique: true });
+
         // Hackathon collection indexes
-        await mongoose.connection.db.collection('hackathons').createIndex({ status: 1 });
-        await mongoose.connection.db.collection('hackathons').createIndex({ startDate: 1 });
-        await mongoose.connection.db.collection('hackathons').createIndex({ teamCreationMode: 1 });
+        await db.collection('hackathons').createIndex({ status: 1 });
+        await db.collection('hackathons').createIndex({ startDate: 1 });
+        await db.collection('hackathons').createIndex({ teamCreationMode: 1 });
         
-        // Team requests indexes
-        await mongoose.connection.db.collection('teamrequests').createIndex({ teamId: 1 });
-        await mongoose.connection.db.collection('teamrequests').createIndex({ fromUser: 1 });
-        await mongoose.connection.db.collection('teamrequests').createIndex({ status: 1 });
+        // TeamRequest collection indexes
+        await db.collection('teamrequests').createIndex({ teamId: 1 });
+        await db.collection('teamrequests').createIndex({ fromUser: 1 });
+        await db.collection('teamrequests').createIndex({ status: 1 });
         
         console.log("✅ Database indexes created successfully");
         

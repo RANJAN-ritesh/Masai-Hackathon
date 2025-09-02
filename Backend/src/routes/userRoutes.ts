@@ -89,7 +89,7 @@ router.post("/upload-participants", async (req, res) => {
               console.log(`🔍 User ${email} hackathon history:`, {
                 totalHackathons: otherHackathons.length,
                 ongoingHackathons: ongoingHackathons.length,
-                allHackathons: allOtherHackathons.map(h => ({ id: h._id, title: h.title, status: h.status }))
+                allHackathons: allOtherHackathons.map((h: any) => ({ id: h._id, title: h.title, status: h.status }))
               });
               
               if (ongoingHackathons.length > 0) {
@@ -97,15 +97,15 @@ router.post("/upload-participants", async (req, res) => {
                   email: email,
                   error: `User is already part of ongoing hackathon: ${ongoingHackathons[0].title}`,
                   hackathonDetails: {
-                    ongoing: ongoingHackathons.map(h => ({ id: h._id, title: h.title, status: h.status })),
-                    all: allOtherHackathons.map(h => ({ id: h._id, title: h.title, status: h.status }))
+                    ongoing: ongoingHackathons.map((h: any) => ({ id: h._id, title: h.title, status: h.status })),
+                    all: allOtherHackathons.map((h: any) => ({ id: h._id, title: h.title, status: h.status }))
                   }
-                });
+                } as any);
                 continue; // Skip this user
               } else {
                 // User has been in other hackathons but none are ongoing - add them to this one
                 console.log(`✅ User ${email} can join this hackathon (previous hackathons completed):`, 
-                  allOtherHackathons.map(h => ({ title: h.title, status: h.status }))
+                  allOtherHackathons.map((h: any) => ({ title: h.title, status: h.status }))
                 );
               }
             }
@@ -222,13 +222,13 @@ router.post("/upload-participants", async (req, res) => {
           details: otherHackathonErrors.map(e => ({
             email: e.email,
             currentHackathon: e.error.split(': ')[1],
-            hackathonDetails: e.hackathonDetails
+            hackathonDetails: (e as any).hackathonDetails
           }))
         });
       }
       
       // Show participants with hackathon history
-      const participantsWithHistory = errors.filter(e => e.hackathonDetails?.all?.length > 0);
+      const participantsWithHistory = errors.filter(e => (e as any).hackathonDetails?.all?.length > 0);
       if (participantsWithHistory.length > 0) {
         notifications.push({
           type: 'info',
@@ -236,8 +236,8 @@ router.post("/upload-participants", async (req, res) => {
           message: `${participantsWithHistory.length} participants have been in other hackathons (completed or deleted).`,
           details: participantsWithHistory.map(e => ({
             email: e.email,
-            totalHackathons: e.hackathonDetails.all.length,
-            hackathons: e.hackathonDetails.all.slice(0, 3).map(h => `${h.title} (${h.status})`)
+            totalHackathons: (e as any).hackathonDetails.all.length,
+            hackathons: (e as any).hackathonDetails.all.slice(0, 3).map((h: any) => `${h.title} (${h.status})`)
           }))
         });
       }

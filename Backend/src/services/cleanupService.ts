@@ -53,7 +53,7 @@ class CleanupService {
     try {
       // 1. Get all existing hackathon IDs
       const existingHackathons = await Hackathon.find({}, '_id');
-      const existingHackathonIds = existingHackathons.map(h => h._id.toString());
+      const existingHackathonIds = existingHackathons.map(h => (h._id as any).toString());
       
       // 2. Clean up users with invalid hackathon references
       const usersWithInvalidRefs = await User.find({
@@ -91,7 +91,7 @@ class CleanupService {
       
       // 4. Clean up invalid team references in users
       const teams = await Team.find({}, '_id');
-      const existingTeamIds = teams.map(t => t._id.toString());
+      const existingTeamIds = teams.map(t => (t._id as any).toString());
       
       const usersWithInvalidTeams = await User.find({
         teamId: { $exists: true, $ne: "" }

@@ -5,7 +5,7 @@ import TeamRequest from '../model/teamRequests';
 import Hackathon from '../model/hackathon';
 import { validateTeamName, canLeaveTeam, transferTeamOwnership, canTeamReceiveRequests, canUserSendRequests } from '../utils/teamUtils';
 import { calculateRequestExpiry, isRequestExpired } from '../utils/teamUtils';
-import { notificationService, createAutoTeamCreationNotification, createRequestReceivedNotification, createOwnershipTransferredNotification } from '../services/notificationService';
+import { notificationService, createAutoTeamCreationNotification, createRequestReceivedNotification, createOwnershipTransferredNotification, createInvitationReceivedNotification } from '../services/notificationService';
 
 // Create a new team as a participant
 export const createParticipantTeam = async (req: Request, res: Response) => {
@@ -161,7 +161,7 @@ export const sendJoinRequest = async (req: Request, res: Response) => {
     }
 
     // Check if user is already a member of this team
-    if (team.teamMembers.includes(fromUserId)) {
+    if (team.teamMembers.some(member => member.toString() === fromUserId)) {
       return res.status(400).json({ message: 'You are already a member of this team' });
     }
 
@@ -182,7 +182,7 @@ export const sendJoinRequest = async (req: Request, res: Response) => {
       fromUser: fromUserId,
       message: message || 'I would like to join your team!',
       status: 'pending',
-      expiresAt: calculateRequestExpiry()
+      expiresAt: await calculateRequestExpiry(team.hackathonId?.toString() || '', Hackathon)
     });
 
     await teamRequest.save();
@@ -196,10 +196,10 @@ export const sendJoinRequest = async (req: Request, res: Response) => {
     const teamLeader = await User.findById(team.teamLeader);
     if (teamLeader) {
       createRequestReceivedNotification(
-        teamLeader._id.toString(),
+        (teamLeader._id as any).toString(),
         user.name,
         team.teamName,
-        teamRequest._id.toString()
+        (teamRequest._id as any).toString()
       );
     }
 
@@ -274,7 +274,7 @@ export const sendInvitation = async (req: Request, res: Response) => {
       message: message || 'You are invited to join our team!',
       type: 'invitation',
       status: 'pending',
-      expiresAt: calculateRequestExpiry()
+      expiresAt: await calculateRequestExpiry(team.hackathonId?.toString() || '', Hackathon)
     });
 
     await invitation.save();

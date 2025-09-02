@@ -16,8 +16,6 @@ import participantTeamRoutes from "./routes/participantTeamRoutes";
 import problemStatementManagementRoutes from "./routes/problemStatementRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import cleanupService from "./services/cleanupService";
-import { alertService } from "./services/alertService";
-import { problemManagementService } from "./services/problemManagementService";
 import User from "./model/user";
 import Hackathon from "./model/hackathon";
 
@@ -206,8 +204,4 @@ app.listen(PORT, () => {
     autoTeamCreationService.start();
     // Start automatic cleanup service
     cleanupService.startPeriodicCleanup(24 * 60 * 60 * 1000); // Every 24 hours
-    // Start alert service
-    alertService.startAlertService();
-    // Start problem management service
-    problemManagementService.startProblemManagementService();
 });

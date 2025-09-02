@@ -106,6 +106,7 @@ router.put("/:id", async (req, res) => {
 // DELETE - Delete hackathon
 router.delete("/:id", async (req, res) => {
   try {
+    const { id } = req.params;
     const deletedHackathon = await Hackathon.findByIdAndDelete(id);
     
     if (!deletedHackathon) {
