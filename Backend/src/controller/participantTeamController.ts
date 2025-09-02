@@ -248,6 +248,14 @@ export const sendInvitation = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'Only team leaders can send invitations' });
     }
 
+    console.log('🔍 Team object:', {
+      id: team._id,
+      name: team.teamName,
+      hackathonId: team.hackathonId,
+      memberLimit: team.memberLimit,
+      currentMembers: team.teamMembers.length
+    });
+
     // Check if team can receive new members
     if (team.teamMembers.length >= team.memberLimit) {
       console.log('❌ Team is at maximum capacity');
@@ -290,7 +298,7 @@ export const sendInvitation = async (req: Request, res: Response) => {
       message: message || 'You are invited to join our team!',
       type: 'invitation',
       status: 'pending',
-      expiresAt: await calculateRequestExpiry(team.hackathonId?.toString() || '', Hackathon)
+      expiresAt: await calculateRequestExpiry(team.hackathonId || '', Hackathon)
     });
 
     await invitation.save();
@@ -299,7 +307,7 @@ export const sendInvitation = async (req: Request, res: Response) => {
     // Create notification for participant
     createInvitationReceivedNotification(
       participantId,
-      team.hackathonId?.toString() || '',
+      team.hackathonId || '',
       team.teamName,
       req.user?.name || 'Team Leader'
     );
