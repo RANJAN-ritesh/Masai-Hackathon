@@ -168,7 +168,7 @@ export const sendJoinRequest = async (req: Request, res: Response) => {
     // Check if user has already sent a request to this team
     const existingRequest = await TeamRequest.findOne({
       teamId,
-      fromUser: fromUserId,
+      fromUserId: fromUserId,
       status: 'pending'
     });
 
@@ -179,7 +179,10 @@ export const sendJoinRequest = async (req: Request, res: Response) => {
     // Create join request
     const teamRequest = new TeamRequest({
       teamId,
-      fromUser: fromUserId,
+      fromUserId: fromUserId,
+      toUserId: team.teamLeader,
+      hackathonId: team.hackathonId || '',
+      requestType: 'join',
       message: message || 'I would like to join your team!',
       status: 'pending',
       expiresAt: await calculateRequestExpiry(team.hackathonId || '', Hackathon)
@@ -277,9 +280,9 @@ export const sendInvitation = async (req: Request, res: Response) => {
     // Check if invitation already exists
     const existingInvitation = await TeamRequest.findOne({
       teamId,
-      fromUser: fromUserId,
-      toUser: participantId,
-      type: 'invitation',
+      fromUserId: fromUserId,
+      toUserId: participantId,
+      requestType: 'invite',
       status: 'pending'
     });
 
@@ -293,11 +296,12 @@ export const sendInvitation = async (req: Request, res: Response) => {
     // Create invitation
     const invitation = new TeamRequest({
       teamId,
-      fromUser: fromUserId,
-      toUser: participantId,
-      message: message || 'You are invited to join our team!',
-      type: 'invitation',
+      fromUserId: fromUserId,
+      toUserId: participantId,
+      hackathonId: team.hackathonId || '',
+      requestType: 'invite',
       status: 'pending',
+      message: message || 'You are invited to join our team!',
       expiresAt: await calculateRequestExpiry(team.hackathonId || '', Hackathon)
     });
 
