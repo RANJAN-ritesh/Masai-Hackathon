@@ -43,8 +43,8 @@ const cleanupOldHackathonData = async () => {
     // 1. Clean up users with invalid hackathon references
     console.log('\n🧹 Step 1: Cleaning up users with invalid hackathon references...');
     
-    const User = require('./src/model/user').default;
-    const Hackathon = require('./src/model/hackathon').default;
+    const User = require('./dist/model/user').default;
+    const Hackathon = require('./dist/model/hackathon').default;
     
     // Get all hackathon IDs that actually exist
     const existingHackathons = await Hackathon.find({}, '_id');
@@ -81,7 +81,7 @@ const cleanupOldHackathonData = async () => {
     // 2. Clean up orphaned team data
     console.log('\n🧹 Step 2: Cleaning up orphaned team data...');
     
-    const Team = require('./src/model/team').default;
+    const Team = require('./dist/model/team').default;
     
     // Find teams with invalid hackathon references
     const teamsWithInvalidRefs = await Team.find({

@@ -35,122 +35,132 @@ const createDefaultHackathon = async () => {
       return;
     }
 
-    // Create default hackathon
-    const defaultHackathon = new Hackathon({
-      title: "Masai Hackathon 2025",
+    // Create admin hackathon
+    const adminHackathon = new Hackathon({
+      title: "Test Hackathon 101",
       description: "Build innovative solutions with your team in this exciting hackathon!",
       startDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week from now
       endDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),  // 2 weeks from now
-      eventType: "Team Hackathon",
-      minTeamSize: 2,
-      maxTeamSize: 4,
+      eventPlan: "Phase 1: Planning (2 hours) - Understand requirements and plan your solution. Phase 2: Development (20 hours) - Build your solution with your team. Phase 3: Testing (4 hours) - Test and refine your solution. Phase 4: Presentation (2 hours) - Present your solution to judges.",
       status: "active",
+      teamSize: {
+        min: 2,
+        max: 4
+      },
+      teamCreationMode: "admin",
+      allowParticipantTeams: false,
       problemStatements: [
         {
           track: "Web Development",
-          description: "Build a modern web application that solves a real-world problem",
-          difficulty: "Medium"
+          description: "Build a modern web application that solves a real-world problem"
         },
         {
           track: "Mobile Development", 
-          description: "Create a mobile app that enhances productivity or entertainment",
-          difficulty: "Medium"
+          description: "Create a mobile app that enhances productivity or entertainment"
         },
         {
           track: "AI/ML",
-          description: "Develop an AI-powered solution for automation or decision making",
-          difficulty: "Hard"
+          description: "Develop an AI-powered solution for automation or decision making"
         }
       ],
       schedule: [
         {
-          day: "Day 1",
-          events: [
-            {
-              time: "09:00 AM",
-              activity: "Opening Ceremony",
-              description: "Welcome and hackathon kickoff"
-            },
-            {
-              time: "10:00 AM", 
-              activity: "Team Formation",
-              description: "Form teams and select problem statements"
-            }
-          ]
+          date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          time: "09:00 AM",
+          activity: "Opening Ceremony - Welcome and hackathon kickoff"
         },
         {
-          day: "Day 2",
-          events: [
-            {
-              time: "09:00 AM",
-              activity: "Development",
-              description: "Continue building your solutions"
-            },
-            {
-              time: "06:00 PM",
-              activity: "Progress Check",
-              description: "Review progress with mentors"
-            }
-          ]
-        }
-      ],
-      eventPlan: [
-        {
-          phase: "Planning",
-          description: "Understand requirements and plan your solution",
-          duration: "2 hours"
-        },
-        {
-          phase: "Development",
-          description: "Build your solution with your team",
-          duration: "20 hours"
-        },
-        {
-          phase: "Testing",
-          description: "Test and refine your solution",
-          duration: "4 hours"
-        },
-        {
-          phase: "Presentation",
-          description: "Present your solution to judges",
-          duration: "2 hours"
+          date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          time: "10:00 AM", 
+          activity: "Team Formation - Form teams and select problem statements"
         }
       ],
       prizeDetails: [
         {
-          rank: "1st Place",
-          prize: "$1000",
+          position: 1,
+          amount: "$1000",
           description: "Best overall solution"
         },
         {
-          rank: "2nd Place", 
-          prize: "$500",
+          position: 2, 
+          amount: "$500",
           description: "Second best solution"
         },
         {
-          rank: "3rd Place",
-          prize: "$250", 
+          position: 3,
+          amount: "$250", 
           description: "Third best solution"
         }
       ],
-      allowedEmails: [],
       socialLinks: {
-        zoom: "https://zoom.us/j/123456789",
-        slack: "https://slack.com/app/A1234567890",
         github: "https://github.com/masai-hackathon-2025"
       }
     });
 
-    const savedHackathon = await defaultHackathon.save();
+    // Create participant hackathon
+    const participantHackathon = new Hackathon({
+      title: "Test Hackathon 1092830498203948",
+      description: "Self-organized teams hackathon where participants create their own teams!",
+      startDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10 days from now
+      endDate: new Date(Date.now() + 17 * 24 * 60 * 60 * 1000),  // 17 days from now
+      eventPlan: "Self-organized hackathon: Participants form teams, collaborate, and compete in an open format.",
+      status: "active",
+      teamSize: {
+        min: 2,
+        max: 4
+      },
+      teamCreationMode: "participant",
+      allowParticipantTeams: true,
+      problemStatements: [
+        {
+          track: "Open Innovation",
+          description: "Build any innovative solution that addresses real-world challenges"
+        },
+        {
+          track: "Social Impact", 
+          description: "Create technology solutions that benefit society and communities"
+        }
+      ],
+      schedule: [
+        {
+          date: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+          time: "09:00 AM",
+          activity: "Kickoff - Team formation begins"
+        },
+        {
+          date: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+          time: "12:00 PM", 
+          activity: "Development phase starts"
+        }
+      ],
+      prizeDetails: [
+        {
+          position: 1,
+          amount: "$750",
+          description: "Most innovative solution"
+        },
+        {
+          position: 2, 
+          amount: "$350",
+          description: "Best team collaboration"
+        }
+      ],
+      socialLinks: {
+        github: "https://github.com/participant-hackathon"
+      }
+    });
+
+    const savedAdminHackathon = await adminHackathon.save();
+    const savedParticipantHackathon = await participantHackathon.save();
     
-    console.log('✅ Default hackathon created successfully!');
-    console.log(`📋 Hackathon ID: ${savedHackathon._id}`);
-    console.log(`📋 Title: ${savedHackathon.title}`);
-    console.log(`📋 Status: ${savedHackathon.status}`);
-    console.log(`📋 Team Size: ${savedHackathon.minTeamSize}-${savedHackathon.maxTeamSize} members`);
+    console.log('✅ Default hackathons created successfully!');
+    console.log(`📋 Admin Hackathon ID: ${savedAdminHackathon._id}`);
+    console.log(`📋 Admin Title: ${savedAdminHackathon.title}`);
+    console.log(`📋 Participant Hackathon ID: ${savedParticipantHackathon._id}`);
+    console.log(`📋 Participant Title: ${savedParticipantHackathon.title}`);
     
   } catch (error) {
-    console.error('❌ Error creating default hackathon:', error);
+    console.error('❌ Error creating default hackathons:', error);
   }
 };
 

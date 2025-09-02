@@ -33,28 +33,34 @@ const AuthContextProvider = ({ children }) => {
       }
 
       try {
+        console.log('🔍 Fetching user data for:', currentUserId);
         const response = await fetch(`${baseURL}/users/get-user/${currentUserId}`);
         const contentType = response.headers.get("Content-Type");
 
-        if (!response.ok) throw new Error("Failed to fetch user data");
+        if (!response.ok) {
+          console.log('🔍 User fetch failed:', response.status, response.statusText);
+          throw new Error(`Failed to fetch user data: ${response.status}`);
+        }
 
         const userData = await response.json();
+        console.log('🔍 User data received:', { ...userData, password: '[HIDDEN]' });
         localStorage.setItem("userData", JSON.stringify(userData));
         setUserData(userData);
         setRole(userData.role || "member"); // Use 'role' field from backend, not 'userType'
         setIsAuth(true);
       } catch (err) {
-        console.error("Error fetching user data", err);
+        console.error("🔍 Error fetching user data", err);
         // If user fetch fails, try to get from localStorage
         const storedUserData = localStorage.getItem("userData");
         if (storedUserData) {
           try {
             const userData = JSON.parse(storedUserData);
+            console.log('🔍 Using stored user data:', { ...userData, password: '[HIDDEN]' });
             setUserData(userData);
             setRole(userData.role || "member");
             setIsAuth(true);
           } catch (e) {
-            console.error("Error parsing stored user data", e);
+            console.error("🔍 Error parsing stored user data", e);
           }
         }
       } finally {
@@ -68,13 +74,18 @@ const AuthContextProvider = ({ children }) => {
   // Effect to check if user is enrolled in any hackathon
   useEffect(() => {
     const checkUserHackathon = async () => {
-      if (!userData || !userData._id) return;
+      if (!userData || !userData._id) {
+        console.log('🔍 No userData or userData._id, skipping hackathon check');
+        return;
+      }
 
       try {
+        console.log('🔍 Checking user hackathon enrollment for:', userData._id);
         // Check if user is enrolled in any hackathon
         const response = await fetch(`${baseURL}/users/hackathon/${userData._id}/enrollment`);
         if (response.ok) {
           const enrollmentData = await response.json();
+          console.log('🔍 Enrollment data:', enrollmentData);
           if (enrollmentData.hackathon) {
             setUserHackathon(enrollmentData.hackathon);
             // Set this as the current hackathon
@@ -82,9 +93,11 @@ const AuthContextProvider = ({ children }) => {
             localStorage.setItem("currentHackathon", enrollmentData.hackathon._id);
             return;
           }
+        } else {
+          console.log('🔍 Enrollment check failed:', response.status, response.statusText);
         }
       } catch (error) {
-        // Silent fail - user not enrolled
+        console.error('🔍 Error checking user hackathon:', error);
       }
     };
 
