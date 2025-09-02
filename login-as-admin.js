@@ -37,7 +37,9 @@ const loginAsAdmin = async () => {
     
     console.log('\n📋 To use in browser:');
     console.log(`localStorage.setItem("userId", "${data.user._id}");`);
-    console.log(`localStorage.setItem("userData", '${JSON.stringify(data.user)}');`);
+    console.log(`localStorage.setItem("userData", '${JSON.stringify(data.user).replace(/'/g, "\\'")}');`);
+    
+    return data.user;
     
   } catch (error) {
     console.error('❌ Error during login:', error);

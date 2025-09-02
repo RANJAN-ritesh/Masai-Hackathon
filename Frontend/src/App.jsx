@@ -49,8 +49,14 @@ function App() {
     if (role === "admin") {
       return <EligibleHackathons />;
     } else {
-      // For participants, show the full hackathon dashboard instead of just team view
-      return hackathon && hackathon.eventType === "Interactive Hackathon" ? (
+      // For participants, show different content based on hackathon availability
+      if (!hackathon) {
+        // No hackathon - show member dashboard with guidance
+        return <MemberDashboard />;
+      }
+      
+      // Has hackathon - show appropriate content
+      return hackathon.eventType === "Interactive Hackathon" ? (
         <CSBT />
       ) : (
         <MainContent />

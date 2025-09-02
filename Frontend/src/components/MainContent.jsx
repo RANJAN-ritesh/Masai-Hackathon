@@ -67,13 +67,18 @@ const MainContent = () => {
   };
 
   useEffect(() => {
-    if (!hackathon) {
+    // Only redirect if we're on a hackathon-specific route and there's no hackathon
+    const isHackathonRoute = window.location.pathname === '/hackathon';
+    
+    if (!hackathon && isHackathonRoute) {
       navigate("/");
       return;
     }
 
-    // Use the hackathon data directly from context instead of fetching
-    setHackathonData(hackathon);
+    if (hackathon) {
+      // Use the hackathon data directly from context instead of fetching
+      setHackathonData(hackathon);
+    }
     setLoading(false);
   }, [hackathon, navigate]);
 
