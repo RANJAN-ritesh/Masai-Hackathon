@@ -993,23 +993,6 @@ const CreateHackathon = () => {
                         <strong>Participants Create Teams:</strong> Members can form their own teams before the hackathon starts
                       </span>
                     </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="teamCreationMode"
-                        value="both"
-                        checked={eventData.teamCreationMode === 'both'}
-                        onChange={(e) => setEventData(prev => ({ 
-                          ...prev, 
-                          teamCreationMode: e.target.value,
-                          allowParticipantTeams: true 
-                        }))}
-                        className="mr-2 text-red-600 focus:ring-red-500"
-                      />
-                      <span className="text-sm text-green-700">
-                        <strong>Hybrid Approach:</strong> You can create teams AND participants can form their own
-                      </span>
-                    </label>
                   </div>
                   {eventData.teamCreationMode !== 'admin' && (
                     <div className="mt-3 p-2 bg-blue-50 rounded border">

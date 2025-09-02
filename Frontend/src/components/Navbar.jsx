@@ -287,12 +287,14 @@ const Navbar = () => {
                     )}
                   </button>
 
-                  {/* My Team Button */}
-                  <Link to="/my-team">
-                    <button className="theme-button-secondary px-4 py-2 rounded-lg transition">
-                      My Team
-                    </button>
-                  </Link>
+                  {/* My Team Button - Only for non-admin users */}
+                  {role !== "admin" && (
+                    <Link to="/my-team">
+                      <button className="theme-button-secondary px-4 py-2 rounded-lg transition">
+                        My Team
+                      </button>
+                    </Link>
+                  )}
 
                   {/* Profile Dropdown */}
                   <div className="relative" ref={profileDropdownRef}>
@@ -416,12 +418,14 @@ const Navbar = () => {
                 )}
               </button>
 
-              {/* My Team Button */}
-              <Link to="/my-team" onClick={() => setIsMenuOpen(false)}>
-                <button className="w-full theme-button-secondary px-4 py-2 rounded-lg transition mb-2">
-                  My Team
-                </button>
-              </Link>
+              {/* My Team Button - Only for non-admin users */}
+              {role !== "admin" && (
+                <Link to="/my-team" onClick={() => setIsMenuOpen(false)}>
+                  <button className="w-full theme-button-secondary px-4 py-2 rounded-lg transition mb-2">
+                    My Team
+                  </button>
+                </Link>
+              )}
 
               {/* Profile Button */}
               <Link to="/profile" onClick={() => setIsMenuOpen(false)}>
