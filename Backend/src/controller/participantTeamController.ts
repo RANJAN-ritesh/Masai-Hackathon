@@ -317,7 +317,7 @@ export const sendInvitation = async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('❌ Error sending invitation:', error);
-    console.error('❌ Error stack:', error.stack);
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     res.status(500).json({ message: 'Internal server error', error: String(error) });
   }
 };
