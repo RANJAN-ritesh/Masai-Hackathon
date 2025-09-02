@@ -54,14 +54,17 @@ app.use(limiter);
 const corsOptions = {
     origin: process.env.NODE_ENV === 'production' 
         ? [
-            process.env.CORS_ORIGIN || 'https://masai-hackathon.netlify.app',
-            'https://masai-hackathon.netlify.app'
+            'https://masai-hackathon.netlify.app',
+            'https://masai-hackathon.netlify.app/',
+            'https://masai-hackathon.netlify.app/*',
+            'https://*.netlify.app'  // Allow all Netlify subdomains as fallback
           ] 
         : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5000', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,
     optionsSuccessStatus: 200,
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    preflightContinue: false
 };
 
 app.use(cors(corsOptions));
@@ -171,7 +174,18 @@ app.get("/health", (req, res) => {
     schemaVersion: "2.1.4", // Updated to force redeploy
     buildTime: new Date().toISOString(),
     autoTeamCreationService: "running",
-    cleanupService: "running"
+    cleanupService: "running",
+    websocketService: "running",
+    corsOrigin: process.env.NODE_ENV === 'production' ? 'https://masai-hackathon.netlify.app' : 'localhost'
+  });
+});
+
+// CORS test endpoint
+app.get("/cors-test", (req, res) => {
+  res.json({
+    message: "CORS is working!",
+    origin: req.headers.origin,
+    timestamp: new Date().toISOString()
   });
 });
 

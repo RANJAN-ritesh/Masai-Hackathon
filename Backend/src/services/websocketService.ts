@@ -21,12 +21,14 @@ class WebSocketService {
       cors: {
         origin: process.env.NODE_ENV === 'production' 
           ? [
-              process.env.CORS_ORIGIN || 'https://masai-hackathon.netlify.app',
-              'https://masai-hackathon.netlify.app'
+              'https://masai-hackathon.netlify.app',
+              'https://masai-hackathon.netlify.app/',
+              'https://masai-hackathon.netlify.app/*'
             ] 
           : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5000', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
         methods: ['GET', 'POST'],
-        credentials: true
+        credentials: true,
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
       }
     });
 
