@@ -20,7 +20,7 @@ class NotificationService {
   private maxNotificationsPerUser = 50; // Keep only last 50 notifications per user
 
   // Add notification for a user
-  addNotification(userId: string, notification: NotificationData): void {
+  addNotification(userId: string, notification: NotificationData, sendRealTime: boolean = true): void {
     if (!this.notifications.has(userId)) {
       this.notifications.set(userId, []);
     }
@@ -45,6 +45,27 @@ class NotificationService {
 
     // Update the map
     this.notifications.set(userId, userNotifications);
+
+    // Send real-time notification via WebSocket if enabled
+    if (sendRealTime) {
+      this.sendRealTimeNotification(userId, newNotification);
+    }
+  }
+
+  // Send real-time notification via WebSocket
+  private sendRealTimeNotification(userId: string, notification: NotificationData): void {
+    try {
+      // Dynamically import WebSocket service to avoid circular dependencies
+      import('../app').then(({ webSocketService }) => {
+        if (webSocketService) {
+          webSocketService.sendNotificationToUser(userId, notification);
+        }
+      }).catch(error => {
+        console.log('WebSocket service not available:', error.message);
+      });
+    } catch (error) {
+      console.log('Failed to send real-time notification:', error);
+    }
   }
 
   // Get notifications for a user

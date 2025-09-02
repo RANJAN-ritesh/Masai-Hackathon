@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, Check, X, Clock, Users, UserCheck, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
+import { useWebSocket } from '../context/WebSocketContextProvider';
 
 const NotificationCenter = ({ isOpen, onClose }) => {
-  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { notifications, unreadCount, markNotificationAsRead } = useWebSocket();
+  const [localNotifications, setLocalNotifications] = useState([]);
   const baseURL = 'https://masai-hackathon.onrender.com';
 
   // Load notifications on mount and when opened
@@ -14,6 +15,11 @@ const NotificationCenter = ({ isOpen, onClose }) => {
       loadNotifications();
     }
   }, [isOpen]);
+
+  // Merge WebSocket notifications with API notifications
+  useEffect(() => {
+    setLocalNotifications(notifications);
+  }, [notifications]);
 
   // Get notification icon based on type
   const getNotificationIcon = (type) => {
@@ -47,8 +53,19 @@ const NotificationCenter = ({ isOpen, onClose }) => {
       if (response.ok) {
         const data = await response.json();
         if (data.notifications) {
-          setNotifications(data.notifications);
-          setUnreadCount(data.notifications.filter(n => !n.isRead).length);
+          // Merge API notifications with WebSocket notifications
+          const apiNotifications = data.notifications;
+          const mergedNotifications = [...notifications, ...apiNotifications]
+            .reduce((acc, current) => {
+              const existing = acc.find(item => item._id === current._id);
+              if (!existing) {
+                acc.push(current);
+              }
+              return acc;
+            }, [])
+            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+          
+          setLocalNotifications(mergedNotifications);
         }
       }
     } catch (error) {
@@ -72,12 +89,13 @@ const NotificationCenter = ({ isOpen, onClose }) => {
       });
 
       if (response.ok) {
-        setNotifications(prev =>
+        setLocalNotifications(prev =>
           prev.map(n =>
             n._id === notificationId ? { ...n, isRead: true } : n
           )
         );
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        // Also update WebSocket context
+        markNotificationAsRead(notificationId);
       }
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
@@ -98,8 +116,7 @@ const NotificationCenter = ({ isOpen, onClose }) => {
       });
 
       if (response.ok) {
-        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-        setUnreadCount(0);
+        setLocalNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
         toast.success('All notifications marked as read');
       }
     } catch (error) {
@@ -122,12 +139,7 @@ const NotificationCenter = ({ isOpen, onClose }) => {
       });
 
       if (response.ok) {
-        setNotifications(prev => prev.filter(n => n._id !== notificationId));
-        // Update unread count if deleted notification was unread
-        const deletedNotification = notifications.find(n => n._id === notificationId);
-        if (deletedNotification && !deletedNotification.isRead) {
-          setUnreadCount(prev => Math.max(0, prev - 1));
-        }
+        setLocalNotifications(prev => prev.filter(n => n._id !== notificationId));
         toast.success('Notification deleted');
       }
     } catch (error) {
@@ -189,7 +201,7 @@ const NotificationCenter = ({ isOpen, onClose }) => {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
               <p className="text-gray-500">Loading notifications...</p>
             </div>
-          ) : notifications.length === 0 ? (
+          ) : localNotifications.length === 0 ? (
             <div className="text-center py-8">
               <Bell className="h-12 w-12 mx-auto mb-4 text-gray-400" />
               <p className="text-lg font-medium text-gray-900 mb-2">No notifications</p>
@@ -197,7 +209,7 @@ const NotificationCenter = ({ isOpen, onClose }) => {
             </div>
           ) : (
             <div className="space-y-3">
-              {notifications.map((notification) => (
+              {localNotifications.map((notification) => (
                 <div
                   key={notification._id}
                   className={`p-4 rounded-lg border transition-colors ${

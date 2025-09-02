@@ -1,6 +1,7 @@
 import React, { useContext, useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { MyContext } from "../context/AuthContextProvider";
+import { useWebSocket } from "../context/WebSocketContextProvider";
 import { useTheme } from "../context/ThemeContextProvider";
 import {
   LogOut,
@@ -25,6 +26,7 @@ const Navbar = () => {
   const userId = localStorage.getItem("userId");
   const { isAuth, setIsAuth, hackathon, role } = useContext(MyContext);
   const { themeConfig, isDarkMode, toggleDarkMode } = useTheme();
+  const { isConnected, unreadCount } = useWebSocket();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
@@ -254,6 +256,23 @@ const Navbar = () => {
               {/* Desktop Navigation */}
               {isAuth && (
                 <div className="hidden md:flex items-center space-x-4">
+                  {/* Connection Status */}
+                  <div 
+                    className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs ${
+                      isConnected 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-red-100 text-red-800'
+                    }`}
+                    title={isConnected ? 'Real-time connected' : 'Real-time disconnected'}
+                  >
+                    <div className={`w-2 h-2 rounded-full ${
+                      isConnected ? 'bg-green-500' : 'bg-red-500'
+                    }`}></div>
+                    <span className="hidden lg:inline">
+                      {isConnected ? 'Live' : 'Offline'}
+                    </span>
+                  </div>
+
                   {/* Notification Bell */}
                   <button
                     onClick={() => setIsNotificationOpen(!isNotificationOpen)}
@@ -261,9 +280,9 @@ const Navbar = () => {
                     title="Notifications"
                   >
                     <Bell className="h-5 w-5" />
-                    {unreadNotifications > 0 && (
+                    {unreadCount > 0 && (
                       <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                        {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                        {unreadCount > 99 ? '99+' : unreadCount}
                       </span>
                     )}
                   </button>

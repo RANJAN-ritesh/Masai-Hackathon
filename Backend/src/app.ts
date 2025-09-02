@@ -1,4 +1,5 @@
 import express from "express";
+import { createServer } from "http";
 import cors from "cors";
 import dotenv from "dotenv";
 import rateLimit from "express-rate-limit";
@@ -18,6 +19,7 @@ import notificationRoutes from "./routes/notificationRoutes";
 import cleanupService from "./services/cleanupService";
 import User from "./model/user";
 import Hackathon from "./model/hackathon";
+import WebSocketService from "./services/websocketService";
 
 // Load environment variables
 dotenv.config();
@@ -33,7 +35,11 @@ for (const envVar of requiredEnvVars) {
 }
 
 const app = express();
+const server = createServer(app);
 const PORT = process.env.PORT || 5009;
+
+// Initialize WebSocket service
+let webSocketService: WebSocketService;
 app.use(express.json());
 
 // Rate limiting
@@ -193,15 +199,22 @@ process.on('SIGINT', () => {
     process.exit(0);
 });
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
     console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔗 Health check: http://localhost:${PORT}/health`);
     console.log(`🔧 SCHEMA DEBUG: Hackathon status enum should include 'upcoming'`);
     console.log(`🔧 DEPLOYMENT TIME: ${new Date().toISOString()}`);
     
+    // Initialize WebSocket service
+    webSocketService = new WebSocketService(server);
+    console.log(`🔌 WebSocket service initialized`);
+    
     // Start auto-team creation service
     autoTeamCreationService.start();
     // Start automatic cleanup service
     cleanupService.startPeriodicCleanup(24 * 60 * 60 * 1000); // Every 24 hours
 });
+
+// Export WebSocket service for use in other modules
+export { webSocketService };

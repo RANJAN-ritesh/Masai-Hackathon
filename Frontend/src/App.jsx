@@ -8,6 +8,7 @@ import CountDownTimer from "./components/CountDownTimer";
 import SelectTeamPage from "./components/SelectTeamPage";
 import { RegisterTeamPage } from "./components/RegisterTeamPage";
 import { MyContext } from "./context/AuthContextProvider";
+import { WebSocketProvider } from "./context/WebSocketContextProvider";
 import Login from "./components/login";
 import { ToastContainer } from "react-toastify";
 import CreateHackathon from "./components/CreateHackathon";
@@ -65,8 +66,9 @@ function App() {
   return (
     <>
       <ToastContainer />
-      <div className="min-h-screen bg-gray-50">
-        {!isMeetingRoom && <Navbar />}
+      <WebSocketProvider>
+        <div className="min-h-screen bg-gray-50">
+          {!isMeetingRoom && <Navbar />}
         {isAuth &&
           !isDashboard &&
           isHackathon &&
@@ -230,7 +232,8 @@ function App() {
             />
           </>
         )}
-      </div>
+        </div>
+      </WebSocketProvider>
     </>
   );
 }
