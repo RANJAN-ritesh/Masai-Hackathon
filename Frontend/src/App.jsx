@@ -26,7 +26,7 @@ import CreateUser from "./components/CreateUser";
 import EditHackathon from "./components/EditHackathon";
 import AdminRoute from "./components/AdminRoute";
 import MemberDashboard from "./components/MemberDashboard";
-import MemberTeamView from "./components/MemberTeamView";
+import MyTeam from "./components/MyTeam";
 import ParticipantTeamCreation from "./components/ParticipantTeamCreation";
 import AllUsers from "./components/AllUsers";
 
@@ -109,7 +109,7 @@ function App() {
             path="/my-team"
             element={
               <ProtectedRoute>
-                <MemberTeamView />
+                <MyTeam />
               </ProtectedRoute>
             }
           />

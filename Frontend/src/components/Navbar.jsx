@@ -256,7 +256,7 @@ const Navbar = () => {
               {/* Desktop Navigation */}
               {isAuth && (
                 <div className="hidden md:flex items-center space-x-4">
-                  {/* Connection Status */}
+                  {/* Connection Status (Real-time indicator) */}
                   <div 
                     className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs ${
                       isConnected 
@@ -287,35 +287,12 @@ const Navbar = () => {
                     )}
                   </button>
 
-                  {!isDashboard && (
-                    <Link to={role === "admin" ? "/select-team" : "/my-team"}>
-                      <button className="theme-button-secondary px-4 py-2 rounded-lg transition">
-                        {role === "admin" ? "Check Teams" : "My Team"}
-                      </button>
-                    </Link>
-                  )}
-                  {role === "member" && !isDashboard && (
-                    <Link to="/create-participant-team">
-                      <button className="theme-button px-4 py-2 rounded-lg transition">
-                        Create Team
-                      </button>
-                    </Link>
-                  )}
-                  {!isDashboard && (
-                    <Link
-                      to="/"
-                      className="p-2 rounded-full theme-button-secondary"
-                      style={{
-                        backgroundColor: themeConfig.cardBg,
-                        color: themeConfig.textColor
-                      }}
-                    >
-                      <House size={20} />
-                    </Link>
-                  )}
-
-                  {/* Notification Center */}
-                  <NotificationCenter />
+                  {/* My Team Button */}
+                  <Link to="/my-team">
+                    <button className="theme-button-secondary px-4 py-2 rounded-lg transition">
+                      My Team
+                    </button>
+                  </Link>
 
                   {/* Profile Dropdown */}
                   <div className="relative" ref={profileDropdownRef}>
@@ -439,36 +416,14 @@ const Navbar = () => {
                 )}
               </button>
 
-              <Link to={role === "admin" ? "/select-team" : "/my-team"} onClick={() => setIsMenuOpen(false)}>
+              {/* My Team Button */}
+              <Link to="/my-team" onClick={() => setIsMenuOpen(false)}>
                 <button className="w-full theme-button-secondary px-4 py-2 rounded-lg transition mb-2">
-                  {role === "admin" ? "Check Teams" : "My Team"}
+                  My Team
                 </button>
               </Link>
 
-              {role === "member" && (
-                <Link to="/create-participant-team" onClick={() => setIsMenuOpen(false)}>
-                  <button className="w-full theme-button px-4 py-2 rounded-lg transition mb-2">
-                    Create Team
-                  </button>
-                </Link>
-              )}
-
-              {!isDashboard && (
-                <Link to="/">
-                  <button 
-                    className="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg transition mb-2"
-                    style={{
-                      backgroundColor: themeConfig.cardBg,
-                      color: themeConfig.textColor,
-                      border: `1px solid ${themeConfig.borderColor}`
-                    }}
-                  >
-                    <House className="h-5 w-5" style={{ color: themeConfig.accentColor }} />
-                    <span>Home</span>
-                  </button>
-                </Link>
-              )}
-
+              {/* Profile Button */}
               <Link to="/profile" onClick={() => setIsMenuOpen(false)}>
                 <button 
                   className="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-lg transition mb-2"
@@ -479,10 +434,11 @@ const Navbar = () => {
                   }}
                 >
                   <User className="h-5 w-5" style={{ color: themeConfig.accentColor }} />
-                  <span>View Profile</span>
+                  <span>Profile</span>
                 </button>
               </Link>
 
+              {/* Admin Menu Items */}
               {role === "admin" && (
                 <>
                   <Link to="/create-hackathon" onClick={() => setIsMenuOpen(false)}>
@@ -514,6 +470,7 @@ const Navbar = () => {
                 </>
               )}
 
+              {/* Logout Button */}
               <button
                 onClick={() => {
                   setIsMenuOpen(false);
