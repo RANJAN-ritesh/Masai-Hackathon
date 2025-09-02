@@ -280,11 +280,11 @@ export const sendInvitation = async (req: Request, res: Response) => {
     await invitation.save();
 
     // Create notification for participant
-    createRequestReceivedNotification(
+    createInvitationReceivedNotification(
       participantId,
+      team.hackathonId?.toString() || '',
       team.teamName,
-      'Team Invitation',
-      invitation._id.toString()
+      req.user?.name || 'Team Leader'
     );
 
     res.status(201).json({

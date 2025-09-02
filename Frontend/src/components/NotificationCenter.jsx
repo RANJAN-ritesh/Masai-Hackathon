@@ -1,323 +1,270 @@
-import React, { useState, useEffect, useContext } from 'react';
-import { MyContext } from '../context/AuthContextProvider';
-import { 
-  Bell, 
-  X, 
-  CheckCircle, 
-  AlertCircle, 
-  Info, 
-  Star,
-  Users,
-  Crown,
-  Zap,
-  Shield,
-  Clock
-} from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Bell, Check, X, Clock, Users, UserCheck, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 
-const NotificationCenter = () => {
-  const { userData } = useContext(MyContext);
+const NotificationCenter = ({ isOpen, onClose }) => {
   const [notifications, setNotifications] = useState([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const baseURL = 'https://masai-hackathon.onrender.com';
 
+  // Load notifications on mount and when opened
   useEffect(() => {
-    if (userData?.id) {
-      fetchNotifications();
-      // Poll for new notifications every 30 seconds
-      const interval = setInterval(fetchNotifications, 30000);
-      return () => clearInterval(interval);
+    if (isOpen) {
+      loadNotifications();
     }
-  }, [userData]);
+  }, [isOpen]);
 
-  const fetchNotifications = async () => {
-    if (!userData?.id) return;
-    
+  // Get notification icon based on type
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case 'team_invitation':
+        return <Users className="h-5 w-5 text-blue-500" />;
+      case 'join_request':
+        return <UserCheck className="h-5 w-5 text-green-500" />;
+      case 'team_finalized':
+        return <Check className="h-5 w-5 text-purple-500" />;
+      case 'ownership_transferred':
+        return <AlertCircle className="h-5 w-5 text-orange-500" />;
+      default:
+        return <Bell className="h-5 w-5 text-gray-500" />;
+    }
+  };
+
+  // Load notifications from backend
+  const loadNotifications = async () => {
     try {
       setLoading(true);
-      const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
-      const response = await fetch(`${baseURL}/participant-team/notifications`);
-      
+      const userId = localStorage.getItem("userId");
+      if (!userId) return;
+
+      const response = await fetch(`${baseURL}/notifications/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${userId}`
+        }
+      });
+
       if (response.ok) {
         const data = await response.json();
-        setNotifications(data.notifications || []);
-        setUnreadCount(data.notifications?.filter(n => !n.isRead).length || 0);
+        if (data.notifications) {
+          setNotifications(data.notifications);
+          setUnreadCount(data.notifications.filter(n => !n.isRead).length);
+        }
       }
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      console.error('Failed to load notifications:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  // Mark notification as read
   const markAsRead = async (notificationId) => {
     try {
-      const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
-      const response = await fetch(`${baseURL}/participant-team/notifications/${notificationId}/read`, {
-        method: 'PUT'
+      const userId = localStorage.getItem("userId");
+      if (!userId) return;
+
+      const response = await fetch(`${baseURL}/notifications/${userId}/read/${notificationId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${userId}`
+        }
       });
-      
+
       if (response.ok) {
-        setNotifications(prev => 
-          prev.map(n => 
-            n._id === notificationId 
-              ? { ...n, isRead: true, readAt: new Date() }
-              : n
+        setNotifications(prev =>
+          prev.map(n =>
+            n._id === notificationId ? { ...n, isRead: true } : n
           )
         );
         setUnreadCount(prev => Math.max(0, prev - 1));
       }
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      console.error('Failed to mark notification as read:', error);
     }
   };
 
+  // Mark all notifications as read
   const markAllAsRead = async () => {
     try {
-      const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
-      const response = await fetch(`${baseURL}/participant-team/notifications/read-all`, {
-        method: 'PUT'
+      const userId = localStorage.getItem("userId");
+      if (!userId) return;
+
+      const response = await fetch(`${baseURL}/notifications/${userId}/read-all`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${userId}`
+        }
       });
-      
+
       if (response.ok) {
-        setNotifications(prev => 
-          prev.map(n => ({ ...n, isRead: true, readAt: new Date() }))
-        );
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
         setUnreadCount(0);
+        toast.success('All notifications marked as read');
       }
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+      console.error('Failed to mark all as read:', error);
+      toast.error('Failed to update notifications');
     }
   };
 
+  // Delete notification
   const deleteNotification = async (notificationId) => {
     try {
-      const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
-      const response = await fetch(`${baseURL}/participant-team/notifications/${notificationId}`, {
-        method: 'DELETE'
+      const userId = localStorage.getItem("userId");
+      if (!userId) return;
+
+      const response = await fetch(`${baseURL}/notifications/${userId}/${notificationId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${userId}`
+        }
       });
-      
+
       if (response.ok) {
         setNotifications(prev => prev.filter(n => n._id !== notificationId));
-        setUnreadCount(prev => {
-          const notification = notifications.find(n => n._id === notificationId);
-          return notification && !notification.isRead ? Math.max(0, prev - 1) : prev;
-        });
+        // Update unread count if deleted notification was unread
+        const deletedNotification = notifications.find(n => n._id === notificationId);
+        if (deletedNotification && !deletedNotification.isRead) {
+          setUnreadCount(prev => Math.max(0, prev - 1));
+        }
+        toast.success('Notification deleted');
       }
     } catch (error) {
-      console.error('Error deleting notification:', error);
+      console.error('Failed to delete notification:', error);
+      toast.error('Failed to delete notification');
     }
   };
 
-  const getNotificationIcon = (type) => {
-    switch (type) {
-      case 'team_finalized':
-        return <CheckCircle className="w-5 h-5 text-green-600" />;
-      case 'request_received':
-        return <Users className="w-5 h-5 text-blue-600" />;
-      case 'request_accepted':
-        return <CheckCircle className="w-5 h-5 text-green-600" />;
-      case 'request_rejected':
-        return <X className="w-5 h-5 text-red-600" />;
-      case 'auto_team_creation':
-        return <Zap className="w-5 h-5 text-yellow-600" />;
-      case 'hackathon_starting':
-        return <Clock className="w-5 h-5 text-purple-600" />;
-      case 'team_locked':
-        return <Shield className="w-5 h-5 text-indigo-600" />;
-      case 'ownership_transferred':
-        return <Crown className="w-5 h-5 text-amber-600" />;
-      default:
-        return <Info className="w-5 h-5 text-gray-600" />;
-    }
-  };
-
-  const getNotificationColor = (type) => {
-    switch (type) {
-      case 'team_finalized':
-        return 'border-l-green-500 bg-green-50';
-      case 'request_received':
-        return 'border-l-green-500 bg-blue-50';
-      case 'request_accepted':
-        return 'border-l-green-500 bg-green-50';
-      case 'request_rejected':
-        return 'border-l-red-500 bg-red-50';
-      case 'auto_team_creation':
-        return 'border-l-yellow-500 bg-yellow-50';
-      case 'hackathon_starting':
-        return 'border-l-purple-500 bg-purple-50';
-      case 'team_locked':
-        return 'border-l-indigo-500 bg-indigo-500';
-      case 'ownership_transferred':
-        return 'border-l-amber-500 bg-amber-50';
-      default:
-        return 'border-l-gray-500 bg-gray-50';
-    }
-  };
-
-  const formatTimeAgo = (date) => {
+  // Format timestamp
+  const formatTimestamp = (timestamp) => {
     const now = new Date();
-    const diff = now - new Date(date);
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
+    const notificationTime = new Date(timestamp);
+    const diffInMinutes = Math.floor((now - notificationTime) / (1000 * 60));
 
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    return `${days}d ago`;
+    if (diffInMinutes < 1) return 'Just now';
+    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+    return `${Math.floor(diffInMinutes / 1440)}d ago`;
   };
 
-  const toggleNotifications = () => {
-    setIsOpen(!isOpen);
-  };
+  if (!isOpen) return null;
 
   return (
-    <>
-      {/* Notification Bell */}
-      <div className="relative">
-        <button
-          onClick={toggleNotifications}
-          className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-all duration-200"
-        >
-          <Bell className="w-6 h-6" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium animate-pulse">
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
-          )}
-        </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 max-h-[80vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+          <div className="flex items-center">
+            <Bell className="h-6 w-6 text-gray-600 mr-2" />
+            <h2 className="text-lg font-semibold text-gray-900">Notifications</h2>
+            {unreadCount > 0 && (
+              <span className="ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+                {unreadCount}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center space-x-2">
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllAsRead}
+                className="text-sm text-blue-600 hover:text-blue-800"
+              >
+                Mark all read
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+        </div>
 
-        {/* Notification Panel */}
-        {isOpen && (
-          <div className="absolute right-0 top-12 w-96 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 max-h-[80vh] overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
-              <div className="flex items-center space-x-2">
-                <Bell className="w-5 h-5 text-indigo-600" />
-                <h3 className="font-semibold text-gray-900">Notifications</h3>
-                {unreadCount > 0 && (
-                  <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full font-medium">
-                    {unreadCount} new
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center space-x-2">
-                {unreadCount > 0 && (
-                  <button
-                    onClick={markAllAsRead}
-                    className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
-                  >
-                    Mark all read
-                  </button>
-                )}
-                <button
-                  onClick={toggleNotifications}
-                  className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <X className="w-4 h-4 text-gray-500" />
-                </button>
-              </div>
+        {/* Notifications List */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-gray-500">Loading notifications...</p>
             </div>
-
-            {/* Notifications List */}
-            <div className="max-h-[60vh] overflow-y-auto">
-              {loading ? (
-                <div className="p-8 text-center">
-                  <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                  <p className="text-gray-500">Loading notifications...</p>
-                </div>
-              ) : notifications.length === 0 ? (
-                <div className="p-8 text-center">
-                  <Bell className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                  <p className="text-gray-500">No notifications yet</p>
-                  <p className="text-sm text-gray-400">We'll notify you about important updates</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-gray-100">
-                  {notifications.map((notification) => (
-                    <div
-                      key={notification._id}
-                      className={`p-4 hover:bg-gray-50 transition-colors duration-200 border-l-4 ${getNotificationColor(notification.type)} ${
-                        !notification.isRead ? 'bg-white' : ''
-                      }`}
-                    >
-                      <div className="flex items-start space-x-3">
-                        <div className="flex-shrink-0 mt-1">
-                          {getNotificationIcon(notification.type)}
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <p className={`text-sm font-medium ${
-                                !notification.isRead ? 'text-gray-900' : 'text-gray-700'
-                              }`}>
-                                {notification.title}
-                              </p>
-                              <p className="text-sm text-gray-600 mt-1">
-                                {notification.message}
-                                </p>
-                              <p className="text-xs text-gray-400 mt-2">
-                                {formatTimeAgo(notification.createdAt)}
-                              </p>
-                            </div>
-                            
-                            <div className="flex items-center space-x-1 ml-2">
-                              {!notification.isRead && (
-                                <button
-                                  onClick={() => markAsRead(notification._id)}
-                                  className="p-1 hover:bg-gray-200 rounded transition-colors"
-                                  title="Mark as read"
-                                >
-                                  <CheckCircle className="w-4 h-4 text-gray-400 hover:text-green-600" />
-                                </button>
-                              )}
-                              <button
-                                onClick={() => deleteNotification(notification._id)}
-                                className="p-1 hover:bg-gray-200 rounded transition-colors"
-                                title="Delete notification"
-                              >
-                                <X className="w-4 h-4 text-gray-400 hover:text-red-600" />
-                              </button>
-                            </div>
-                          </div>
+          ) : notifications.length === 0 ? (
+            <div className="text-center py-8">
+              <Bell className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <p className="text-lg font-medium text-gray-900 mb-2">No notifications</p>
+              <p className="text-sm text-gray-500">You're all caught up!</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {notifications.map((notification) => (
+                <div
+                  key={notification._id}
+                  className={`p-4 rounded-lg border transition-colors ${
+                    !notification.isRead
+                      ? 'bg-blue-50 border-blue-200'
+                      : 'bg-white border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-3 flex-1">
+                      <div className="flex-shrink-0">
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className={`text-sm font-medium ${
+                          !notification.isRead ? 'text-blue-900' : 'text-gray-900'
+                        }`}>
+                          {notification.title}
+                        </h4>
+                        <p className={`text-sm mt-1 ${
+                          !notification.isRead ? 'text-blue-700' : 'text-gray-600'
+                        }`}>
+                          {notification.message}
+                        </p>
+                        <div className="flex items-center mt-2 text-xs text-gray-500">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {formatTimestamp(notification.createdAt)}
                         </div>
                       </div>
                     </div>
-                  ))}
+                    <div className="flex items-center space-x-2 ml-3">
+                      {!notification.isRead && (
+                        <button
+                          onClick={() => markAsRead(notification._id)}
+                          className="text-blue-600 hover:text-blue-800 text-sm"
+                          title="Mark as read"
+                        >
+                          <Check className="h-4 w-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => deleteNotification(notification._id)}
+                        className="text-gray-400 hover:text-gray-600 text-sm"
+                        title="Delete notification"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              )}
+              ))}
             </div>
+          )}
+        </div>
 
-            {/* Footer */}
-            {notifications.length > 0 && (
-              <div className="p-4 border-t border-gray-200 bg-gray-50">
-                <div className="flex items-center justify-between text-sm text-gray-500">
-                  <span>{notifications.length} notification{notifications.length !== 1 ? 's' : ''}</span>
-                  <button
-                    onClick={() => setNotifications([])}
-                    className="text-indigo-600 hover:text-indigo-700 font-medium"
-                  >
-                    Clear all
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Footer */}
+        <div className="p-4 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+          <button
+            onClick={onClose}
+            className="w-full bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            Close
+          </button>
+        </div>
       </div>
-
-      {/* Backdrop */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={toggleNotifications}
-        />
-      )}
-    </>
+    </div>
   );
 };
 
-export default NotificationCenter; 
+export default NotificationCenter;

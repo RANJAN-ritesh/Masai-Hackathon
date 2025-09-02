@@ -203,4 +203,23 @@ export const createOwnershipTransferredNotification = (userId: string, hackathon
     createdAt: new Date(),
     updatedAt: new Date()
   });
+};
+
+// Singleton pattern for the notification service
+export const getNotificationService = (): NotificationService => {
+  return notificationService;
+};
+
+// Additional notification helper functions
+export const createInvitationReceivedNotification = (userId: string, hackathonId: string, teamName: string, fromUserName: string) => {
+  notificationService.addNotification(userId, {
+    userId,
+    hackathonId,
+    type: "team_invitation",
+    title: "Team Invitation! 🎯",
+    message: `${fromUserName} invited you to join team "${teamName}". Check your invitations to respond.`,
+    isRead: false,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
 }; 

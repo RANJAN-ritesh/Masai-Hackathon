@@ -14,6 +14,7 @@ import {
   Trophy,
   Sun,
   Moon,
+  Bell,
 } from "lucide-react"; // Added Sun and Moon icons
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -27,6 +28,8 @@ const Navbar = () => {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const location = useLocation();
   const isLogin = location.pathname === "/login";
   const isDashboard = location.pathname === "/";
@@ -44,12 +47,40 @@ const Navbar = () => {
   const isInteractive =
     hackathon && hackathon.eventType == "Interactive Hackathon" ? true : false;
 
+  // Load unread notifications count
+  const loadUnreadCount = async () => {
+    if (!userId || !isAuth) return;
+
+    try {
+      const response = await fetch(`${baseURL}/notifications/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${userId}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUnreadNotifications(data.unreadCount || 0);
+      }
+    } catch (error) {
+      console.error('Failed to load unread notifications:', error);
+    }
+  };
+
   useEffect(() => {
     const now = new Date();
     const month = now.toLocaleString("default", { month: "long" }); // Example: March
     const year = now.getFullYear(); // Example: 2024
     setCurrentDate(`${month} ${year}`);
-  }, []);
+
+    // Load unread notifications count
+    if (isAuth && userId) {
+      loadUnreadCount();
+      // Refresh every 30 seconds
+      const interval = setInterval(loadUnreadCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isAuth, userId]);
 
   // Ref for detecting clicks outside the dropdown
   const profileDropdownRef = useRef(null);
@@ -223,6 +254,20 @@ const Navbar = () => {
               {/* Desktop Navigation */}
               {isAuth && (
                 <div className="hidden md:flex items-center space-x-4">
+                  {/* Notification Bell */}
+                  <button
+                    onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                    className="relative p-2 rounded-lg theme-button-secondary transition-all duration-300"
+                    title="Notifications"
+                  >
+                    <Bell className="h-5 w-5" />
+                    {unreadNotifications > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                        {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                      </span>
+                    )}
+                  </button>
+
                   {!isDashboard && (
                     <Link to={role === "admin" ? "/select-team" : "/my-team"}>
                       <button className="theme-button-secondary px-4 py-2 rounded-lg transition">
@@ -468,6 +513,12 @@ const Navbar = () => {
           )}
         </div>
       </nav>
+
+      {/* Notification Center */}
+      <NotificationCenter
+        isOpen={isNotificationOpen}
+        onClose={() => setIsNotificationOpen(false)}
+      />
     </>
   );
 };

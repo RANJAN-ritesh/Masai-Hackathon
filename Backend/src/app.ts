@@ -14,6 +14,7 @@ import teamRequestRoutes from "./routes/teamRequestRoutes";
 import problemStatementRoutes from "./routes/problemStatementRoutes";
 import participantTeamRoutes from "./routes/participantTeamRoutes";
 import problemStatementManagementRoutes from "./routes/problemStatementRoutes";
+import notificationRoutes from "./routes/notificationRoutes";
 import cleanupService from "./services/cleanupService";
 import { alertService } from "./services/alertService";
 import { problemManagementService } from "./services/problemManagementService";
@@ -84,6 +85,7 @@ app.use("/team-request", teamRequestRoutes);
 app.use("/hackathons", problemStatementRoutes); // Mount hackathon routes at /hackathons level
 app.use("/participant-team", participantTeamRoutes); // Enable participant team routes
 app.use("/problem-statements", problemStatementManagementRoutes); // Problem statement management routes
+app.use("/notifications", notificationRoutes); // Notification routes
 
 // EMERGENCY DEBUG ROUTE - NO AUTHENTICATION
 app.get("/debug-participants/:hackathonId", async (req, res) => {

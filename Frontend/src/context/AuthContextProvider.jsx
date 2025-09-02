@@ -45,22 +45,7 @@ const AuthContextProvider = ({ children }) => {
         setIsAuth(true);
       } catch (err) {
         console.error("Error fetching user data", err);
-        
-        // Check if it's a 404 error (user not found)
-        if (err.message.includes("404") || err.message.includes("User not found")) {
-          console.log("User not found, clearing invalid user data");
-          // Clear invalid user data
-          localStorage.removeItem("userId");
-          localStorage.removeItem("userData");
-          localStorage.removeItem("currentHackathon");
-          setUserData(null);
-          setRole("");
-          setIsAuth(false);
-          setLoading(false);
-          return;
-        }
-        
-        // If user fetch fails for other reasons, try to get from localStorage
+        // If user fetch fails, try to get from localStorage
         const storedUserData = localStorage.getItem("userData");
         if (storedUserData) {
           try {
@@ -70,21 +55,7 @@ const AuthContextProvider = ({ children }) => {
             setIsAuth(true);
           } catch (e) {
             console.error("Error parsing stored user data", e);
-            // Clear invalid stored data
-            localStorage.removeItem("userData");
-            localStorage.removeItem("userId");
-            localStorage.removeItem("currentHackathon");
-            setUserData(null);
-            setRole("");
-            setIsAuth(false);
           }
-        } else {
-          // No stored data and fetch failed, clear everything
-          localStorage.removeItem("userId");
-          localStorage.removeItem("currentHackathon");
-          setUserData(null);
-          setRole("");
-          setIsAuth(false);
         }
       } finally {
         setLoading(false); // Stop loading in any case
@@ -121,20 +92,6 @@ const AuthContextProvider = ({ children }) => {
   }, [userData, baseURL]);
 
   const [hackathon, setHackathon] = useState(null);
-  
-  // Logout function to clear all user data
-  const logout = () => {
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userData");
-    localStorage.removeItem("currentHackathon");
-    setUserData(null);
-    setRole("");
-    setIsAuth(false);
-    setHackathon(null);
-    setUserHackathon(null);
-    setCurrentHackathonId("");
-  };
-  
   useEffect(() => {
     const fetchHackathons = async () => {
       setLoading(true);
@@ -204,7 +161,6 @@ const AuthContextProvider = ({ children }) => {
         role,
         userHackathon,
         setUserHackathon,
-        logout,
       }}
     >
       {children}

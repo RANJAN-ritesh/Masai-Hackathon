@@ -23,6 +23,9 @@ const ParticipantTeamCreation = () => {
   const [selectedParticipantId, setSelectedParticipantId] = useState('');
   const [userTeam, setUserTeam] = useState(null);
   const [teamLoading, setTeamLoading] = useState(false);
+  const [joinRequests, setJoinRequests] = useState(new Set()); // Track join requests sent
+  const [hackathonTeams, setHackathonTeams] = useState([]); // Teams in selected hackathon
+  const [showTeams, setShowTeams] = useState(false);
 
   // Load user's team if they have one
   const loadUserTeam = async (hackathonId) => {
@@ -127,19 +130,100 @@ const ParticipantTeamCreation = () => {
         return;
       }
 
-      // For now, show a success message (backend invite endpoint will be implemented)
-      toast.success(`Invitation sent to ${participantName}!`);
-      console.log(`Inviting ${participantName} (${participantId}) to team ${userTeam.teamId}`);
-      
-      // TODO: Implement actual invite API call
-      // const response = await fetch(`${baseURL}/team/invite`, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ participantId, teamId: userTeam.teamId })
-      // });
+      if (!selectedHackathon) {
+        toast.error('Please select a hackathon first');
+        return;
+      }
+
+      // Get user ID from localStorage
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        toast.error('User authentication required');
+        return;
+      }
+
+      console.log(`Sending invitation to ${participantName} (${participantId}) for team in hackathon ${selectedHackathon._id}`);
+
+      const response = await fetch(`${baseURL}/participant-team/send-invitation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userId}` // Using userId as token temporarily
+        },
+        body: JSON.stringify({
+          participantId,
+          teamId: userTeam.teamId,
+          message: `You are invited to join our team for the ${selectedHackathon.title} hackathon!`
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(`Invitation sent to ${participantName}! 🎉`);
+        console.log('Invitation sent successfully:', data);
+
+        // Refresh participants list to show updated status
+        await loadParticipants(selectedHackathon._id);
+      } else {
+        toast.error(data.message || 'Failed to send invitation');
+        console.error('Failed to send invitation:', data);
+      }
     } catch (error) {
       console.error('Failed to send invitation:', error);
-      toast.error('Failed to send invitation');
+      toast.error('Failed to send invitation. Please try again.');
+    }
+  };
+
+  // Function to send join request to a team
+  const sendJoinRequest = async (teamId, teamName) => {
+    try {
+      if (!selectedHackathon) {
+        toast.error('Please select a hackathon first');
+        return;
+      }
+
+      if (userTeam) {
+        toast.error('You are already in a team');
+        return;
+      }
+
+      // Get user ID from localStorage
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        toast.error('User authentication required');
+        return;
+      }
+
+      console.log(`Sending join request to team ${teamName} (${teamId})`);
+
+      const response = await fetch(`${baseURL}/participant-team/send-request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userId}`
+        },
+        body: JSON.stringify({
+          teamId,
+          message: `I would like to join your team for the ${selectedHackathon.title} hackathon!`
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success(`Join request sent to ${teamName}! 🎉`);
+        console.log('Join request sent successfully:', data);
+
+        // Mark this team as having a pending request
+        setJoinRequests(prev => new Set(prev).add(teamId));
+      } else {
+        toast.error(data.message || 'Failed to send join request');
+        console.error('Failed to send join request:', data);
+      }
+    } catch (error) {
+      console.error('Failed to send join request:', error);
+      toast.error('Failed to send join request. Please try again.');
     }
   };
 
@@ -159,6 +243,26 @@ const ParticipantTeamCreation = () => {
     } catch (error) {
       console.error('Failed to load hackathons:', error);
       toast.error('Failed to load hackathons');
+    }
+  };
+
+  // Function to load teams for the selected hackathon
+  const loadHackathonTeams = async (hackathonId) => {
+    try {
+      console.log('Loading teams for hackathon:', hackathonId);
+      const response = await fetch(`${baseURL}/team/hackathon/${hackathonId}`);
+      const data = await response.json();
+
+      if (response.ok && data.teams) {
+        setHackathonTeams(data.teams);
+        console.log('Loaded teams:', data.teams.length);
+      } else {
+        setHackathonTeams([]);
+        console.log('No teams found or error loading teams');
+      }
+    } catch (error) {
+      console.error('Failed to load teams:', error);
+      setHackathonTeams([]);
     }
   };
 
@@ -367,7 +471,7 @@ const ParticipantTeamCreation = () => {
 
         {/* Action Buttons */}
         {selectedHackathon && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             <button
               onClick={() => {
                 setShowParticipants(!showParticipants);
@@ -379,6 +483,19 @@ const ParticipantTeamCreation = () => {
             >
               <Users className="h-5 w-5 mr-2" />
               {showParticipants ? 'Hide Participants' : 'View Participants'}
+            </button>
+
+            <button
+              onClick={() => {
+                setShowTeams(!showTeams);
+                if (!showTeams && hackathonTeams.length === 0) {
+                  loadHackathonTeams(selectedHackathon._id);
+                }
+              }}
+              className="bg-purple-500 text-white p-4 rounded-lg hover:bg-purple-600 transition-colors flex items-center justify-center"
+            >
+              <Shield className="h-5 w-5 mr-2" />
+              {showTeams ? 'Hide Teams' : 'View Teams'}
             </button>
 
             <button
@@ -449,6 +566,69 @@ const ParticipantTeamCreation = () => {
                 <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                 <p className="text-lg font-medium text-gray-900 mb-2">No participants found</p>
                 <p className="text-sm text-gray-500">This hackathon doesn't have any participants yet.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Teams List */}
+        {selectedHackathon && showTeams && (
+          <div className="bg-white rounded-xl p-6 mb-8 shadow-sm">
+            <h2 className="text-xl font-semibold mb-4">Teams in {selectedHackathon.title}</h2>
+
+            {hackathonTeams.length === 0 ? (
+              <div className="text-center py-8">
+                <Shield className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <p className="text-lg font-medium text-gray-900 mb-2">No teams available</p>
+                <p className="text-sm text-gray-500">No teams have been created for this hackathon yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {hackathonTeams.map((team) => (
+                  <div key={team._id} className="p-4 border border-gray-200 rounded-lg">
+                    <div className="flex items-center mb-2">
+                      <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-3">
+                        <Shield className="h-4 w-4 text-purple-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium">{team.teamName}</h4>
+                        <p className="text-sm text-gray-500">
+                          {team.teamMembers?.length || 0} / {team.memberLimit} members
+                        </p>
+                      </div>
+                    </div>
+                    {team.description && (
+                      <p className="text-sm text-gray-600 mb-3 line-clamp-2">{team.description}</p>
+                    )}
+                    <div className="flex items-center justify-between text-xs mb-3">
+                      <span className="text-gray-500">
+                        Created by: {team.teamLeader?.name || 'Unknown'}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => sendJoinRequest(team._id, team.teamName)}
+                      disabled={userTeam || joinRequests.has(team._id) || (team.teamMembers?.length || 0) >= team.memberLimit}
+                      className={`w-full py-2 px-3 rounded-lg text-sm transition-colors ${
+                        userTeam
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : joinRequests.has(team._id)
+                          ? 'bg-yellow-100 text-yellow-600 cursor-not-allowed'
+                          : (team.teamMembers?.length || 0) >= team.memberLimit
+                          ? 'bg-red-100 text-red-600 cursor-not-allowed'
+                          : 'bg-green-500 text-white hover:bg-green-600'
+                      }`}
+                    >
+                      {userTeam
+                        ? 'Already in Team'
+                        : joinRequests.has(team._id)
+                        ? 'Request Sent'
+                        : (team.teamMembers?.length || 0) >= team.memberLimit
+                        ? 'Team Full'
+                        : 'Request to Join'
+                      }
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>
