@@ -221,35 +221,48 @@ export const sendJoinRequest = async (req: Request, res: Response) => {
 // Send invitation to a participant
 export const sendInvitation = async (req: Request, res: Response) => {
   try {
+    console.log('🔍 sendInvitation called with body:', req.body);
+    console.log('🔍 User from request:', req.user);
+    
     const { participantId, teamId, message } = req.body;
     const fromUserId = req.user?.id;
 
+    console.log('🔍 Extracted data:', { participantId, teamId, message, fromUserId });
+
     if (!fromUserId) {
+      console.log('❌ No user ID found in request');
       return res.status(401).json({ message: 'User not authenticated' });
     }
 
     // Check if user is team leader
     const team = await Team.findById(teamId);
     if (!team) {
+      console.log('❌ Team not found:', teamId);
       return res.status(404).json({ message: 'Team not found' });
     }
 
+    console.log('🔍 Team found:', { teamId: team._id, teamLeader: team.teamLeader, fromUserId });
+
     if (team.teamLeader.toString() !== fromUserId) {
+      console.log('❌ User is not team leader');
       return res.status(403).json({ message: 'Only team leaders can send invitations' });
     }
 
     // Check if team can receive new members
     if (team.teamMembers.length >= team.memberLimit) {
+      console.log('❌ Team is at maximum capacity');
       return res.status(400).json({ message: 'Team is already at maximum capacity' });
     }
 
     // Check if participant exists and is available
     const participant = await User.findById(participantId);
     if (!participant) {
+      console.log('❌ Participant not found:', participantId);
       return res.status(404).json({ message: 'Participant not found' });
     }
 
     if (participant.currentTeamId) {
+      console.log('❌ Participant is already in a team');
       return res.status(400).json({ message: 'Participant is already in a team' });
     }
 
@@ -263,8 +276,11 @@ export const sendInvitation = async (req: Request, res: Response) => {
     });
 
     if (existingInvitation) {
+      console.log('❌ Invitation already exists');
       return res.status(400).json({ message: 'Invitation already sent to this participant' });
     }
+
+    console.log('✅ All validations passed, creating invitation...');
 
     // Create invitation
     const invitation = new TeamRequest({
@@ -278,6 +294,7 @@ export const sendInvitation = async (req: Request, res: Response) => {
     });
 
     await invitation.save();
+    console.log('✅ Invitation saved:', invitation._id);
 
     // Create notification for participant
     createInvitationReceivedNotification(
@@ -286,6 +303,8 @@ export const sendInvitation = async (req: Request, res: Response) => {
       team.teamName,
       req.user?.name || 'Team Leader'
     );
+
+    console.log('✅ Invitation sent successfully');
 
     res.status(201).json({
       message: 'Invitation sent successfully',
@@ -297,8 +316,9 @@ export const sendInvitation = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    console.error('Error sending invitation:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error('❌ Error sending invitation:', error);
+    console.error('❌ Error stack:', error.stack);
+    res.status(500).json({ message: 'Internal server error', error: String(error) });
   }
 };
 

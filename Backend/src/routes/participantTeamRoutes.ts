@@ -60,6 +60,17 @@ router.get('/test-participants/:hackathonId', async (req, res) => {
   }
 });
 
+// Debug authentication endpoint
+router.get('/debug-auth', authenticateUser, (req, res) => {
+  res.json({
+    message: 'Authentication working',
+    user: req.user,
+    headers: {
+      authorization: req.headers.authorization ? 'present' : 'missing'
+    }
+  });
+});
+
 // Apply authentication to all routes EXCEPT the test route
 router.use(authenticateUser);
 
