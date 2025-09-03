@@ -38,15 +38,20 @@ const app = express();
 const server = createServer(app);
 const PORT = process.env.PORT || 5009;
 
+// Trust proxy for rate limiting (required for Render deployment)
+app.set('trust proxy', 1);
+
 // Initialize WebSocket service
 let webSocketService: WebSocketService;
 app.use(express.json());
 
-// Rate limiting
+// Rate limiting with trusted proxy
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // limit each IP to 100 requests per windowMs
-    message: 'Too many requests from this IP, please try again later.'
+    message: 'Too many requests from this IP, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false
 });
 app.use(limiter);
 

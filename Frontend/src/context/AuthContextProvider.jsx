@@ -10,6 +10,7 @@ const AuthContextProvider = ({ children }) => {
   const [loading, setLoading] = useState(true); // Track loading state
   const [currentHackathonId, setCurrentHackathonId] = useState("");
   const [userHackathon, setUserHackathon] = useState(null); // Track user's enrolled hackathon
+  const [authToken, setAuthToken] = useState(localStorage.getItem("authToken")); // JWT token
   let currentHackathon = localStorage.getItem("currentHackathon");
   
   // Don't set a default hackathon ID - let the system handle it properly
@@ -174,6 +175,8 @@ const AuthContextProvider = ({ children }) => {
         role,
         userHackathon,
         setUserHackathon,
+        authToken,
+        setAuthToken,
       }}
     >
       {children}

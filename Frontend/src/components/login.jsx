@@ -23,7 +23,7 @@ function Login() {
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from?.pathname || "/";
-  const { isAuth, setIsAuth, setUserData, userData, role } =
+  const { isAuth, setIsAuth, setUserData, userData, role, setAuthToken } =
     useContext(MyContext);
 
   useEffect(() => {
@@ -53,6 +53,16 @@ function Login() {
       // console.log("This is users ID: ", data.user.userType);
       localStorage.setItem("userId", data.user._id); // Use MongoDB _id
       localStorage.setItem("userData", JSON.stringify(data.user)); // Store full user data
+      
+      // Store JWT token if provided
+      if (data.token) {
+        localStorage.setItem("authToken", data.token);
+        setAuthToken(data.token);
+        console.log('🔐 JWT token stored successfully');
+      } else {
+        console.log('⚠️ No JWT token received, using userId fallback');
+      }
+      
       setUserData(data.user); // Set user data in context
       setIsAuth(true);
       toast.success("User logged in successfully", {

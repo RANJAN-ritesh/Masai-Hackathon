@@ -9,7 +9,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-i
 // Rate limiting for authentication endpoints
 export const authRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 requests per windowMs
+  max: 50, // Increased limit for better UX
   message: 'Too many authentication attempts, please try again later',
   standardHeaders: true,
   legacyHeaders: false,
@@ -62,7 +62,10 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
         }
       } catch (jwtError) {
         // If JWT verification fails, try using token as direct userId (temporary fallback)
-        console.log('JWT verification failed, trying token as userId:', token);
+        // Only log this occasionally to reduce noise
+        if (Math.random() < 0.01) { // Log only 1% of failures
+          console.log('JWT verification failed, trying token as userId (sample)');
+        }
         foundUser = await user.findById(token);
       }
 
@@ -162,12 +165,12 @@ export const requireTeamMemberOrAdmin = (req: Request, res: Response, next: Next
 };
 
 // Generate JWT token for user
-export const generateToken = (userId: string, email: string, role: string): string => {
+export const generateToken = (userData: { userId: string; email: string; role: string }): string => {
   return jwt.sign(
     { 
-      userId, 
-      email, 
-      role,
+      userId: userData.userId, 
+      email: userData.email, 
+      role: userData.role,
       exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
     },
     JWT_SECRET

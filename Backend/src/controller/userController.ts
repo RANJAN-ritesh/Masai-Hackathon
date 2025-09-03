@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import user from "../model/user";
 import team from "../model/team";
+import { generateToken } from "../middleware/auth";
 
 export const leaveTeam = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -69,8 +70,36 @@ export const verifyUser = async(req:Request<{}, {}, {email : string, password: s
             res.status(401).json({message: "Invalid email or password"});
             return;
         }
+        // Generate JWT token
+        const token = generateToken({
+            userId: (verifiedUser._id as any).toString(),
+            email: verifiedUser.email,
+            role: verifiedUser.role
+        });
+
         verifiedUser.isVerified = true;
-        res.status(200).json({message: "Login Successful", user: verifiedUser});
+        
+        // Return user data with JWT token
+        const userResponse = {
+            _id: verifiedUser._id,
+            userId: verifiedUser.userId,
+            name: verifiedUser.name,
+            email: verifiedUser.email,
+            role: verifiedUser.role,
+            isVerified: verifiedUser.isVerified,
+            phoneNumber: verifiedUser.phoneNumber,
+            course: verifiedUser.course,
+            skills: verifiedUser.skills,
+            vertical: verifiedUser.vertical,
+            hackathonIds: verifiedUser.hackathonIds,
+            teamId: verifiedUser.teamId
+        };
+
+        res.status(200).json({
+            message: "Login Successful", 
+            user: userResponse,
+            token: token
+        });
     } catch (error){
         res.status(500).json({message: "Server error", error});
     }
