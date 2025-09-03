@@ -1031,7 +1031,6 @@ const MyTeam = () => {
                             </td>
                             <td className="py-3 px-4">
                               {currentTeam && 
-                               currentTeam.teamLeader?._id === userId && 
                                !participant.currentTeamId && 
                                participant._id !== userId && (
                                 <button
