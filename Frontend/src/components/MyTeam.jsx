@@ -380,6 +380,33 @@ const MyTeam = () => {
     }
   };
 
+  const respondToInvitation = async (requestId, response) => {
+    try {
+      const res = await fetch(`${baseURL}/participant-team/respond-invitation/${requestId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userId}`
+        },
+        body: JSON.stringify({
+          response,
+          message: response === 'accepted' ? 'I accept your invitation!' : 'I decline your invitation.'
+        })
+      });
+
+      if (res.ok) {
+        toast.success(`Invitation ${response} successfully!`);
+        await loadData();
+      } else {
+        const error = await res.json();
+        toast.error(error.message || `Failed to ${response} invitation`);
+      }
+    } catch (error) {
+      console.error('Error responding to invitation:', error);
+      toast.error(`Failed to ${response} invitation`);
+    }
+  };
+
   const filteredParticipants = hackathonParticipants.filter(participant => 
     participant._id !== userId &&
     !participant.currentTeamId &&
@@ -957,6 +984,9 @@ const MyTeam = () => {
                           <th className="text-left py-3 px-4" style={{ color: themeConfig.textColor }}>
                             Status
                           </th>
+                          <th className="text-left py-3 px-4" style={{ color: themeConfig.textColor }}>
+                            Actions
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -999,11 +1029,102 @@ const MyTeam = () => {
                                 {participant.currentTeamId ? 'In Team' : 'Available'}
                               </span>
                             </td>
+                            <td className="py-3 px-4">
+                              {currentTeam && 
+                               currentTeam.teamLeader?._id === userId && 
+                               !participant.currentTeamId && 
+                               participant._id !== userId && (
+                                <button
+                                  onClick={() => sendInvitation(participant._id)}
+                                  className="px-3 py-1 rounded-lg text-xs font-medium transition-colors hover:opacity-80"
+                                  style={{
+                                    backgroundColor: themeConfig.accentColor,
+                                    color: 'white'
+                                  }}
+                                >
+                                  Invite
+                                </button>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
+                </div>
+              )}
+
+              {/* Invitations Tab */}
+              {activeTab === 'invitations' && (
+                <div>
+                  <h3 className="text-xl font-semibold mb-4" style={{ color: themeConfig.textColor }}>
+                    Team Invitations
+                  </h3>
+                  
+                  {teamRequests.filter(request => 
+                    request.toUserId === userId && request.requestType === 'invite'
+                  ).length === 0 ? (
+                    <div className="text-center py-8">
+                      <Mail className="h-12 w-12 mx-auto mb-4" style={{ color: themeConfig.textColor, opacity: 0.5 }} />
+                      <p className="text-lg font-medium mb-2" style={{ color: themeConfig.textColor }}>
+                        No Invitations
+                      </p>
+                      <p className="text-sm" style={{ color: themeConfig.textColor, opacity: 0.7 }}>
+                        You don't have any pending team invitations.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {teamRequests
+                        .filter(request => request.toUserId === userId && request.requestType === 'invite')
+                        .map((invitation) => (
+                          <div 
+                            key={invitation._id}
+                            className="p-4 rounded-lg border"
+                            style={{ 
+                              backgroundColor: themeConfig.backgroundColor,
+                              borderColor: themeConfig.borderColor
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h4 className="font-semibold" style={{ color: themeConfig.textColor }}>
+                                  Team Invitation
+                                </h4>
+                                <p className="text-sm" style={{ color: themeConfig.textColor, opacity: 0.7 }}>
+                                  {invitation.message || 'You are invited to join a team!'}
+                                </p>
+                                <p className="text-xs" style={{ color: themeConfig.textColor, opacity: 0.5 }}>
+                                  Sent {new Date(invitation.createdAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => respondToInvitation(invitation._id, 'accepted')}
+                                  className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                                  style={{
+                                    backgroundColor: '#10b981',
+                                    color: 'white'
+                                  }}
+                                >
+                                  Accept
+                                </button>
+                                <button
+                                  onClick={() => respondToInvitation(invitation._id, 'rejected')}
+                                  className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                                  style={{
+                                    backgroundColor: '#ef4444',
+                                    color: 'white'
+                                  }}
+                                >
+                                  Decline
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  )}
                 </div>
               )}
 
