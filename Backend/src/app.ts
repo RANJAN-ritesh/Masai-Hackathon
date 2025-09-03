@@ -105,7 +105,7 @@ app.use("/hackathons", problemStatementRoutes); // Mount hackathon routes at /ha
 app.use("/participant-team", participantTeamRoutes); // Enable participant team routes
 app.use("/problem-statements", problemStatementManagementRoutes); // Problem statement management routes
 app.use("/notifications", notificationRoutes); // Notification routes
-app.use("/team", teamPollingRoutes); // Team polling routes for problem statements
+app.use("/team-polling", teamPollingRoutes); // Team polling routes for problem statements
 
 // EMERGENCY DEBUG ROUTE - NO AUTHENTICATION
 app.get("/debug-participants/:hackathonId", async (req, res) => {

@@ -183,7 +183,7 @@ const MyTeam = () => {
   // Vote on problem statement
   const voteOnProblemStatement = async (problemStatementId) => {
     try {
-      const response = await fetch(`${baseURL}/team/vote-problem-statement`, {
+      const response = await fetch(`${baseURL}/team-polling/vote-problem-statement`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -212,7 +212,7 @@ const MyTeam = () => {
   // Load poll results
   const loadPollResults = async () => {
     try {
-      const response = await fetch(`${baseURL}/team/poll-results/${currentTeam._id}`, {
+      const response = await fetch(`${baseURL}/team-polling/poll-results/${currentTeam._id}`, {
         headers: {
           'Authorization': `Bearer ${userId}`
         }
@@ -230,7 +230,7 @@ const MyTeam = () => {
   // End poll and select problem statement
   const endPollAndSelectProblem = async (problemStatementId) => {
     try {
-      const response = await fetch(`${baseURL}/team/select-problem-statement`, {
+      const response = await fetch(`${baseURL}/team-polling/select-problem-statement`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
