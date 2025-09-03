@@ -16,6 +16,11 @@ export interface ITeam extends Document {
     pendingRequests: mongoose.Types.ObjectId[];
     teamStatus: "forming" | "finalized" | "locked";
     teamLeader: mongoose.Types.ObjectId;
+    // NEW FIELDS FOR PROBLEM STATEMENT POLLING
+    problemStatementVotes?: { [userId: string]: string }; // userId -> problemStatementId
+    problemStatementVoteCount?: { [problemStatementId: string]: number }; // problemStatementId -> vote count
+    selectedProblemStatement?: string;
+    problemStatementSelectedAt?: Date;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -47,7 +52,12 @@ const TeamSchema = new Schema<ITeam>({
     canReceiveRequests: { type: Boolean, default: true },
     pendingRequests: [{ type: mongoose.Schema.Types.ObjectId, ref: 'TeamRequest' }],
     teamStatus: { type: String, enum: ["forming", "finalized", "locked"], default: "forming" },
-    teamLeader: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+    teamLeader: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    // NEW FIELDS FOR PROBLEM STATEMENT POLLING
+    problemStatementVotes: { type: Map, of: String, default: {} },
+    problemStatementVoteCount: { type: Map, of: Number, default: {} },
+    selectedProblemStatement: { type: String },
+    problemStatementSelectedAt: { type: Date }
 }, { timestamps: true });
 
 export default mongoose.model<ITeam>("Team", TeamSchema);

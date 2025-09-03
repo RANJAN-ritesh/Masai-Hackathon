@@ -13,7 +13,10 @@ import {
   Check,
   X,
   Clock,
-  Mail
+  Mail,
+  Vote,
+  Target,
+  BarChart3
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -37,6 +40,13 @@ const MyTeam = () => {
   const [selectedMembers, setSelectedMembers] = useState([]);
   const [teamRequests, setTeamRequests] = useState([]);
 
+  // Problem Statement Polling State
+  const [problemStatements, setProblemStatements] = useState([]);
+  const [pollActive, setPollActive] = useState(false);
+  const [pollResults, setPollResults] = useState({});
+  const [showPollModal, setShowPollModal] = useState(false);
+  const [selectedProblemStatement, setSelectedProblemStatement] = useState(null);
+
   // Check team creation mode
   const isParticipantTeamMode = hackathon?.allowParticipantTeams && hackathon?.teamCreationMode === 'participant';
   const isAdminTeamMode = !hackathon?.allowParticipantTeams && hackathon?.teamCreationMode === 'admin';
@@ -54,7 +64,8 @@ const MyTeam = () => {
         loadCurrentTeam(),
         loadHackathonParticipants(),
         loadHackathonTeams(),
-        loadTeamRequests()
+        loadTeamRequests(),
+        loadProblemStatements()
       ]);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -133,6 +144,117 @@ const MyTeam = () => {
       }
     } catch (error) {
       console.error('Error loading team requests:', error);
+    }
+  };
+
+  // Load problem statements from hackathon
+  const loadProblemStatements = async () => {
+    try {
+      if (hackathon?.problemStatements) {
+        setProblemStatements(hackathon.problemStatements);
+      }
+    } catch (error) {
+      console.error('Error loading problem statements:', error);
+    }
+  };
+
+  // Start problem statement poll
+  const startProblemStatementPoll = async () => {
+    if (!currentTeam) {
+      toast.error('You need to be in a team to start a poll');
+      return;
+    }
+
+    if (currentTeam.teamLeader?._id !== userId) {
+      toast.error('Only team leaders can start problem statement polls');
+      return;
+    }
+
+    if (problemStatements.length === 0) {
+      toast.error('No problem statements available for this hackathon');
+      return;
+    }
+
+    setPollActive(true);
+    setShowPollModal(true);
+    toast.success('Problem statement poll started! Team members can now vote.');
+  };
+
+  // Vote on problem statement
+  const voteOnProblemStatement = async (problemStatementId) => {
+    try {
+      const response = await fetch(`${baseURL}/team/vote-problem-statement`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userId}`
+        },
+        body: JSON.stringify({
+          teamId: currentTeam._id,
+          problemStatementId,
+          hackathonId: hackathon._id
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Vote recorded successfully!');
+        await loadPollResults();
+      } else {
+        const error = await response.json();
+        toast.error(error.message || 'Failed to record vote');
+      }
+    } catch (error) {
+      console.error('Error voting on problem statement:', error);
+      toast.error('Failed to record vote');
+    }
+  };
+
+  // Load poll results
+  const loadPollResults = async () => {
+    try {
+      const response = await fetch(`${baseURL}/team/poll-results/${currentTeam._id}`, {
+        headers: {
+          'Authorization': `Bearer ${userId}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPollResults(data.results || {});
+      }
+    } catch (error) {
+      console.error('Error loading poll results:', error);
+    }
+  };
+
+  // End poll and select problem statement
+  const endPollAndSelectProblem = async (problemStatementId) => {
+    try {
+      const response = await fetch(`${baseURL}/team/select-problem-statement`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userId}`
+        },
+        body: JSON.stringify({
+          teamId: currentTeam._id,
+          problemStatementId,
+          hackathonId: hackathon._id
+        })
+      });
+
+      if (response.ok) {
+        setPollActive(false);
+        setShowPollModal(false);
+        setSelectedProblemStatement(problemStatementId);
+        toast.success('Problem statement selected successfully!');
+      } else {
+        const error = await response.json();
+        toast.error(error.message || 'Failed to select problem statement');
+      }
+    } catch (error) {
+      console.error('Error selecting problem statement:', error);
+      toast.error('Failed to select problem statement');
     }
   };
 
@@ -307,6 +429,113 @@ const MyTeam = () => {
           </p>
         </div>
 
+        {/* Problem Statement Poll Modal */}
+        {showPollModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div 
+              className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto"
+              style={{ backgroundColor: themeConfig.cardBg }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 
+                  className="text-2xl font-bold"
+                  style={{ color: themeConfig.textColor }}
+                >
+                  Problem Statement Poll
+                </h2>
+                <button
+                  onClick={() => setShowPollModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {problemStatements.map((problem, index) => (
+                  <div 
+                    key={index}
+                    className="p-4 rounded-lg border"
+                    style={{ 
+                      backgroundColor: themeConfig.backgroundColor,
+                      borderColor: themeConfig.borderColor
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <h3 
+                          className="font-semibold mb-2"
+                          style={{ color: themeConfig.textColor }}
+                        >
+                          {problem.track}
+                        </h3>
+                        <p 
+                          className="text-sm"
+                          style={{ color: themeConfig.textColor, opacity: 0.7 }}
+                        >
+                          {problem.description}
+                        </p>
+                        {pollResults[problem.track] && (
+                          <div className="mt-2">
+                            <div className="flex items-center space-x-2">
+                              <BarChart3 className="w-4 h-4" style={{ color: themeConfig.accentColor }} />
+                              <span 
+                                className="text-sm"
+                                style={{ color: themeConfig.textColor }}
+                              >
+                                {pollResults[problem.track]} votes
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => voteOnProblemStatement(problem.track)}
+                          className="px-4 py-2 rounded-lg transition"
+                          style={{ 
+                            backgroundColor: themeConfig.accentColor,
+                            color: 'white'
+                          }}
+                        >
+                          <Vote className="w-4 h-4" />
+                        </button>
+                        {currentTeam?.teamLeader?._id === userId && (
+                          <button
+                            onClick={() => endPollAndSelectProblem(problem.track)}
+                            className="px-4 py-2 rounded-lg transition border"
+                            style={{ 
+                              borderColor: themeConfig.accentColor,
+                              color: themeConfig.accentColor
+                            }}
+                          >
+                            <Target className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {currentTeam?.teamLeader?._id === userId && (
+                <div className="mt-6 text-center">
+                  <button
+                    onClick={() => setShowPollModal(false)}
+                    className="px-6 py-2 rounded-lg transition"
+                    style={{ 
+                      backgroundColor: themeConfig.accentColor,
+                      color: 'white'
+                    }}
+                  >
+                    Close Poll
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Admin Team Mode */}
         {isAdminTeamMode && currentTeam && (
           <div 
@@ -374,6 +603,7 @@ const MyTeam = () => {
                   Team Leader Actions
                 </h3>
                 <button
+                  onClick={startProblemStatementPoll}
                   className="px-4 py-2 rounded-lg transition"
                   style={{ 
                     backgroundColor: themeConfig.accentColor,
@@ -512,6 +742,7 @@ const MyTeam = () => {
                           </h3>
                           <div className="flex space-x-4">
                             <button
+                              onClick={startProblemStatementPoll}
                               className="px-4 py-2 rounded-lg transition"
                               style={{ 
                                 backgroundColor: themeConfig.accentColor,
