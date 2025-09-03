@@ -410,6 +410,84 @@ export const respondToRequest = async (req: Request, res: Response) => {
   }
 };
 
+// Respond to an invitation (accept/reject) - for participants receiving invitations
+export const respondToInvitation = async (req: Request, res: Response) => {
+  try {
+    const { requestId } = req.params;
+    const { response, message } = req.body;
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'User not authenticated' });
+    }
+
+    // Get request
+    const request = await TeamRequest.findById(requestId);
+    if (!request) {
+      return res.status(404).json({ message: 'Invitation not found' });
+    }
+
+    // Check if user is the one who received the invitation
+    if (request.toUserId.toString() !== userId) {
+      return res.status(403).json({ message: 'You can only respond to invitations sent to you' });
+    }
+
+    // Check if request is an invitation
+    if (request.requestType !== 'invite') {
+      return res.status(400).json({ message: 'This is not an invitation' });
+    }
+
+    // Check if request has expired
+    const expiryCheck = await isRequestExpired(request, Hackathon);
+    if (expiryCheck.expired) {
+      return res.status(400).json({ message: 'This invitation has expired' });
+    }
+
+    // Check if user is already in a team
+    const user = await User.findById(userId);
+    if (user?.currentTeamId) {
+      return res.status(400).json({ message: 'You are already in a team' });
+    }
+
+    // Update request status
+    request.status = response;
+    request.respondedAt = new Date();
+    request.responseMessage = message;
+    await request.save();
+
+    if (response === 'accepted') {
+      // Add user to team
+      await Team.findByIdAndUpdate(request.teamId, {
+        $push: { teamMembers: userId },
+        $pull: { pendingRequests: request._id }
+      });
+
+      // Update user
+      await User.findByIdAndUpdate(userId, {
+        currentTeamId: request.teamId,
+        canSendRequests: false,
+        canReceiveRequests: false,
+        lastTeamActivity: new Date()
+      });
+
+      // Check if team is now full
+      const updatedTeam = await Team.findById(request.teamId);
+      if (updatedTeam && updatedTeam.teamMembers.length >= updatedTeam.memberLimit) {
+        updatedTeam.canReceiveRequests = false;
+        await updatedTeam.save();
+      }
+
+      res.json({ message: 'Invitation accepted successfully' });
+    } else {
+      res.json({ message: 'Invitation rejected successfully' });
+    }
+
+  } catch (error) {
+    console.error('Error responding to invitation:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
 // Finalize team
 export const finalizeTeam = async (req: Request, res: Response) => {
   try {

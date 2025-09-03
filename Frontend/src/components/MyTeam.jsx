@@ -647,7 +647,8 @@ const MyTeam = () => {
                   { id: 'search', label: 'Search Members', icon: Search },
                   { id: 'members', label: 'Show Members', icon: Eye },
                   { id: 'join', label: 'Join Team', icon: UserPlus },
-                  { id: 'create', label: 'Create Team', icon: Plus }
+                  { id: 'create', label: 'Create Team', icon: Plus },
+                  { id: 'invitations', label: 'Invitations', icon: Mail }
                 ].map((tab) => {
                   const Icon = tab.icon;
                   return (

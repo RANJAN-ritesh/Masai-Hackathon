@@ -243,4 +243,30 @@ export const createInvitationReceivedNotification = (userId: string, hackathonId
     createdAt: new Date(),
     updatedAt: new Date()
   });
+};
+
+export const createInvitationAcceptedNotification = (userId: string, hackathonId: string, participantName: string) => {
+  notificationService.addNotification(userId, {
+    userId,
+    hackathonId,
+    type: "invitation_accepted",
+    title: "Invitation Accepted! ✅",
+    message: `${participantName} has accepted your team invitation. Your team is growing!`,
+    isRead: false,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
+};
+
+export const createInvitationRejectedNotification = (userId: string, hackathonId: string, participantName: string) => {
+  notificationService.addNotification(userId, {
+    userId,
+    hackathonId,
+    type: "invitation_rejected",
+    title: "Invitation Declined ❌",
+    message: `${participantName} has declined your team invitation. You can invite other participants.`,
+    isRead: false,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  });
 }; 
