@@ -1030,7 +1030,9 @@ const MyTeam = () => {
                               </span>
                             </td>
                             <td className="py-3 px-4">
+                              {/* Show invite button for team leaders and available participants */}
                               {currentTeam && 
+                               (currentTeam.createdBy?._id === userId || currentTeam.teamLeader?._id === userId) &&
                                !participant.currentTeamId && 
                                participant._id !== userId && (
                                 <button
