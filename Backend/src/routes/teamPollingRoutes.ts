@@ -6,6 +6,11 @@ import User from "../model/user";
 
 const router = express.Router();
 
+// Add a simple test route to verify the polling routes are mounted
+router.get("/test", (req, res) => {
+  res.json({ message: "Team polling routes are working!", timestamp: new Date().toISOString() });
+});
+
 // Vote on problem statement
 router.post("/vote-problem-statement", authenticateUser, async (req, res) => {
   try {
