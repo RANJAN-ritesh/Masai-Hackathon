@@ -25,6 +25,98 @@ router.get("/getAllUsers", async (req, res) => {
   }
 });
 
+// DELETE single user - Admin endpoint
+router.delete("/delete-user/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Prevent admin from deleting themselves
+    if (user.role === 'admin') {
+      return res.status(403).json({ message: "Cannot delete admin users" });
+    }
+
+    // Delete the user
+    await User.findByIdAndDelete(userId);
+    
+    res.status(200).json({ message: "User deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    res.status(500).json({ 
+      message: "Error deleting user", 
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+});
+
+// DELETE all users (except admins) - Admin endpoint
+router.delete("/delete-all-users", async (req, res) => {
+  try {
+    // Delete all non-admin users
+    const result = await User.deleteMany({ role: { $ne: 'admin' } });
+    
+    res.status(200).json({ 
+      message: "All non-admin users deleted successfully", 
+      deletedCount: result.deletedCount 
+    });
+  } catch (error) {
+    console.error("Error deleting all users:", error);
+    res.status(500).json({ 
+      message: "Error deleting all users", 
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+});
+
+// UPDATE user - Admin endpoint
+router.put("/update-user/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { name, email, phoneNumber, role, isVerified } = req.body;
+    
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Prevent admin from modifying other admins
+    if (user.role === 'admin' && role !== 'admin') {
+      return res.status(403).json({ message: "Cannot modify admin users" });
+    }
+
+    // Update user fields
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (email !== undefined) updateData.email = email;
+    if (phoneNumber !== undefined) updateData.phoneNumber = phoneNumber;
+    if (role !== undefined) updateData.role = role;
+    if (isVerified !== undefined) updateData.isVerified = isVerified;
+
+    const updatedUser = await User.findByIdAndUpdate(
+      userId, 
+      updateData, 
+      { new: true, select: '-password' }
+    );
+    
+    res.status(200).json({ 
+      message: "User updated successfully", 
+      user: updatedUser 
+    });
+  } catch (error) {
+    console.error("Error updating user:", error);
+    res.status(500).json({ 
+      message: "Error updating user", 
+      error: error instanceof Error ? error.message : "Unknown error"
+    });
+  }
+});
+
 // Registration routes that frontend expects
 router.get("/registrations/user/:userId", async (req, res) => {
   try {
