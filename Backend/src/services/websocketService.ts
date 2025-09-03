@@ -15,6 +15,8 @@ interface AuthenticatedSocket extends Socket {
 class WebSocketService {
   private io: SocketIOServer;
   private connectedUsers: Map<string, string> = new Map(); // userId -> socketId
+  private connectionAttempts: Map<string, number> = new Map(); // userId -> attempt count
+  private maxConnectionAttempts = 3;
 
   constructor(server: HTTPServer) {
     this.io = new SocketIOServer(server, {
@@ -29,7 +31,13 @@ class WebSocketService {
         methods: ['GET', 'POST'],
         credentials: true,
         allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-      }
+      },
+      // Connection stability settings
+      pingTimeout: 60000, // 60 seconds
+      pingInterval: 25000, // 25 seconds
+      transports: ['websocket'], // Only WebSocket, no polling
+      allowEIO3: true,
+      maxHttpBufferSize: 1e6 // 1MB
     });
 
     this.setupAuthentication();
@@ -43,6 +51,20 @@ class WebSocketService {
         
         if (!token) {
           return next(new Error('Authentication token required'));
+        }
+
+        // Check if user is already connected (prevent duplicate connections)
+        const existingSocketId = this.connectedUsers.get(token);
+        if (existingSocketId && existingSocketId !== socket.id) {
+          console.log(`🔄 User ${token} already connected, disconnecting duplicate`);
+          return next(new Error('User already connected'));
+        }
+
+        // Rate limit connection attempts
+        const attempts = this.connectionAttempts.get(token) || 0;
+        if (attempts >= this.maxConnectionAttempts) {
+          console.log(`🚫 User ${token} exceeded max connection attempts`);
+          return next(new Error('Too many connection attempts'));
         }
 
         let user;
@@ -70,8 +92,18 @@ class WebSocketService {
         socket.userEmail = user.email;
         socket.userRole = user.role;
 
+        // Reset connection attempts on successful auth
+        this.connectionAttempts.delete(token);
+
         next();
       } catch (error) {
+        // Increment connection attempts
+        const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.replace('Bearer ', '');
+        if (token) {
+          const attempts = (this.connectionAttempts.get(token) || 0) + 1;
+          this.connectionAttempts.set(token, attempts);
+        }
+
         console.error('WebSocket authentication error:', error);
         next(new Error('Authentication failed'));
       }
@@ -80,7 +112,15 @@ class WebSocketService {
 
   private setupEventHandlers() {
     this.io.on('connection', (socket: AuthenticatedSocket) => {
-      console.log(`🔌 User connected: ${socket.userEmail} (${socket.userId})`);
+      // Only log connection if it's a new user or after a reasonable delay
+      const userId = socket.userId;
+      if (userId) {
+        const lastConnection = this.connectedUsers.get(userId);
+        
+        if (!lastConnection || lastConnection !== socket.id) {
+          console.log(`🔌 User connected: ${socket.userEmail} (${socket.userId})`);
+        }
+      }
 
       // Store the user's socket connection
       if (socket.userId) {
@@ -90,14 +130,20 @@ class WebSocketService {
       // Join user to their personal notification room
       if (socket.userId) {
         socket.join(`user_${socket.userId}`);
-        console.log(`👤 User ${socket.userEmail} joined room: user_${socket.userId}`);
+        // Only log room joining occasionally to reduce noise
+        if (Math.random() < 0.1) { // Log only 10% of room joins
+          console.log(`👤 User ${socket.userEmail} joined room: user_${socket.userId}`);
+        }
       }
 
       // Handle joining hackathon rooms
       socket.on('join_hackathon', (hackathonId: string) => {
         if (hackathonId) {
           socket.join(`hackathon_${hackathonId}`);
-          console.log(`🏆 User ${socket.userEmail} joined hackathon room: ${hackathonId}`);
+          // Only log hackathon joins occasionally
+          if (Math.random() < 0.05) { // Log only 5% of hackathon joins
+            console.log(`🏆 User ${socket.userEmail} joined hackathon room: ${hackathonId}`);
+          }
         }
       });
 
@@ -105,13 +151,20 @@ class WebSocketService {
       socket.on('leave_hackathon', (hackathonId: string) => {
         if (hackathonId) {
           socket.leave(`hackathon_${hackathonId}`);
-          console.log(`🚪 User ${socket.userEmail} left hackathon room: ${hackathonId}`);
+          // Only log hackathon leaves occasionally
+          if (Math.random() < 0.05) { // Log only 5% of hackathon leaves
+            console.log(`🚪 User ${socket.userEmail} left hackathon room: ${hackathonId}`);
+          }
         }
       });
 
       // Handle disconnect
-      socket.on('disconnect', () => {
-        console.log(`🔌 User disconnected: ${socket.userEmail} (${socket.userId})`);
+      socket.on('disconnect', (reason) => {
+        // Only log disconnects occasionally to reduce noise
+        if (Math.random() < 0.01) { // Log only 1% of disconnects
+          console.log(`🔌 User disconnected: ${socket.userEmail} (${socket.userId}) - Reason: ${reason}`);
+        }
+        
         if (socket.userId) {
           this.connectedUsers.delete(socket.userId);
         }
@@ -121,6 +174,16 @@ class WebSocketService {
       socket.on('ping', () => {
         socket.emit('pong');
       });
+
+      // Handle errors
+      socket.on('error', (error) => {
+        console.error('Socket error:', error);
+      });
+    });
+
+    // Handle server errors
+    this.io.engine.on('connection_error', (err) => {
+      console.error('Socket.IO connection error:', err);
     });
   }
 
@@ -169,6 +232,15 @@ class WebSocketService {
   // Get WebSocket server instance
   public getIO(): SocketIOServer {
     return this.io;
+  }
+
+  // Cleanup method for graceful shutdown
+  public cleanup() {
+    this.connectedUsers.clear();
+    this.connectionAttempts.clear();
+    if (this.io) {
+      this.io.close();
+    }
   }
 }
 

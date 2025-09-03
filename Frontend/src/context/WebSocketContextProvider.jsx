@@ -5,6 +5,10 @@ import { MyContext } from './AuthContextProvider';
 
 const WebSocketContext = createContext();
 
+// Global socket instance to prevent multiple connections
+let globalSocket = null;
+let globalConnectionPromise = null;
+
 export const useWebSocket = () => {
   const context = useContext(WebSocketContext);
   if (!context) {
@@ -15,136 +19,201 @@ export const useWebSocket = () => {
 
 export const WebSocketProvider = ({ children }) => {
   const { isAuth, userData } = useContext(MyContext);
-  const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const reconnectTimeoutRef = useRef(null);
-  const maxReconnectAttempts = 5;
+  const maxReconnectAttempts = 3; // Reduced from 5
   const reconnectAttempts = useRef(0);
+  const isConnectingRef = useRef(false);
 
   const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
 
-  const connectSocket = () => {
-    if (!isAuth || !userData) return;
+  const connectSocket = async () => {
+    if (!isAuth || !userData) return null;
 
     const userId = localStorage.getItem("userId");
-    if (!userId) return;
+    if (!userId) return null;
 
-    console.log('🔌 Connecting to WebSocket...');
+    // Prevent multiple simultaneous connection attempts
+    if (isConnectingRef.current) {
+      console.log('🔌 Connection already in progress, waiting...');
+      return globalConnectionPromise;
+    }
 
-    const newSocket = io(baseURL, {
-      auth: {
-        token: userId // Using userId as token (matches backend auth fallback)
-      },
-      transports: ['websocket', 'polling'],
-      timeout: 10000,
-      forceNew: true
-    });
+    // If we already have a connected socket, return it
+    if (globalSocket && globalSocket.connected) {
+      console.log('🔌 Using existing WebSocket connection');
+      return globalSocket;
+    }
 
-    newSocket.on('connect', () => {
-      console.log('🟢 WebSocket connected successfully');
-      setIsConnected(true);
-      reconnectAttempts.current = 0;
-      
-      // Join user's notification room
-      if (userData?.currentHackathon?._id) {
-        newSocket.emit('join_hackathon', userData.currentHackathon._id);
+    // If we have a pending connection promise, return it
+    if (globalConnectionPromise) {
+      console.log('🔌 Using existing connection promise');
+      return globalConnectionPromise;
+    }
+
+    isConnectingRef.current = true;
+    console.log('🔌 Creating new WebSocket connection...');
+
+    globalConnectionPromise = new Promise((resolve, reject) => {
+      try {
+        // Disconnect any existing socket
+        if (globalSocket) {
+          globalSocket.disconnect();
+          globalSocket = null;
+        }
+
+        const newSocket = io(baseURL, {
+          auth: {
+            token: userId // Using userId as token (matches backend auth fallback)
+          },
+          transports: ['websocket'], // Only use WebSocket, no polling
+          timeout: 5000, // Reduced timeout
+          forceNew: false, // Don't force new connection
+          reconnection: false, // Disable automatic reconnection
+          reconnectionAttempts: 0,
+          reconnectionDelay: 0
+        });
+
+        newSocket.on('connect', () => {
+          console.log('🟢 WebSocket connected successfully');
+          setIsConnected(true);
+          reconnectAttempts.current = 0;
+          isConnectingRef.current = false;
+          
+          // Join user's notification room
+          if (userData?.currentHackathon?._id) {
+            newSocket.emit('join_hackathon', userData.currentHackathon._id);
+          }
+          
+          // Only show toast on first connection, not reconnections
+          if (reconnectAttempts.current === 0) {
+            toast.success('Connected to real-time updates!', { autoClose: 2000 });
+          }
+          
+          globalSocket = newSocket;
+          resolve(newSocket);
+        });
+
+        newSocket.on('disconnect', (reason) => {
+          console.log('🔴 WebSocket disconnected:', reason);
+          setIsConnected(false);
+          isConnectingRef.current = false;
+          
+          // Only attempt reconnection for specific reasons
+          if (reason === 'io server disconnect' || reason === 'transport close') {
+            if (reconnectAttempts.current < maxReconnectAttempts) {
+              const delay = Math.min(2000 * Math.pow(1.5, reconnectAttempts.current), 10000); // Reduced delays
+              console.log(`🔄 Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})`);
+              
+              reconnectTimeoutRef.current = setTimeout(() => {
+                reconnectAttempts.current++;
+                globalConnectionPromise = null; // Reset promise
+                connectSocket();
+              }, delay);
+            } else {
+              console.log('❌ Max reconnection attempts reached');
+              toast.error('Connection lost. Please refresh the page.', { autoClose: 5000 });
+            }
+          }
+        });
+
+        newSocket.on('connect_error', (error) => {
+          console.error('🔴 WebSocket connection error:', error);
+          setIsConnected(false);
+          isConnectingRef.current = false;
+          reject(error);
+        });
+
+        // Real-time notification handlers
+        newSocket.on('notification', (notification) => {
+          console.log('📨 Received real-time notification:', notification);
+          
+          // Add notification to local state
+          setNotifications(prev => [notification, ...prev.slice(0, 49)]);
+          setUnreadCount(prev => prev + 1);
+          
+          // Show toast notification
+          toast.info(notification.title, {
+            icon: getNotificationIcon(notification.type),
+            autoClose: 5000
+          });
+        });
+
+        newSocket.on('team_invitation', (invitation) => {
+          console.log('🎯 Received team invitation:', invitation);
+          toast.success(`Team invitation from ${invitation.teamName}!`, {
+            autoClose: 8000
+          });
+        });
+
+        newSocket.on('join_request', (request) => {
+          console.log('📝 Received join request:', request);
+          toast.info(`Join request for ${request.teamName}!`, {
+            autoClose: 8000
+          });
+        });
+
+        newSocket.on('team_update', (update) => {
+          console.log('👥 Received team update:', update);
+          toast.info(`Team update: ${update.message}`, {
+            autoClose: 5000
+          });
+        });
+
+        // Ping/pong for connection health
+        newSocket.on('pong', () => {
+          console.log('🏓 Pong received');
+        });
+
+        // Set a connection timeout
+        setTimeout(() => {
+          if (!newSocket.connected) {
+            console.log('⏰ WebSocket connection timeout');
+            newSocket.disconnect();
+            reject(new Error('Connection timeout'));
+          }
+        }, 10000);
+
+      } catch (error) {
+        console.error('❌ Error creating WebSocket connection:', error);
+        isConnectingRef.current = false;
+        reject(error);
       }
-      
-      toast.success('Connected to real-time updates!', { autoClose: 3000 });
     });
 
-    newSocket.on('disconnect', (reason) => {
-      console.log('🔴 WebSocket disconnected:', reason);
-      setIsConnected(false);
-      
-      // Auto-reconnect on disconnect (unless manual)
-      if (reason !== 'io client disconnect' && reconnectAttempts.current < maxReconnectAttempts) {
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000);
-        console.log(`🔄 Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})`);
-        
-        reconnectTimeoutRef.current = setTimeout(() => {
-          reconnectAttempts.current++;
-          connectSocket();
-        }, delay);
-      }
-    });
-
-    newSocket.on('connect_error', (error) => {
-      console.error('🔴 WebSocket connection error:', error);
-      setIsConnected(false);
-    });
-
-    // Real-time notification handlers
-    newSocket.on('notification', (notification) => {
-      console.log('📨 Received real-time notification:', notification);
-      
-      // Add notification to local state
-      setNotifications(prev => [notification, ...prev.slice(0, 49)]);
-      setUnreadCount(prev => prev + 1);
-      
-      // Show toast notification
-      toast.info(notification.title, {
-        icon: getNotificationIcon(notification.type),
-        autoClose: 5000
-      });
-    });
-
-    newSocket.on('team_invitation', (invitation) => {
-      console.log('🎯 Received team invitation:', invitation);
-      toast.success(`Team invitation from ${invitation.teamName}!`, {
-        autoClose: 8000
-      });
-    });
-
-    newSocket.on('join_request', (request) => {
-      console.log('📝 Received join request:', request);
-      toast.info(`Join request for ${request.teamName}!`, {
-        autoClose: 8000
-      });
-    });
-
-    newSocket.on('team_update', (update) => {
-      console.log('👥 Received team update:', update);
-      toast.info(`Team update: ${update.message}`, {
-        autoClose: 5000
-      });
-    });
-
-    // Ping/pong for connection health
-    newSocket.on('pong', () => {
-      console.log('🏓 Pong received');
-    });
-
-    setSocket(newSocket);
-
-    return newSocket;
+    return globalConnectionPromise;
   };
 
   const disconnectSocket = () => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
     }
     
-    if (socket) {
+    if (globalSocket) {
       console.log('🔌 Disconnecting WebSocket...');
-      socket.disconnect();
-      setSocket(null);
+      globalSocket.disconnect();
+      globalSocket = null;
       setIsConnected(false);
     }
+    
+    globalConnectionPromise = null;
+    isConnectingRef.current = false;
+    reconnectAttempts.current = 0;
   };
 
   const joinHackathon = (hackathonId) => {
-    if (socket && isConnected) {
-      socket.emit('join_hackathon', hackathonId);
+    if (globalSocket && globalSocket.connected) {
+      globalSocket.emit('join_hackathon', hackathonId);
       console.log(`🏆 Joined hackathon room: ${hackathonId}`);
     }
   };
 
   const leaveHackathon = (hackathonId) => {
-    if (socket && isConnected) {
-      socket.emit('leave_hackathon', hackathonId);
+    if (globalSocket && globalSocket.connected) {
+      globalSocket.emit('leave_hackathon', hackathonId);
       console.log(`🚪 Left hackathon room: ${hackathonId}`);
     }
   };
@@ -188,30 +257,33 @@ export const WebSocketProvider = ({ children }) => {
     }
 
     return () => {
-      disconnectSocket();
+      // Don't disconnect on unmount, let the global instance handle it
     };
-  }, [isAuth, userData]);
+  }, [isAuth, userData?._id]); // Only depend on user ID, not entire userData object
 
-  // Health check ping every 30 seconds
+  // Health check ping every 60 seconds (increased from 30)
   useEffect(() => {
-    if (!socket || !isConnected) return;
+    if (!globalSocket || !isConnected) return;
 
     const pingInterval = setInterval(() => {
-      socket.emit('ping');
-    }, 30000);
+      if (globalSocket && globalSocket.connected) {
+        globalSocket.emit('ping');
+      }
+    }, 60000);
 
     return () => clearInterval(pingInterval);
-  }, [socket, isConnected]);
+  }, [isConnected]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      disconnectSocket();
+      // Only disconnect if this is the last component using the socket
+      // The global socket will be cleaned up when the app unmounts
     };
   }, []);
 
   const value = {
-    socket,
+    socket: globalSocket,
     isConnected,
     notifications,
     unreadCount,

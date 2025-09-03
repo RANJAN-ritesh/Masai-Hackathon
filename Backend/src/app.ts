@@ -48,10 +48,16 @@ app.use(express.json());
 // Rate limiting with trusted proxy
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
+    max: 200, // Increased limit for better UX
     message: 'Too many requests from this IP, please try again later.',
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    // Skip rate limiting for WebSocket upgrade requests
+    skip: (req) => {
+        return req.headers.upgrade === 'websocket' || 
+               req.path.startsWith('/socket.io/') ||
+               req.path === '/health';
+    }
 });
 app.use(limiter);
 
