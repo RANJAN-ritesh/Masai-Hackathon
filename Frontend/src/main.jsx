@@ -9,13 +9,23 @@ import ScrollToTop from "./ScrollToTop.js";
 
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
-    <StrictMode>
+    {/* Disable StrictMode in production to prevent WebSocket connection storms */}
+    {process.env.NODE_ENV === 'development' ? (
+      <StrictMode>
+        <AuthContextProvider>
+          <ThemeContextProvider>
+            <ScrollToTop />
+            <App />
+          </ThemeContextProvider>
+        </AuthContextProvider>
+      </StrictMode>
+    ) : (
       <AuthContextProvider>
         <ThemeContextProvider>
           <ScrollToTop />
           <App />
         </ThemeContextProvider>
       </AuthContextProvider>
-    </StrictMode>
+    )}
   </BrowserRouter>
 );

@@ -282,6 +282,21 @@ export const WebSocketProvider = ({ children }) => {
     };
   }, []);
 
+  // Cleanup on page unload
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (globalSocket) {
+        globalSocket.disconnect();
+        globalSocket = null;
+      }
+      globalConnectionPromise = null;
+      isConnectingRef.current = false;
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
   const value = {
     socket: globalSocket,
     isConnected,
