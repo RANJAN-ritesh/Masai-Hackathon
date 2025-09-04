@@ -170,7 +170,7 @@ app.get("/health", (req, res) => {
     message: "Masai Hackathon Backend is running",
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV || "development",
-    schemaVersion: "2.1.7", // Updated with invitation fixes and notification improvements
+    schemaVersion: "2.1.8", // Updated with invitation fixes and notification improvements
     buildTime: new Date().toISOString(),
     autoTeamCreationService: "running",
     cleanupService: "running",
