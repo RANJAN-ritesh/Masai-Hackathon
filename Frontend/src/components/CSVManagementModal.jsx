@@ -194,7 +194,7 @@ const CSVManagementModal = ({ isOpen, onClose, hackathonId }) => {
 
   // Load persisted data when component mounts
   React.useEffect(() => {
-    if (effectiveHackathonId && isOpen) {
+    if (effectiveHackathonId) {
       const persistedData = localStorage.getItem(`csvData_${effectiveHackathonId}`);
       if (persistedData) {
         try {
@@ -206,12 +206,9 @@ const CSVManagementModal = ({ isOpen, onClose, hackathonId }) => {
         }
       }
     }
-  }, [effectiveHackathonId, isOpen]);
+  }, [effectiveHackathonId]);
 
-  // Don't render anything if modal is not open
-  if (!isOpen) {
-    return null;
-  }
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
