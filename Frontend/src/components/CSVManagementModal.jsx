@@ -14,18 +14,14 @@ const CSVManagementModal = ({ isOpen, onClose, hackathonId }) => {
   
   const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
 
+  // Don't render anything if modal is not open
+  if (!isOpen) {
+    return null;
+  }
+
   // Resolve effective hackathon id from props, context, or localStorage
   const effectiveHackathonId = hackathonId || hackathon?._id || localStorage.getItem('currentHackathon') || '';
 
-  // BULLETPROOF HACKATHON ID VALIDATION
-  useEffect(() => {
-    console.log('�� CSV MODAL DEBUG:', {
-      propHackathonId: hackathonId,
-      contextHackathonId: hackathon?._id,
-      localStorageId: localStorage.getItem('currentHackathon'),
-      effectiveHackathonId: effectiveHackathonId
-    });
-  }, [hackathonId, hackathon, effectiveHackathonId]);
 
   if (!effectiveHackathonId) {
     console.error('❌ CSV MODAL: No valid hackathon ID found');
