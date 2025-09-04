@@ -334,7 +334,7 @@ export const sendInvitation = async (req: Request, res: Response) => {
   }
 };
 
-// Respond to a join request (accept/reject)
+// Respond to a join request (accept/reject) - also handles invitations
 export const respondToRequest = async (req: Request, res: Response) => {
   try {
     const { requestId } = req.params;
@@ -351,7 +351,55 @@ export const respondToRequest = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Request not found' });
     }
 
-    // Check if user is the team creator
+    // Check if this is an invitation (participant responding)
+    if (request.requestType === 'invite') {
+      // Check if user is the one who received the invitation
+      if (request.toUserId.toString() !== userId) {
+        return res.status(403).json({ message: 'You can only respond to invitations sent to you' });
+      }
+
+      // Check if user is already in a team
+      const user = await User.findById(userId);
+      if (user?.currentTeamId) {
+        return res.status(400).json({ message: 'You are already in a team' });
+      }
+
+      // Update request status
+      request.status = response;
+      request.respondedAt = new Date();
+      request.responseMessage = message;
+      await request.save();
+
+      if (response === 'accepted') {
+        // Add user to team
+        await Team.findByIdAndUpdate(request.teamId, {
+          $push: { teamMembers: userId },
+          $pull: { pendingRequests: request._id }
+        });
+
+        // Update user
+        await User.findByIdAndUpdate(userId, {
+          currentTeamId: request.teamId,
+          canSendRequests: false,
+          canReceiveRequests: false,
+          lastTeamActivity: new Date()
+        });
+
+        // Check if team is now full
+        const updatedTeam = await Team.findById(request.teamId);
+        if (updatedTeam && updatedTeam.teamMembers.length >= updatedTeam.memberLimit) {
+          updatedTeam.canReceiveRequests = false;
+          await updatedTeam.save();
+        }
+
+        res.json({ message: 'Invitation accepted successfully' });
+      } else {
+        res.json({ message: 'Invitation rejected successfully' });
+      }
+      return;
+    }
+
+    // Handle join requests (team creator responding)
     const team = await Team.findById(request.teamId);
     if (!team) {
       return res.status(404).json({ message: 'Team not found' });
