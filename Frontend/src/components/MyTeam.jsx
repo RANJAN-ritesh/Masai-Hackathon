@@ -81,7 +81,7 @@ const MyTeam = () => {
     try {
       const response = await fetch(`${baseURL}/team/hackathon/${hackathon._id}`, {
         headers: {
-          'Authorization': `Bearer ${userId}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || userId}`
         }
       });
       
@@ -102,7 +102,7 @@ const MyTeam = () => {
     try {
       const response = await fetch(`${baseURL}/participant-team/participants/${hackathon._id}`, {
         headers: {
-          'Authorization': `Bearer ${userId}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || userId}`
         }
       });
       
@@ -119,7 +119,7 @@ const MyTeam = () => {
     try {
       const response = await fetch(`${baseURL}/team/hackathon/${hackathon._id}`, {
         headers: {
-          'Authorization': `Bearer ${userId}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || userId}`
         }
       });
       
@@ -136,7 +136,7 @@ const MyTeam = () => {
     try {
       const response = await fetch(`${baseURL}/participant-team/requests`, {
         headers: {
-          'Authorization': `Bearer ${userId}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || userId}`
         }
       });
       
@@ -189,7 +189,7 @@ const MyTeam = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userId}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || userId}`
         },
         body: JSON.stringify({
           teamId: currentTeam._id,
@@ -216,7 +216,7 @@ const MyTeam = () => {
     try {
       const response = await fetch(`${baseURL}/team-polling/poll-results/${currentTeam._id}`, {
         headers: {
-          'Authorization': `Bearer ${userId}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || userId}`
         }
       });
 
@@ -236,7 +236,7 @@ const MyTeam = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userId}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || userId}`
         },
         body: JSON.stringify({
           teamId: currentTeam._id,
@@ -271,7 +271,7 @@ const MyTeam = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userId}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || userId}`
         },
         body: JSON.stringify({
           teamName: teamCreationData.teamName,
@@ -301,7 +301,7 @@ const MyTeam = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userId}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || userId}`
         },
         body: JSON.stringify({
           teamId,
@@ -340,7 +340,7 @@ const MyTeam = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userId}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || userId}`
         },
         body: JSON.stringify({
           participantId,
@@ -374,7 +374,7 @@ const MyTeam = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userId}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken') || userId}`
         },
         body: JSON.stringify({
           response,
@@ -397,11 +397,14 @@ const MyTeam = () => {
 
   const respondToInvitation = async (requestId, response) => {
     try {
-      const res = await fetch(`${baseURL}/participant-team/respond-invitation/${requestId}`, {
+      const token = localStorage.getItem('authToken') || userId;
+      console.log('🔍 Responding to invitation:', { requestId, response });
+      
+      const res = await fetch(`${baseURL}/participant-team/respond-request/${requestId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userId}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           response,
@@ -412,6 +415,8 @@ const MyTeam = () => {
       if (res.ok) {
         if (response === 'accepted') {
           toast.success('Invitation accepted! You are now part of the team! 🎉');
+          // Redirect to overview tab after acceptance
+          setActiveTab('overview');
         } else {
           toast.success('Invitation declined successfully.');
         }
@@ -419,6 +424,7 @@ const MyTeam = () => {
         await loadData();
       } else {
         const error = await res.json();
+        console.error('Error response:', error);
         toast.error(error.message || `Failed to ${response} invitation`);
       }
     } catch (error) {
@@ -694,7 +700,7 @@ const MyTeam = () => {
                   { id: 'search', label: 'Search Members', icon: Search },
                   { id: 'members', label: 'Show Members', icon: Eye },
                   { id: 'join', label: 'Join Team', icon: UserPlus },
-                  { id: 'create', label: 'Create Team', icon: Plus },
+                  ...(role !== 'admin' ? [{ id: 'create', label: 'Create Team', icon: Plus }] : []),
                   { id: 'invitations', label: 'Invitations', icon: Mail }
                 ].map((tab) => {
                   const Icon = tab.icon;

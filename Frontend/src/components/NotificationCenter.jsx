@@ -7,6 +7,7 @@ const NotificationCenter = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const { notifications, unreadCount, markNotificationAsRead } = useWebSocket();
   const [localNotifications, setLocalNotifications] = useState([]);
+  const [invitationLoading, setInvitationLoading] = useState(new Set());
   const baseURL = 'https://masai-hackathon.onrender.com';
 
   // Load notifications on mount and when opened
@@ -125,6 +126,65 @@ const NotificationCenter = ({ isOpen, onClose }) => {
     }
   };
 
+  // Handle invitation response
+  const respondToInvitation = async (notificationId, requestId, response) => {
+    if (invitationLoading.has(requestId)) return;
+    
+    setInvitationLoading(prev => new Set([...prev, requestId]));
+    
+    try {
+      const userId = localStorage.getItem("userId");
+      const token = localStorage.getItem('authToken') || userId;
+      
+      if (!userId || !token) {
+        toast.error('User authentication required');
+        return;
+      }
+
+      console.log('🔍 Responding to invitation from notification:', { requestId, response });
+      
+      const res = await fetch(`${baseURL}/participant-team/respond-request/${requestId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          response,
+          message: response === 'accepted' ? 'I accept your invitation!' : 'I decline your invitation.'
+        })
+      });
+
+      if (res.ok) {
+        if (response === 'accepted') {
+          toast.success('Invitation accepted! You are now part of the team! 🎉');
+        } else {
+          toast.success('Invitation declined successfully.');
+        }
+        
+        // Mark notification as read
+        await markAsRead(notificationId);
+        
+        // Reload notifications to update status
+        await loadNotifications();
+        
+      } else {
+        const error = await res.json();
+        console.error('Error response:', error);
+        toast.error(error.message || `Failed to ${response} invitation`);
+      }
+    } catch (error) {
+      console.error('Error responding to invitation:', error);
+      toast.error(`Failed to ${response} invitation`);
+    } finally {
+      setInvitationLoading(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(requestId);
+        return newSet;
+      });
+    }
+  };
+
   // Delete notification
   const deleteNotification = async (notificationId) => {
     try {
@@ -238,6 +298,34 @@ const NotificationCenter = ({ isOpen, onClose }) => {
                           <Clock className="h-3 w-3 mr-1" />
                           {formatTimestamp(notification.createdAt)}
                         </div>
+                        
+                        {/* Invitation action buttons */}
+                        {notification.type === 'team_invitation' && notification.metadata?.requestId && (
+                          <div className="flex items-center space-x-2 mt-3">
+                            <button
+                              onClick={() => respondToInvitation(notification._id, notification.metadata.requestId, 'accepted')}
+                              disabled={invitationLoading.has(notification.metadata.requestId)}
+                              className="px-3 py-1 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              style={{
+                                backgroundColor: '#10b981',
+                                color: 'white'
+                              }}
+                            >
+                              {invitationLoading.has(notification.metadata.requestId) ? 'Accepting...' : 'Accept'}
+                            </button>
+                            <button
+                              onClick={() => respondToInvitation(notification._id, notification.metadata.requestId, 'rejected')}
+                              disabled={invitationLoading.has(notification.metadata.requestId)}
+                              className="px-3 py-1 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              style={{
+                                backgroundColor: '#ef4444',
+                                color: 'white'
+                              }}
+                            >
+                              {invitationLoading.has(notification.metadata.requestId) ? 'Declining...' : 'Decline'}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center space-x-2 ml-3">
