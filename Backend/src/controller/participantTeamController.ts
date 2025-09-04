@@ -437,12 +437,6 @@ export const respondToInvitation = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'This is not an invitation' });
     }
 
-    // Check if request has expired
-    const expiryCheck = await isRequestExpired(request, Hackathon);
-    if (expiryCheck.expired) {
-      return res.status(400).json({ message: 'This invitation has expired' });
-    }
-
     // Check if user is already in a team
     const user = await User.findById(userId);
     if (user?.currentTeamId) {
@@ -477,22 +471,8 @@ export const respondToInvitation = async (req: Request, res: Response) => {
         await updatedTeam.save();
       }
 
-      // Create notification for team leader
-      createInvitationAcceptedNotification(
-        request.fromUserId.toString(),
-        request.hackathonId.toString(),
-        user?.name || 'Participant'
-      );
-
       res.json({ message: 'Invitation accepted successfully' });
     } else {
-      // Create notification for team leader
-      createInvitationRejectedNotification(
-        request.fromUserId.toString(),
-        request.hackathonId.toString(),
-        user?.name || 'Participant'
-      );
-
       res.json({ message: 'Invitation rejected successfully' });
     }
 
