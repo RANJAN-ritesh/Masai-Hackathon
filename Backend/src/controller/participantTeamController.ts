@@ -740,20 +740,34 @@ export const getHackathonParticipants = async (req: Request, res: Response) => {
     console.log(`🔍 Raw query: hackathonIds: { $in: [${hackathonId}] }`);
     console.log(`🔍 Found ${participants.length} participants for hackathon ${hackathonId}`);
 
-    // Debug: Show first few participants
-    if (participants.length > 0) {
-      console.log('🔍 First 3 participants:');
-      participants.slice(0, 3).forEach((p, i) => {
-        console.log(`  ${i + 1}. ${p.name} - hackathonIds: ${JSON.stringify(p.hackathonIds)}`);
-      });
-    }
+    // Calculate status for each participant
+    const participantsWithStatus = await Promise.all(participants.map(async (participant) => {
+      const participantObj = participant.toObject() as any;
+      
+      // Determine status based on team membership
+      if (participant.currentTeamId) {
+        // Check if the team is in this hackathon
+        const team = await Team.findById(participant.currentTeamId);
+        if (team && team.hackathonId?.toString() === hackathonId) {
+          participantObj.status = 'In Team';
+        } else {
+          participantObj.status = 'Available';
+        }
+      } else {
+        participantObj.status = 'Available';
+      }
+      
+      return participantObj;
+    }));
 
-    // Return all participants (not filtering by team status here)
+    console.log(`✅ Processed ${participantsWithStatus.length} participants with status`);
+
+    // Return participants with calculated status
     res.json({ 
-      participants,
+      participants: participantsWithStatus,
       hackathonTitle: hackathon.title,
-      totalCount: participants.length,
-      message: `Found ${participants.length} participants in ${hackathon.title}`
+      totalCount: participantsWithStatus.length,
+      message: `Found ${participantsWithStatus.length} participants in ${hackathon.title}`
     });
 
   } catch (error) {
