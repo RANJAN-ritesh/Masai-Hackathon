@@ -313,7 +313,8 @@ export const sendInvitation = async (req: Request, res: Response) => {
       participantId,
       team.hackathonId || '',
       team.teamName,
-      req.user?.name || 'Team Leader'
+      req.user?.name || 'Team Leader',
+      (invitation._id as any).toString()
     );
 
     console.log('✅ Invitation sent successfully');

@@ -9,6 +9,7 @@ interface NotificationData {
   title: string;
   message: string;
   isRead: boolean;
+  metadata?: any;
   createdAt: Date;
   updatedAt: Date;
   readAt?: Date;
@@ -232,14 +233,15 @@ export const getNotificationService = (): NotificationService => {
 };
 
 // Additional notification helper functions
-export const createInvitationReceivedNotification = (userId: string, hackathonId: string, teamName: string, fromUserName: string) => {
+export const createInvitationReceivedNotification = (userId: string, hackathonId: string, teamName: string, fromUserName: string, requestId?: string) => {
   notificationService.addNotification(userId, {
     userId,
     hackathonId,
     type: "team_invitation",
     title: "Team Invitation! 🎯",
-    message: `${fromUserName} invited you to join team "${teamName}". Check your invitations to respond.`,
+    message: `${fromUserName} invited you to join team "${teamName}". ${requestId ? 'Click Accept/Decline below to respond.' : 'Check your invitations to respond.'}`,
     isRead: false,
+    metadata: requestId ? { requestId } : undefined,
     createdAt: new Date(),
     updatedAt: new Date()
   });
