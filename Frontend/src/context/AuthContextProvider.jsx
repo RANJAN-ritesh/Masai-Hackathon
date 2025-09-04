@@ -11,6 +11,7 @@ const AuthContextProvider = ({ children }) => {
   const [currentHackathonId, setCurrentHackathonId] = useState("");
   const [userHackathon, setUserHackathon] = useState(null); // Track user's enrolled hackathon
   const [authToken, setAuthToken] = useState(localStorage.getItem("authToken")); // JWT token
+  const [userDataError, setUserDataError] = useState(false); // Track user data errors
   let currentHackathon = localStorage.getItem("currentHackathon");
   
   // Don't set a default hackathon ID - let the system handle it properly
@@ -40,6 +41,12 @@ const AuthContextProvider = ({ children }) => {
 
         if (!response.ok) {
           console.log('🔍 User fetch failed:', response.status, response.statusText);
+          if (response.status === 404) {
+            console.log('🔍 User not found - clearing localStorage and showing error');
+            setUserDataError(true);
+            setLoading(false);
+            return;
+          }
           throw new Error(`Failed to fetch user data: ${response.status}`);
         }
 
@@ -177,6 +184,8 @@ const AuthContextProvider = ({ children }) => {
         setUserHackathon,
         authToken,
         setAuthToken,
+        userDataError,
+        setUserDataError,
       }}
     >
       {children}

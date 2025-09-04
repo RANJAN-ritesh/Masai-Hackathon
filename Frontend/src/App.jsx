@@ -29,9 +29,10 @@ import MemberDashboard from "./components/MemberDashboard";
 import MyTeam from "./components/MyTeam";
 import ParticipantTeamCreation from "./components/ParticipantTeamCreation";
 import AllUsers from "./components/AllUsers";
+import ErrorHandler from "./components/ErrorHandler";
 
 function App() {
-  const { isAuth, hackathon, role } = useContext(MyContext);
+  const { isAuth, hackathon, role, userDataError } = useContext(MyContext);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const location = useLocation();
 
@@ -42,6 +43,11 @@ function App() {
 
   if (isCSBT) {
     return <CSBT />;
+  }
+
+  // Show error handler if user data is invalid
+  if (userDataError) {
+    return <ErrorHandler />;
   }
 
   // Role-based dashboard component
