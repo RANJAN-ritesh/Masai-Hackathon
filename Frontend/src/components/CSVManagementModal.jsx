@@ -192,22 +192,6 @@ const CSVManagementModal = ({ isOpen, onClose, hackathonId }) => {
     window.URL.revokeObjectURL(url);
   };
 
-  // Load persisted data when component mounts
-  React.useEffect(() => {
-    if (effectiveHackathonId && isOpen) {
-      const persistedData = localStorage.getItem(`csvData_${effectiveHackathonId}`);
-      if (persistedData) {
-        try {
-          const parsedData = JSON.parse(persistedData);
-          setUploadedData(parsedData);
-          setCsvData(parsedData);
-        } catch (error) {
-          console.error('Error parsing persisted data:', error);
-        }
-      }
-    }
-  }, [effectiveHackathonId, isOpen]);
-
   // Don't render anything if modal is not open
   if (!isOpen) {
     return null;
