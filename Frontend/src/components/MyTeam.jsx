@@ -39,6 +39,8 @@ const MyTeam = () => {
   });
   const [selectedMembers, setSelectedMembers] = useState([]);
   const [teamRequests, setTeamRequests] = useState([]);
+  const [sentInvitations, setSentInvitations] = useState(new Set()); // Track sent invitations
+  const [invitationLoading, setInvitationLoading] = useState(new Set()); // Track loading states
 
   // Problem Statement Polling State
   const [problemStatements, setProblemStatements] = useState([]);
@@ -326,6 +328,13 @@ const MyTeam = () => {
       return;
     }
 
+    if (sentInvitations.has(participantId)) {
+      toast.info('Invitation already sent to this participant.');
+      return;
+    }
+
+    setInvitationLoading(prev => new Set([...prev, participantId]));
+
     try {
       const response = await fetch(`${baseURL}/participant-team/send-invitation`, {
         method: 'POST',
@@ -342,7 +351,7 @@ const MyTeam = () => {
 
       if (response.ok) {
         toast.success('Invitation sent successfully!');
-        setSelectedMembers(prev => prev.filter(id => id !== participantId));
+        setSentInvitations(prev => new Set([...prev, participantId]));
       } else {
         const error = await response.json();
         toast.error(error.message || 'Failed to send invitation');
@@ -350,6 +359,12 @@ const MyTeam = () => {
     } catch (error) {
       console.error('Error sending invitation:', error);
       toast.error('Failed to send invitation');
+    } finally {
+      setInvitationLoading(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(participantId);
+        return newSet;
+      });
     }
   };
 
@@ -395,7 +410,12 @@ const MyTeam = () => {
       });
 
       if (res.ok) {
-        toast.success(`Invitation ${response} successfully!`);
+        if (response === 'accepted') {
+          toast.success('Invitation accepted! You are now part of the team! 🎉');
+        } else {
+          toast.success('Invitation declined successfully.');
+        }
+        // Refresh all data to update team membership
         await loadData();
       } else {
         const error = await res.json();
@@ -939,14 +959,15 @@ const MyTeam = () => {
                         {currentTeam && currentTeam.teamLeader?._id === userId && (
                           <button
                             onClick={() => sendInvitation(participant._id)}
-                            className="flex items-center space-x-2 px-4 py-2 rounded-lg transition"
+                            disabled={sentInvitations.has(participant._id) || invitationLoading.has(participant._id)}
+                            className="flex items-center space-x-2 px-4 py-2 rounded-lg transition disabled:opacity-50"
                             style={{ 
-                              backgroundColor: themeConfig.accentColor,
+                              backgroundColor: sentInvitations.has(participant._id) ? '#10b981' : themeConfig.accentColor,
                               color: 'white'
                             }}
                           >
-                            <Send className="w-4 h-4" />
-                            <span>Invite</span>
+                            {sentInvitations.has(participant._id) ? 'Invited' : 
+                             invitationLoading.has(participant._id) ? 'Sending...' : 'Invite'}
                           </button>
                         )}
                       </div>
@@ -1037,13 +1058,15 @@ const MyTeam = () => {
                                participant._id !== userId && (
                                 <button
                                   onClick={() => sendInvitation(participant._id)}
-                                  className="px-3 py-1 rounded-lg text-xs font-medium transition-colors hover:opacity-80"
+                                  disabled={sentInvitations.has(participant._id) || invitationLoading.has(participant._id)}
+                                  className="px-3 py-1 rounded-lg text-xs font-medium transition-colors hover:opacity-80 disabled:opacity-50"
                                   style={{
-                                    backgroundColor: themeConfig.accentColor,
+                                    backgroundColor: sentInvitations.has(participant._id) ? '#10b981' : themeConfig.accentColor,
                                     color: 'white'
                                   }}
                                 >
-                                  Invite
+                                  {sentInvitations.has(participant._id) ? 'Invited' : 
+                                   invitationLoading.has(participant._id) ? 'Sending...' : 'Invite'}
                                 </button>
                               )}
                             </td>

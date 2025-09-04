@@ -5,7 +5,7 @@ import TeamRequest from '../model/teamRequests';
 import Hackathon from '../model/hackathon';
 import { validateTeamName, canLeaveTeam, transferTeamOwnership, canTeamReceiveRequests, canUserSendRequests } from '../utils/teamUtils';
 import { calculateRequestExpiry, isRequestExpired } from '../utils/teamUtils';
-import { notificationService, createAutoTeamCreationNotification, createRequestReceivedNotification, createOwnershipTransferredNotification, createInvitationReceivedNotification } from '../services/notificationService';
+import { notificationService, createAutoTeamCreationNotification, createRequestReceivedNotification, createOwnershipTransferredNotification, createInvitationReceivedNotification, createInvitationAcceptedNotification, createInvitationRejectedNotification } from '../services/notificationService';
 
 // Create a new team as a participant
 export const createParticipantTeam = async (req: Request, res: Response) => {
@@ -477,8 +477,22 @@ export const respondToInvitation = async (req: Request, res: Response) => {
         await updatedTeam.save();
       }
 
+      // Create notification for team leader
+      createInvitationAcceptedNotification(
+        request.fromUserId.toString(),
+        request.hackathonId.toString(),
+        user?.name || 'Participant'
+      );
+
       res.json({ message: 'Invitation accepted successfully' });
     } else {
+      // Create notification for team leader
+      createInvitationRejectedNotification(
+        request.fromUserId.toString(),
+        request.hackathonId.toString(),
+        user?.name || 'Participant'
+      );
+
       res.json({ message: 'Invitation rejected successfully' });
     }
 
