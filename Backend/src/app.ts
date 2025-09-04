@@ -82,22 +82,8 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 connectDB();
-user.createCollection()
-    .then( () => console.log("user Collection created"))
-    .catch( (error) => console.error("Error creating user collection", error));
 
-team.createCollection()
-    .then( () => console.log("team collection created"))
-    .catch( (error) => console.error("Error creating team collection", error));
-
-teamRequests.createCollection()
-    .then( () => console.log("teamRequest collection created"))
-    .catch( (error) => console.error("Error creating teamRequest collection", error));
-
-problemStatement.createCollection()
-    .then( () => console.log("problemStatement collection created"))
-    .catch( (error) => console.error("Error creating problemStatement collection"));
-
+// Routes
 app.use("/users", userRoutes);
 app.use("/team", teamRoutes);
 app.use("/team-request", teamRequestRoutes);
@@ -230,7 +216,6 @@ server.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
     console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`🔗 Health check: http://localhost:${PORT}/health`);
-    console.log(`🔧 SCHEMA DEBUG: Hackathon status enum should include 'upcoming'`);
     console.log(`🔧 DEPLOYMENT TIME: ${new Date().toISOString()}`);
     
     // Initialize WebSocket service

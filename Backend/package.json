@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "npm audit fix --force && tsc",
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon --ext ts --exec ts-node src/app.ts",
     "start": "node dist/app.js",
