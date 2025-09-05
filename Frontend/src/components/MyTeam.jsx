@@ -204,7 +204,7 @@ const MyTeam = () => {
       return;
     }
 
-    if (currentTeam.teamLeader?._id !== userId) {
+    if (currentTeam.teamLeader?._id !== userId && !currentTeam.teamMembers.find(m => m._id === userId)?.role === 'leader') {
       toast.error('Only team leaders can start problem statement polls');
       return;
     }
@@ -214,16 +214,8 @@ const MyTeam = () => {
       return;
     }
 
-    // Set poll timing
-    const startTime = new Date();
-    const endTime = new Date(startTime.getTime() + pollDuration * 60 * 1000);
-    
-    setPollStartTime(startTime);
-    setPollEndTime(endTime);
-    setPollActive(true);
+    // Just show the modal - don't start poll automatically
     setShowPollModal(true);
-    
-    toast.success(`Problem statement poll started for ${pollDuration} minutes! Team members can now vote.`);
   };
 
   // Vote on problem statement
@@ -767,7 +759,7 @@ const MyTeam = () => {
 
             {/* Selected Problem Statement */}
             {currentTeam.selectedProblemStatement && (
-              <div className="mb-6 p-4 rounded-lg border-2" style={{ 
+              <div className="mb-6 p-4 rounded-lg border-2" style={{
                 backgroundColor: '#dcfce7',
                 borderColor: '#22c55e'
               }}>
@@ -775,7 +767,7 @@ const MyTeam = () => {
                   <Target className="w-5 h-5" style={{ color: '#22c55e' }} />
                   Selected Problem Statement
                 </h3>
-                <div className="p-3 rounded-lg" style={{ backgroundColor: '#f0fdf4' }}>
+                <div className="p-3 rounded-lg mb-4" style={{ backgroundColor: '#f0fdf4' }}>
                   <h4 className="font-medium mb-1" style={{ color: '#166534' }}>
                     {currentTeam.selectedProblemStatement}
                   </h4>
@@ -783,6 +775,36 @@ const MyTeam = () => {
                     This problem has been selected for your team.
                   </p>
                 </div>
+
+                {/* Submission Interface */}
+                {(currentTeam.teamLeader?._id === userId || currentTeam.teamMembers.find(m => m._id === userId)?.role === 'leader') ? (
+                  <div className="border-t pt-4" style={{ borderColor: '#22c55e' }}>
+                    <h4 className="font-medium mb-2" style={{ color: '#166534' }}>
+                      Team Leader Submission Interface
+                    </h4>
+                    <p className="text-sm mb-3" style={{ color: '#166534', opacity: 0.8 }}>
+                      Once your team is ready, you can submit your project solution. This is a final submission that cannot be changed.
+                    </p>
+                    <button 
+                      className="px-4 py-2 rounded-lg font-medium transition"
+                      style={{ 
+                        backgroundColor: '#22c55e',
+                        color: 'white'
+                      }}
+                      onClick={() => {
+                        toast.info('Submission interface will be available during the submission window');
+                      }}
+                    >
+                      Submit Project (Available During Submission Window)
+                    </button>
+                  </div>
+                ) : (
+                  <div className="border-t pt-4" style={{ borderColor: '#22c55e' }}>
+                    <p className="text-sm" style={{ color: '#166534', opacity: 0.8 }}>
+                      <strong>Note:</strong> Only your team leader can submit the final project. Stay coordinated with them for submission timing.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
@@ -814,6 +836,122 @@ const MyTeam = () => {
                 </div>
               </div>
             )}
+
+            {/* Active Poll Section (Visible to All Team Members) */}
+            {pollActive && (
+              <div 
+                className="p-4 rounded-lg border-2 mb-6"
+                style={{ 
+                  backgroundColor: '#fef3c7',
+                  borderColor: '#f59e0b'
+                }}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold flex items-center gap-2" style={{ color: '#92400e' }}>
+                    <Vote className="w-5 h-5" style={{ color: '#f59e0b' }} />
+                    Active Poll: Problem Statement Selection
+                  </h3>
+                  {timeLeft && !timeLeft.expired && (
+                    <div className="flex items-center gap-2 px-3 py-1 rounded-lg" style={{ backgroundColor: '#fbbf24' }}>
+                      <Clock className="w-4 h-4" style={{ color: '#92400e' }} />
+                      <span className="text-sm font-mono font-medium" style={{ color: '#92400e' }}>
+                        {timeLeft.hours.toString().padStart(2, '0')}:
+                        {timeLeft.minutes.toString().padStart(2, '0')}:
+                        {timeLeft.seconds.toString().padStart(2, '0')}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <p className="text-sm mb-4" style={{ color: '#92400e' }}>
+                  Vote for your preferred problem statement. The poll will automatically close when the timer ends.
+                </p>
+
+                {/* Voting Interface */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                  {problemStatements.map((problem, index) => {
+                    const userVote = currentTeam.problemStatementVotes?.[userId];
+                    const isSelected = userVote === problem._id || userVote === problem.track;
+                    const voteCount = currentTeam.problemStatementVoteCount?.[problem._id] || currentTeam.problemStatementVoteCount?.[problem.track] || 0;
+                    
+                    return (
+                      <div 
+                        key={index}
+                        className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
+                        style={{ 
+                          backgroundColor: isSelected ? '#dbeafe' : themeConfig.backgroundColor,
+                          borderColor: isSelected ? '#3b82f6' : themeConfig.borderColor
+                        }}
+                        onClick={() => voteOnProblemStatement(problem._id || problem.track)}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <h4 className="font-medium mb-1" style={{ color: themeConfig.textColor }}>
+                              {problem.track}
+                            </h4>
+                            <p className="text-sm" style={{ color: themeConfig.textColor, opacity: 0.7 }}>
+                              {problem.description?.substring(0, 100)}...
+                            </p>
+                          </div>
+                          <div className="ml-3 flex flex-col items-center">
+                            {isSelected && <Check className="w-5 h-5 mb-1" style={{ color: '#3b82f6' }} />}
+                            <span className="text-sm font-medium px-2 py-1 rounded" style={{ 
+                              backgroundColor: '#e5e7eb',
+                              color: '#374151'
+                            }}>
+                              {voteCount} votes
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Real-time Vote Summary (Visible to All) */}
+                <div 
+                  className="p-3 rounded-lg"
+                  style={{ backgroundColor: '#f3f4f6' }}
+                >
+                  <h4 className="font-medium mb-2" style={{ color: '#374151' }}>
+                    Live Vote Results
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {Object.entries(currentTeam.problemStatementVoteCount || {}).map(([problemId, votes]) => (
+                      <div key={problemId} className="flex justify-between items-center p-2 rounded" style={{ backgroundColor: 'white' }}>
+                        <span className="text-sm" style={{ color: '#374151' }}>{problemId}</span>
+                        <span className="font-medium text-sm" style={{ color: '#059669' }}>{votes} votes</span>
+                      </div>
+                    ))}
+                    {Object.keys(currentTeam.problemStatementVoteCount || {}).length === 0 && (
+                      <p className="text-sm col-span-2" style={{ color: '#6b7280' }}>No votes cast yet</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Team Instructions */}
+            <div 
+              className="p-4 rounded-lg border mb-6"
+              style={{ 
+                backgroundColor: '#f0f9ff',
+                borderColor: '#0ea5e9'
+              }}
+            >
+              <h3 className="font-semibold mb-2 flex items-center gap-2" style={{ color: '#0c4a6e' }}>
+                <MessageSquare className="w-5 h-5" />
+                Team Instructions
+              </h3>
+              <div className="text-sm space-y-2" style={{ color: '#0c4a6e' }}>
+                <p>• <strong>Problem Statement Selection:</strong> Only the team leader can initiate and manage polls for problem selection.</p>
+                <p>• <strong>Voting:</strong> All team members can vote during active polls to help choose the problem statement.</p>
+                <p>• <strong>Final Submission:</strong> Only the team leader can submit the final project for the team.</p>
+                <p>• <strong>Communication:</strong> Stay coordinated with your team leader for all major decisions.</p>
+                <p>• <strong>Poll Duration:</strong> Polls run for 1-2 hours as configured by the team leader.</p>
+                <p>• <strong>Problem Locking:</strong> Once a problem is selected, it cannot be changed.</p>
+              </div>
+            </div>
 
             {/* Leader Actions */}
             {(currentTeam.teamLeader?._id === userId || currentTeam.teamMembers.find(m => m._id === userId)?.role === 'leader') && (
@@ -1502,8 +1640,37 @@ const MyTeam = () => {
               {!pollActive ? (
                 <div>
                   <p className="mb-4" style={{ color: themeConfig.textColor }}>
-                    Configure the poll duration for team members to vote on problem statements.
+                    Select problem statements for your team to vote on, then configure the poll duration.
                   </p>
+                  
+                  {/* Problem Statement Selection */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-2" style={{ color: themeConfig.textColor }}>
+                      Available Problem Statements
+                    </label>
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {problemStatements.map((problem, index) => (
+                        <div 
+                          key={index}
+                          className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                            selectedProblemStatement === problem.track ? 'ring-2 ring-blue-500' : ''
+                          }`}
+                          style={{ 
+                            backgroundColor: selectedProblemStatement === problem.track ? '#dbeafe' : themeConfig.backgroundColor,
+                            borderColor: selectedProblemStatement === problem.track ? '#3b82f6' : themeConfig.borderColor
+                          }}
+                          onClick={() => setSelectedProblemStatement(problem.track)}
+                        >
+                          <h4 className="font-medium mb-1" style={{ color: themeConfig.textColor }}>
+                            {problem.track}
+                          </h4>
+                          <p className="text-sm" style={{ color: themeConfig.textColor, opacity: 0.7 }}>
+                            {problem.description?.substring(0, 80)}...
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                   
                   <div className="mb-4">
                     <label className="block text-sm font-medium mb-2" style={{ color: themeConfig.textColor }}>
@@ -1528,15 +1695,20 @@ const MyTeam = () => {
                   <div className="flex gap-3">
                     <button
                       onClick={() => {
+                        if (!selectedProblemStatement) {
+                          toast.error('Please select a problem statement first');
+                          return;
+                        }
                         const now = new Date();
                         const endTime = new Date(now.getTime() + pollDuration * 60 * 1000);
                         setPollStartTime(now);
                         setPollEndTime(endTime);
                         setPollActive(true);
                         setShowPollModal(false);
-                        toast.success('Poll started! Team members can now vote.');
+                        toast.success(`Poll started for "${selectedProblemStatement}"! Duration: ${pollDuration} minutes. Team members can now vote.`);
                       }}
-                      className="flex-1 py-2 px-4 rounded-lg font-medium transition"
+                      disabled={!selectedProblemStatement}
+                      className="flex-1 py-2 px-4 rounded-lg font-medium transition disabled:opacity-50"
                       style={{ 
                         backgroundColor: '#f59e0b',
                         color: 'white'
