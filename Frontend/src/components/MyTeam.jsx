@@ -63,6 +63,13 @@ const MyTeam = () => {
     }
   }, [hackathon, userId]);
 
+  // Load poll status when team data is loaded
+  useEffect(() => {
+    if (currentTeam) {
+      loadPollStatus();
+    }
+  }, [currentTeam]);
+
   // Poll timer effect
   useEffect(() => {
     if (!pollActive || !pollStartTime) return;
@@ -218,6 +225,46 @@ const MyTeam = () => {
     setShowPollModal(true);
   };
 
+  // Load poll status from backend
+  const loadPollStatus = async () => {
+    if (!currentTeam) return;
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${baseURL}/team-polling/poll-status/${currentTeam._id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const pollData = await response.json();
+        setPollActive(pollData.pollActive || false);
+        setPollStartTime(pollData.pollStartTime ? new Date(pollData.pollStartTime) : null);
+        setPollEndTime(pollData.pollEndTime ? new Date(pollData.pollEndTime) : null);
+        setPollDuration(pollData.pollDuration || 90);
+        setSelectedProblemStatement(pollData.pollProblemStatement || null);
+        
+        // Update team with poll data
+        if (currentTeam) {
+          setCurrentTeam(prev => ({
+            ...prev,
+            pollActive: pollData.pollActive,
+            pollStartTime: pollData.pollStartTime,
+            pollEndTime: pollData.pollEndTime,
+            pollDuration: pollData.pollDuration,
+            pollProblemStatement: pollData.pollProblemStatement,
+            problemStatementVotes: pollData.problemStatementVotes || {},
+            problemStatementVoteCount: pollData.problemStatementVoteCount || {}
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error loading poll status:', error);
+    }
+  };
+
   // Vote on problem statement
   const voteOnProblemStatement = async (problemStatementId) => {
     try {
@@ -236,7 +283,8 @@ const MyTeam = () => {
 
       if (response.ok) {
         toast.success('Vote recorded successfully!');
-        await loadPollResults();
+        // Reload poll status to get updated vote counts
+        await loadPollStatus();
       } else {
         const error = await response.json();
         toast.error(error.message || 'Failed to record vote');
@@ -1694,18 +1742,45 @@ const MyTeam = () => {
 
                   <div className="flex gap-3">
                     <button
-                      onClick={() => {
+                      onClick={async () => {
                         if (!selectedProblemStatement) {
                           toast.error('Please select a problem statement first');
                           return;
                         }
-                        const now = new Date();
-                        const endTime = new Date(now.getTime() + pollDuration * 60 * 1000);
-                        setPollStartTime(now);
-                        setPollEndTime(endTime);
-                        setPollActive(true);
-                        setShowPollModal(false);
-                        toast.success(`Poll started for "${selectedProblemStatement}"! Duration: ${pollDuration} minutes. Team members can now vote.`);
+                        
+                        try {
+                          const token = localStorage.getItem('token');
+                          const response = await fetch(`${baseURL}/team-polling/start-poll`, {
+                            method: 'POST',
+                            headers: {
+                              'Authorization': `Bearer ${token}`,
+                              'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                              teamId: currentTeam._id,
+                              problemStatementId: selectedProblemStatement,
+                              duration: pollDuration
+                            })
+                          });
+
+                          if (response.ok) {
+                            const result = await response.json();
+                            setPollActive(true);
+                            setPollStartTime(new Date(result.pollStartTime));
+                            setPollEndTime(new Date(result.pollEndTime));
+                            setShowPollModal(false);
+                            toast.success(`Poll started for "${selectedProblemStatement}"! Duration: ${pollDuration} minutes. Team members can now vote.`);
+                            
+                            // Reload poll status to sync with backend
+                            setTimeout(() => loadPollStatus(), 1000);
+                          } else {
+                            const error = await response.json();
+                            toast.error(error.message || 'Failed to start poll');
+                          }
+                        } catch (error) {
+                          console.error('Error starting poll:', error);
+                          toast.error('Failed to start poll');
+                        }
                       }}
                       disabled={!selectedProblemStatement}
                       className="flex-1 py-2 px-4 rounded-lg font-medium transition disabled:opacity-50"

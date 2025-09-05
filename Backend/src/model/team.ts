@@ -21,6 +21,12 @@ export interface ITeam extends Document {
     problemStatementVoteCount?: { [problemStatementId: string]: number }; // problemStatementId -> vote count
     selectedProblemStatement?: string;
     problemStatementSelectedAt?: Date;
+    // POLL STATE FIELDS
+    pollActive?: boolean;
+    pollStartTime?: Date;
+    pollEndTime?: Date;
+    pollDuration?: number; // in minutes
+    pollProblemStatement?: string; // the problem statement being voted on
     createdAt: Date;
     updatedAt: Date;
 }
@@ -57,7 +63,13 @@ const TeamSchema = new Schema<ITeam>({
     problemStatementVotes: { type: Map, of: String, default: {} },
     problemStatementVoteCount: { type: Map, of: Number, default: {} },
     selectedProblemStatement: { type: String },
-    problemStatementSelectedAt: { type: Date }
+    problemStatementSelectedAt: { type: Date },
+    // POLL STATE FIELDS
+    pollActive: { type: Boolean, default: false },
+    pollStartTime: { type: Date },
+    pollEndTime: { type: Date },
+    pollDuration: { type: Number }, // in minutes
+    pollProblemStatement: { type: String } // the problem statement being voted on
 }, { timestamps: true });
 
 export default mongoose.model<ITeam>("Team", TeamSchema);
