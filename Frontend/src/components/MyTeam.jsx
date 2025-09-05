@@ -721,7 +721,7 @@ const MyTeam = () => {
             {/* Team Members */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
               {currentTeam.teamMembers.map((member, index) => {
-                const isLeader = currentTeam.teamLeader?._id === member._id;
+                const isLeader = currentTeam.teamLeader?._id === member._id || member.role === 'leader';
                 return (
                   <div 
                     key={member._id}
@@ -816,7 +816,7 @@ const MyTeam = () => {
             )}
 
             {/* Leader Actions */}
-            {currentTeam.teamLeader?._id === userId && (
+            {(currentTeam.teamLeader?._id === userId || currentTeam.teamMembers.find(m => m._id === userId)?.role === 'leader') && (
               <div 
                 className="p-4 rounded-lg border-2"
                 style={{ 
@@ -1477,6 +1477,139 @@ const MyTeam = () => {
               )}
             </div>
           </>
+        )}
+
+        {/* Poll Modal */}
+        {showPollModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div 
+              className="bg-white rounded-lg p-6 w-full max-w-md mx-4"
+              style={{ backgroundColor: themeConfig.cardBg }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: themeConfig.textColor }}>
+                  <Vote className="w-5 h-5" style={{ color: themeConfig.accentColor }} />
+                  Problem Statement Poll
+                </h3>
+                <button
+                  onClick={() => setShowPollModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {!pollActive ? (
+                <div>
+                  <p className="mb-4" style={{ color: themeConfig.textColor }}>
+                    Configure the poll duration for team members to vote on problem statements.
+                  </p>
+                  
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium mb-2" style={{ color: themeConfig.textColor }}>
+                      Poll Duration
+                    </label>
+                    <select
+                      value={pollDuration}
+                      onChange={(e) => setPollDuration(parseInt(e.target.value))}
+                      className="w-full p-2 border rounded-lg"
+                      style={{ 
+                        backgroundColor: themeConfig.backgroundColor,
+                        borderColor: themeConfig.borderColor,
+                        color: themeConfig.textColor
+                      }}
+                    >
+                      <option value={60}>1 hour</option>
+                      <option value={90}>1.5 hours</option>
+                      <option value={120}>2 hours</option>
+                    </select>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        const now = new Date();
+                        const endTime = new Date(now.getTime() + pollDuration * 60 * 1000);
+                        setPollStartTime(now);
+                        setPollEndTime(endTime);
+                        setPollActive(true);
+                        setShowPollModal(false);
+                        toast.success('Poll started! Team members can now vote.');
+                      }}
+                      className="flex-1 py-2 px-4 rounded-lg font-medium transition"
+                      style={{ 
+                        backgroundColor: '#f59e0b',
+                        color: 'white'
+                      }}
+                    >
+                      Start Poll
+                    </button>
+                    <button
+                      onClick={() => setShowPollModal(false)}
+                      className="flex-1 py-2 px-4 rounded-lg border font-medium transition"
+                      style={{ 
+                        backgroundColor: themeConfig.backgroundColor,
+                        borderColor: themeConfig.borderColor,
+                        color: themeConfig.textColor
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="mb-4 p-3 rounded-lg" style={{ backgroundColor: '#fef3c7' }}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Clock className="w-4 h-4" style={{ color: '#92400e' }} />
+                      <span className="font-medium" style={{ color: '#92400e' }}>
+                        Poll Active
+                      </span>
+                    </div>
+                    {timeLeft && !timeLeft.expired && (
+                      <div className="text-lg font-mono" style={{ color: '#92400e' }}>
+                        {timeLeft.hours.toString().padStart(2, '0')}:
+                        {timeLeft.minutes.toString().padStart(2, '0')}:
+                        {timeLeft.seconds.toString().padStart(2, '0')}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mb-4">
+                    <h4 className="font-medium mb-2" style={{ color: themeConfig.textColor }}>
+                      Vote Results
+                    </h4>
+                    {Object.keys(pollResults).length > 0 ? (
+                      <div className="space-y-2">
+                        {Object.entries(pollResults).map(([problemId, votes]) => (
+                          <div key={problemId} className="flex justify-between items-center p-2 rounded" style={{ backgroundColor: themeConfig.backgroundColor }}>
+                            <span style={{ color: themeConfig.textColor }}>{problemId}</span>
+                            <span className="font-medium" style={{ color: themeConfig.accentColor }}>{votes} votes</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm" style={{ color: themeConfig.textColor, opacity: 0.7 }}>
+                        No votes yet
+                      </p>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => setShowPollModal(false)}
+                    className="w-full py-2 px-4 rounded-lg border font-medium transition"
+                    style={{ 
+                      backgroundColor: themeConfig.backgroundColor,
+                      borderColor: themeConfig.borderColor,
+                      color: themeConfig.textColor
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>

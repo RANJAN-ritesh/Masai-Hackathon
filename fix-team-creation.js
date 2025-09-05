@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const Team = require('./dist/model/team').default;
+const Team = require('./Backend/dist/model/team').default;
 
 async function fixTeamCreation() {
   try {
