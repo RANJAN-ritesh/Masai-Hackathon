@@ -720,52 +720,142 @@ const MyTeam = () => {
 
             {/* Team Members */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-              {currentTeam.teamMembers.map((member, index) => (
-                <div 
-                  key={member._id}
-                  className="flex items-center p-3 rounded-lg"
-                  style={{ backgroundColor: themeConfig.backgroundColor }}
-                >
+              {currentTeam.teamMembers.map((member, index) => {
+                const isLeader = currentTeam.teamLeader?._id === member._id;
+                return (
                   <div 
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium mr-3"
-                    style={{ backgroundColor: themeConfig.accentColor, color: 'white' }}
+                    key={member._id}
+                    className={`flex items-center p-3 rounded-lg border-2 transition-all ${
+                      isLeader ? 'ring-2 ring-yellow-400 shadow-lg' : ''
+                    }`}
+                    style={{ 
+                      backgroundColor: isLeader ? '#fef3c7' : themeConfig.backgroundColor,
+                      borderColor: isLeader ? '#f59e0b' : themeConfig.borderColor
+                    }}
                   >
-                    {member.name.charAt(0).toUpperCase()}
+                    <div 
+                      className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium mr-3 ${
+                        isLeader ? 'ring-2 ring-yellow-400' : ''
+                      }`}
+                      style={{ 
+                        backgroundColor: isLeader ? '#f59e0b' : themeConfig.accentColor, 
+                        color: 'white' 
+                      }}
+                    >
+                      {member.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-medium flex items-center" style={{ color: themeConfig.textColor }}>
+                        {member.name}
+                        {isLeader && (
+                          <>
+                            <Crown className="w-4 h-4 inline ml-1" style={{ color: '#f59e0b' }} />
+                            <span className="ml-1 text-xs font-bold" style={{ color: '#f59e0b' }}>
+                              LEADER
+                            </span>
+                          </>
+                        )}
+                      </p>
+                      <p className="text-sm" style={{ color: themeConfig.textColor, opacity: 0.7 }}>
+                        {member.email}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium" style={{ color: themeConfig.textColor }}>
-                      {member.name}
-                      {currentTeam.teamLeader?._id === member._id && (
-                        <Crown className="w-4 h-4 inline ml-1" style={{ color: themeConfig.accentColor }} />
-                      )}
-                    </p>
-                    <p className="text-sm" style={{ color: themeConfig.textColor, opacity: 0.7 }}>
-                      {member.email}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
+
+            {/* Selected Problem Statement */}
+            {currentTeam.selectedProblemStatement && (
+              <div className="mb-6 p-4 rounded-lg border-2" style={{ 
+                backgroundColor: '#dcfce7',
+                borderColor: '#22c55e'
+              }}>
+                <h3 className="text-lg font-semibold mb-2 flex items-center gap-2" style={{ color: '#166534' }}>
+                  <Target className="w-5 h-5" style={{ color: '#22c55e' }} />
+                  Selected Problem Statement
+                </h3>
+                <div className="p-3 rounded-lg" style={{ backgroundColor: '#f0fdf4' }}>
+                  <h4 className="font-medium mb-1" style={{ color: '#166534' }}>
+                    {currentTeam.selectedProblemStatement}
+                  </h4>
+                  <p className="text-sm" style={{ color: '#166534', opacity: 0.7 }}>
+                    This problem has been selected for your team.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Problem Statements Section */}
+            {problemStatements.length > 0 && !currentTeam.selectedProblemStatement && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2" style={{ color: themeConfig.textColor }}>
+                  <Target className="w-5 h-5" style={{ color: themeConfig.accentColor }} />
+                  Available Problem Statements
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {problemStatements.map((problem, index) => (
+                    <div 
+                      key={index}
+                      className="p-3 rounded-lg border"
+                      style={{ 
+                        backgroundColor: themeConfig.backgroundColor,
+                        borderColor: themeConfig.borderColor
+                      }}
+                    >
+                      <h4 className="font-medium mb-1" style={{ color: themeConfig.textColor }}>
+                        {problem.track}
+                      </h4>
+                      <p className="text-sm" style={{ color: themeConfig.textColor, opacity: 0.7 }}>
+                        {problem.description?.substring(0, 100)}...
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Leader Actions */}
             {currentTeam.teamLeader?._id === userId && (
               <div 
-                className="p-4 rounded-lg"
-                style={{ backgroundColor: themeConfig.accentColor + '10' }}
+                className="p-4 rounded-lg border-2"
+                style={{ 
+                  backgroundColor: '#fef3c7',
+                  borderColor: '#f59e0b'
+                }}
               >
-                <h3 className="font-semibold mb-2" style={{ color: themeConfig.textColor }}>
+                <h3 className="font-semibold mb-3 flex items-center gap-2" style={{ color: '#92400e' }}>
+                  <Crown className="w-5 h-5" style={{ color: '#f59e0b' }} />
                   Team Leader Actions
                 </h3>
-                <button
-                  onClick={() => setShowPollModal(true)}
-                  className="px-4 py-2 rounded-lg transition"
-                  style={{ 
-                    backgroundColor: themeConfig.accentColor,
-                    color: 'white'
-                  }}
-                >
-                  {pollActive ? 'View Poll Progress' : 'Start Problem Statement Poll'}
-                </button>
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={() => setShowPollModal(true)}
+                    className="px-6 py-3 rounded-lg transition-all hover:shadow-lg flex items-center gap-2 font-medium"
+                    style={{ 
+                      backgroundColor: '#f59e0b',
+                      color: 'white'
+                    }}
+                  >
+                    <Vote className="w-5 h-5" />
+                    {pollActive ? 'View Poll Progress' : 'Start Problem Statement Poll'}
+                  </button>
+                  
+                  {pollActive && (
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-lg" style={{ backgroundColor: '#fbbf24' }}>
+                      <Clock className="w-4 h-4" style={{ color: '#92400e' }} />
+                      <span className="text-sm font-medium" style={{ color: '#92400e' }}>
+                        Poll Active
+                      </span>
+                    </div>
+                  )}
+                </div>
+                
+                {problemStatements.length === 0 && (
+                  <p className="text-sm mt-2" style={{ color: '#92400e', opacity: 0.7 }}>
+                    No problem statements available for this hackathon.
+                  </p>
+                )}
               </div>
             )}
           </div>
