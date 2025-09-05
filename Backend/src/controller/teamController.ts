@@ -64,6 +64,16 @@ export const createTeams = async( req:Request<{}, {}, {teamName: string, created
             return;
         }
 
+        // Additional check: Look for any team with similar name to prevent duplicates
+        const similarTeam = await team.findOne({ 
+            teamName: { $regex: new RegExp(`^${teamName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+            hackathonId: hackathonId || null
+        });
+        if (similarTeam) {
+            res.status(400).json({ message: "A team with this name already exists in this hackathon!" });
+            return;
+        }
+
         // Process team members - always include creator first
         const teamMemberIdSet = new Set<string>([createdByObjectId.toString()]);
         
@@ -86,15 +96,32 @@ export const createTeams = async( req:Request<{}, {}, {teamName: string, created
         const teamMemberIds: mongoose.Types.ObjectId[] = Array.from(teamMemberIdSet).map(id => new mongoose.Types.ObjectId(id));
 
         // Create the team with hackathon association
-        const newTeam = await team.create({
-            teamName,
-            createdBy: createdByObjectId,
-            memberLimit: memberLimit || maxMembers || 4,
-            teamMembers: teamMemberIds,
-            hackathonId: hackathonId || null, // Associate with specific hackathon
-            description: description || "",
-            status: 'active'
-        });
+        let newTeam;
+        try {
+            newTeam = await team.create({
+                teamName,
+                createdBy: createdByObjectId,
+                memberLimit: memberLimit || maxMembers || 4,
+                teamMembers: teamMemberIds,
+                hackathonId: hackathonId || null, // Associate with specific hackathon
+                description: description || "",
+                status: 'active'
+            });
+        } catch (createError: any) {
+            console.error('Team creation error:', createError);
+            if (createError.code === 11000) {
+                res.status(400).json({ 
+                    message: "A team with this name already exists in this hackathon!",
+                    error: "Duplicate team name"
+                });
+                return;
+            }
+            res.status(500).json({ 
+                message: "Failed to create team", 
+                error: createError.message 
+            });
+            return;
+        }
 
         if (newTeam) {
             // Update all team members (including creator) with teamId and hackathon association
