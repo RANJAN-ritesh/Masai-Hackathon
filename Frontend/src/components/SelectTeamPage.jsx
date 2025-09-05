@@ -116,6 +116,28 @@ const SelectTeamPage = () => {
   };
 
   const handleSubmission = async (teamId) => {
+    // Check if user is team leader
+    const team = teams.find(t => t._id === teamId);
+    if (!team) {
+      toast.error("Team not found");
+      return;
+    }
+
+    const isTeamLeader = team.createdBy?._id === userId || team.teamLeader?._id === userId;
+    if (!isTeamLeader) {
+      toast.error("Only team leaders can submit projects");
+      return;
+    }
+
+    // Show confirmation popup
+    const confirmed = window.confirm(
+      "This is your final and only submission. Once submitted, you cannot resubmit or edit your entry. Are you sure you want to proceed?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     try {
       const body = {
         userId,
@@ -130,7 +152,7 @@ const SelectTeamPage = () => {
 
       if (!res.ok) throw new Error("Submission failed");
       console.log(res);
-      toast.success("Submission successful");
+      toast.success("Submission successful! Your project has been submitted.");
       setShowSubmissionModal(false);
       setSubmissionData({
         githubLink: "",
@@ -1033,10 +1055,10 @@ const SelectTeamPage = () => {
                             Select Problem
                           </button>
 
-                          {(role === "admin" ||
+                          {/* Submission buttons - only for team leaders and admins */}
+                          {(role === "admin" || isCreator || team.teamLeader?._id === userId) &&
                             (new Date() >= new Date(hackathon?.submissionStart) &&
-                              new Date() <=
-                                new Date(hackathon?.submissionEnd))) && (
+                              new Date() <= new Date(hackathon?.submissionEnd)) && (
                             <>
                               <button
                                 onClick={() => {
@@ -1044,15 +1066,16 @@ const SelectTeamPage = () => {
                                   setShowSubmissionModal(true);
                                 }}
                                 className={`${colorScheme.button} text-white px-3 py-2 rounded-md`}
+                                title={role === "admin" ? "Admin can submit for any team" : "Only team leaders can submit"}
                               >
-                                Team Submission
+                                {role === "admin" ? "Team Submission" : "Submit Project"}
                               </button>
 
                               <button
                                 onClick={() => fetchTeamSubmissions(team._id)}
                                 className={`${colorScheme.button} text-white px-3 py-2 rounded-md`}
                               >
-                                Group Submission
+                                View Submissions
                               </button>
                             </>
                           )}
@@ -1453,6 +1476,22 @@ const SelectTeamPage = () => {
                       )}
                     </span>
                   </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Final Submission Warning */}
+            <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm text-red-700">
+                    <strong>Final Submission:</strong> This is your final and only submission. Once submitted, you cannot resubmit or edit your entry. Please ensure all information is correct before proceeding.
+                  </p>
                 </div>
               </div>
             </div>
