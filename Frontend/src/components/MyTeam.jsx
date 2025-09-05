@@ -48,6 +48,10 @@ const MyTeam = () => {
   const [pollResults, setPollResults] = useState({});
   const [showPollModal, setShowPollModal] = useState(false);
   const [selectedProblemStatement, setSelectedProblemStatement] = useState(null);
+  const [pollDuration, setPollDuration] = useState(90); // Default 90 minutes (1.5 hours)
+  const [pollStartTime, setPollStartTime] = useState(null);
+  const [pollEndTime, setPollEndTime] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(null);
 
   // Check team creation mode
   const isParticipantTeamMode = hackathon?.allowParticipantTeams && hackathon?.teamCreationMode === 'participant';
@@ -58,6 +62,39 @@ const MyTeam = () => {
       loadData();
     }
   }, [hackathon, userId]);
+
+  // Poll timer effect
+  useEffect(() => {
+    if (!pollActive || !pollStartTime) return;
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      const endTime = new Date(pollEndTime);
+      const diff = endTime - now;
+
+      if (diff <= 0) {
+        setTimeLeft({ hours: 0, minutes: 0, seconds: 0, expired: true });
+        setPollActive(false);
+        toast.warning('Poll time has ended! Team leader should select the final problem statement.');
+        clearInterval(interval);
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff / (1000 * 60)) % 60);
+      const seconds = Math.floor((diff / 1000) % 60);
+
+      setTimeLeft({ hours, minutes, seconds, expired: false });
+
+      // Send notifications at specific intervals
+      const totalMinutes = Math.floor(diff / (1000 * 60));
+      if (totalMinutes === 20 || totalMinutes === 10) {
+        toast.info(`Poll ends in ${totalMinutes} minutes! Please cast your vote.`);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [pollActive, pollStartTime, pollEndTime]);
 
   const loadData = async () => {
     setLoading(true);
@@ -177,9 +214,16 @@ const MyTeam = () => {
       return;
     }
 
+    // Set poll timing
+    const startTime = new Date();
+    const endTime = new Date(startTime.getTime() + pollDuration * 60 * 1000);
+    
+    setPollStartTime(startTime);
+    setPollEndTime(endTime);
     setPollActive(true);
     setShowPollModal(true);
-    toast.success('Problem statement poll started! Team members can now vote.');
+    
+    toast.success(`Problem statement poll started for ${pollDuration} minutes! Team members can now vote.`);
   };
 
   // Vote on problem statement
@@ -504,6 +548,63 @@ const MyTeam = () => {
                 </button>
               </div>
 
+              {/* Poll Duration Configuration (only for team leaders before poll starts) */}
+              {!pollActive && currentTeam?.teamLeader?._id === userId && (
+                <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: themeConfig.accentColor + '10' }}>
+                  <h3 className="font-semibold mb-3" style={{ color: themeConfig.textColor }}>
+                    Configure Poll Duration
+                  </h3>
+                  <div className="flex items-center space-x-4">
+                    <label className="text-sm" style={{ color: themeConfig.textColor }}>
+                      Duration:
+                    </label>
+                    <select
+                      value={pollDuration}
+                      onChange={(e) => setPollDuration(parseInt(e.target.value))}
+                      className="px-3 py-2 rounded-lg border"
+                      style={{
+                        backgroundColor: themeConfig.backgroundColor,
+                        borderColor: themeConfig.borderColor,
+                        color: themeConfig.textColor
+                      }}
+                    >
+                      <option value={60}>1 hour</option>
+                      <option value={90}>1.5 hours</option>
+                      <option value={120}>2 hours</option>
+                    </select>
+                    <button
+                      onClick={startProblemStatementPoll}
+                      className="px-4 py-2 rounded-lg transition"
+                      style={{ 
+                        backgroundColor: themeConfig.accentColor,
+                        color: 'white'
+                      }}
+                    >
+                      Start Poll
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Poll Timer Display */}
+              {pollActive && timeLeft && (
+                <div className="mb-6 p-4 rounded-lg text-center" style={{ backgroundColor: timeLeft.expired ? '#ef4444' + '20' : themeConfig.accentColor + '10' }}>
+                  <div className="flex items-center justify-center space-x-2 mb-2">
+                    <Clock className="w-5 h-5" style={{ color: timeLeft.expired ? '#ef4444' : themeConfig.accentColor }} />
+                    <span className="font-semibold" style={{ color: timeLeft.expired ? '#ef4444' : themeConfig.textColor }}>
+                      {timeLeft.expired ? 'Poll Ended' : 'Time Remaining'}
+                    </span>
+                  </div>
+                  {!timeLeft.expired && (
+                    <div className="text-2xl font-mono" style={{ color: themeConfig.textColor }}>
+                      {timeLeft.hours.toString().padStart(2, '0')}:
+                      {timeLeft.minutes.toString().padStart(2, '0')}:
+                      {timeLeft.seconds.toString().padStart(2, '0')}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="space-y-4">
                 {problemStatements.map((problem, index) => (
                   <div 
@@ -656,14 +757,14 @@ const MyTeam = () => {
                   Team Leader Actions
                 </h3>
                 <button
-                  onClick={startProblemStatementPoll}
+                  onClick={() => setShowPollModal(true)}
                   className="px-4 py-2 rounded-lg transition"
                   style={{ 
                     backgroundColor: themeConfig.accentColor,
                     color: 'white'
                   }}
                 >
-                  Start Problem Statement Poll
+                  {pollActive ? 'View Poll Progress' : 'Start Problem Statement Poll'}
                 </button>
               </div>
             )}
@@ -796,14 +897,14 @@ const MyTeam = () => {
                           </h3>
                           <div className="flex space-x-4">
                             <button
-                              onClick={startProblemStatementPoll}
+                              onClick={() => setShowPollModal(true)}
                               className="px-4 py-2 rounded-lg transition"
                               style={{ 
                                 backgroundColor: themeConfig.accentColor,
                                 color: 'white'
                               }}
                             >
-                              Start Problem Statement Poll
+                              {pollActive ? 'View Poll Progress' : 'Start Problem Statement Poll'}
                             </button>
                             <button
                               onClick={() => setActiveTab('search')}
