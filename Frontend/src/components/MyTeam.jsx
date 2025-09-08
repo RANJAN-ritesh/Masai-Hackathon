@@ -231,6 +231,9 @@ const MyTeam = () => {
     
     try {
       const token = localStorage.getItem('authToken');
+      console.log('🔍 Token found:', token ? 'YES' : 'NO', token ? `Length: ${token.length}` : '');
+      console.log('🔍 Token preview:', token ? token.substring(0, 20) + '...' : 'null');
+      
       if (!token) {
         console.error('No authentication token found');
         return;
@@ -1761,6 +1764,9 @@ const MyTeam = () => {
                         
                         try {
                           const token = localStorage.getItem('authToken');
+                          console.log('🔍 Starting poll - Token found:', token ? 'YES' : 'NO', token ? `Length: ${token.length}` : '');
+                          console.log('🔍 Starting poll - Token preview:', token ? token.substring(0, 20) + '...' : 'null');
+                          
                           if (!token) {
                             toast.error('Authentication token not found. Please log in again.');
                             return;
