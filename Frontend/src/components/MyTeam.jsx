@@ -1755,8 +1755,16 @@ const MyTeam = () => {
                   </div>
 
                   <div className="flex gap-3">
+                    {!selectedProblemStatement && (
+                      <div className="w-full text-center py-2 px-4 rounded-lg bg-yellow-100 border border-yellow-300 text-yellow-800 text-sm">
+                        ⚠️ Please select a problem statement above to enable the Start Poll button
+                      </div>
+                    )}
                     <button
                       onClick={async () => {
+                        console.log('🔍 Start Poll button clicked!');
+                        console.log('🔍 Selected problem statement:', selectedProblemStatement);
+                        
                         if (!selectedProblemStatement) {
                           toast.error('Please select a problem statement first');
                           return;
@@ -1804,9 +1812,9 @@ const MyTeam = () => {
                         }
                       }}
                       disabled={!selectedProblemStatement}
-                      className="flex-1 py-2 px-4 rounded-lg font-medium transition disabled:opacity-50"
+                      className="flex-1 py-2 px-4 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{ 
-                        backgroundColor: '#f59e0b',
+                        backgroundColor: selectedProblemStatement ? '#f59e0b' : '#9ca3af',
                         color: 'white'
                       }}
                     >
