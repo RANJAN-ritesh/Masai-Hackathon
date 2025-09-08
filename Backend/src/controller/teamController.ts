@@ -101,11 +101,18 @@ export const createTeams = async( req:Request<{}, {}, {teamName: string, created
             newTeam = await team.create({
                 teamName,
                 createdBy: createdByObjectId,
+                teamLeader: createdByObjectId, // Set creator as team leader
                 memberLimit: memberLimit || maxMembers || 4,
                 teamMembers: teamMemberIds,
                 hackathonId: hackathonId || null, // Associate with specific hackathon
                 description: description || "",
-                status: 'active'
+                status: 'active',
+                // Set default values for new fields
+                isFinalized: false,
+                creationMethod: 'participant',
+                canReceiveRequests: true,
+                pendingRequests: [],
+                teamStatus: 'forming'
             });
         } catch (createError: any) {
             console.error('Team creation error:', createError);
