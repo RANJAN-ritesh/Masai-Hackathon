@@ -27,20 +27,73 @@ router.post("/start-poll", authenticateUser, async (req, res) => {
       return res.status(404).json({ message: "Team not found" });
     }
 
-    // Check if user is team leader - handle both ObjectId and string comparisons
-    const isLeader = team.teamLeader?.toString() === userId || 
-                     team.teamLeader?.toString() === req.user?.id ||
-                     team.createdBy?.toString() === userId;
+    // REWRITTEN LEADER VERIFICATION - COMPREHENSIVE CHECK
+    console.log('🔍 LEADER VERIFICATION DEBUG:');
+    console.log('Team ID:', teamId);
+    console.log('User ID from token:', userId);
+    console.log('User ID from req.user:', req.user?.id);
+    console.log('Team Leader:', team.teamLeader);
+    console.log('Team Leader Type:', typeof team.teamLeader);
+    console.log('Team Created By:', team.createdBy);
+    console.log('Team Created By Type:', typeof team.createdBy);
+    console.log('Team Members:', team.teamMembers);
+    
+    // Method 1: Check if user is the team leader (ObjectId comparison)
+    const isTeamLeader = team.teamLeader && (
+      team.teamLeader.toString() === userId ||
+      team.teamLeader.toString() === req.user?.id ||
+      team.teamLeader.equals(userId) ||
+      team.teamLeader.equals(req.user?.id)
+    );
+    
+    // Method 2: Check if user created the team
+    const isTeamCreator = team.createdBy && (
+      team.createdBy.toString() === userId ||
+      team.createdBy.toString() === req.user?.id ||
+      team.createdBy.equals(userId) ||
+      team.createdBy.equals(req.user?.id)
+    );
+    
+    // Method 3: Check if user is in team members AND has leader role
+    const isTeamMember = team.teamMembers.some(member => 
+      member.toString() === userId ||
+      member.toString() === req.user?.id ||
+      member.equals(userId) ||
+      member.equals(req.user?.id)
+    );
+    
+    // Method 4: Check user role from JWT token
+    const hasLeaderRole = req.user?.role === 'leader';
+    
+    console.log('isTeamLeader:', isTeamLeader);
+    console.log('isTeamCreator:', isTeamCreator);
+    console.log('isTeamMember:', isTeamMember);
+    console.log('hasLeaderRole:', hasLeaderRole);
+    
+    // FINAL DECISION: User is leader if ANY of these conditions are true
+    const isLeader = isTeamLeader || isTeamCreator || (isTeamMember && hasLeaderRole);
+    
+    console.log('FINAL isLeader result:', isLeader);
     
     if (!isLeader) {
-      console.log('Leader check failed:', {
-        teamLeader: team.teamLeader?.toString(),
-        userId: userId,
-        reqUserId: req.user?.id,
-        createdBy: team.createdBy?.toString()
+      console.log('❌ LEADER VERIFICATION FAILED');
+      return res.status(403).json({ 
+        message: "Only team leaders can start polls",
+        debug: {
+          teamLeader: team.teamLeader?.toString(),
+          userId: userId,
+          reqUserId: req.user?.id,
+          createdBy: team.createdBy?.toString(),
+          userRole: req.user?.role,
+          isTeamLeader,
+          isTeamCreator,
+          isTeamMember,
+          hasLeaderRole
+        }
       });
-      return res.status(403).json({ message: "Only team leaders can start polls" });
     }
+    
+    console.log('✅ LEADER VERIFICATION PASSED');
 
     // Check if poll is already active
     if (team.pollActive) {
@@ -232,13 +285,46 @@ router.post("/select-problem-statement", authenticateUser, async (req, res) => {
       return res.status(404).json({ message: "Team not found" });
     }
 
-    // Check if user is team leader - handle both ObjectId and string comparisons
-    const isLeader = team.teamLeader?.toString() === userId || 
-                     team.teamLeader?.toString() === req.user?.id ||
-                     team.createdBy?.toString() === userId;
+    // REWRITTEN LEADER VERIFICATION - COMPREHENSIVE CHECK (Same as start-poll)
+    const isTeamLeader = team.teamLeader && (
+      team.teamLeader.toString() === userId ||
+      team.teamLeader.toString() === req.user?.id ||
+      team.teamLeader.equals(userId) ||
+      team.teamLeader.equals(req.user?.id)
+    );
+    
+    const isTeamCreator = team.createdBy && (
+      team.createdBy.toString() === userId ||
+      team.createdBy.toString() === req.user?.id ||
+      team.createdBy.equals(userId) ||
+      team.createdBy.equals(req.user?.id)
+    );
+    
+    const isTeamMember = team.teamMembers.some(member => 
+      member.toString() === userId ||
+      member.toString() === req.user?.id ||
+      member.equals(userId) ||
+      member.equals(req.user?.id)
+    );
+    
+    const hasLeaderRole = req.user?.role === 'leader';
+    const isLeader = isTeamLeader || isTeamCreator || (isTeamMember && hasLeaderRole);
     
     if (!isLeader) {
-      return res.status(403).json({ message: "Only team leaders can select problem statements" });
+      return res.status(403).json({ 
+        message: "Only team leaders can select problem statements",
+        debug: {
+          teamLeader: team.teamLeader?.toString(),
+          userId: userId,
+          reqUserId: req.user?.id,
+          createdBy: team.createdBy?.toString(),
+          userRole: req.user?.role,
+          isTeamLeader,
+          isTeamCreator,
+          isTeamMember,
+          hasLeaderRole
+        }
+      });
     }
 
     // Verify hackathon exists and has the problem statement
