@@ -125,7 +125,7 @@ const MyTeam = () => {
     try {
       const response = await fetch(`${baseURL}/team/hackathon/${hackathon._id}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
       });
       
@@ -146,7 +146,7 @@ const MyTeam = () => {
     try {
       const response = await fetch(`${baseURL}/participant-team/participants/${hackathon._id}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
       });
       
@@ -163,7 +163,7 @@ const MyTeam = () => {
     try {
       const response = await fetch(`${baseURL}/team/hackathon/${hackathon._id}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
       });
       
@@ -180,7 +180,7 @@ const MyTeam = () => {
     try {
       const response = await fetch(`${baseURL}/participant-team/requests`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
       });
       
@@ -230,7 +230,7 @@ const MyTeam = () => {
     if (!currentTeam) return;
     
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       if (!token) {
         console.error('No authentication token found');
         return;
@@ -273,7 +273,7 @@ const MyTeam = () => {
   // Vote on problem statement
   const voteOnProblemStatement = async (problemStatementId) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('authToken');
       if (!token) {
         toast.error('Authentication token not found. Please log in again.');
         return;
@@ -311,7 +311,7 @@ const MyTeam = () => {
     try {
       const response = await fetch(`${baseURL}/team-polling/poll-results/${currentTeam._id}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
       });
 
@@ -331,7 +331,7 @@ const MyTeam = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         },
         body: JSON.stringify({
           teamId: currentTeam._id,
@@ -366,7 +366,7 @@ const MyTeam = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         },
         body: JSON.stringify({
           teamName: teamCreationData.teamName,
@@ -396,7 +396,7 @@ const MyTeam = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         },
         body: JSON.stringify({
           teamId,
@@ -435,7 +435,7 @@ const MyTeam = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         },
         body: JSON.stringify({
           participantId,
@@ -469,7 +469,7 @@ const MyTeam = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         },
         body: JSON.stringify({
           response,
@@ -1760,7 +1760,7 @@ const MyTeam = () => {
                         }
                         
                         try {
-                          const token = localStorage.getItem('token');
+                          const token = localStorage.getItem('authToken');
                           if (!token) {
                             toast.error('Authentication token not found. Please log in again.');
                             return;
