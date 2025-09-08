@@ -315,6 +315,57 @@ const MyTeam = () => {
     }
   };
 
+  // Conclude poll function
+  const concludePoll = async () => {
+    // Show confirmation dialog
+    const confirmed = window.confirm(
+      'Are you sure you want to conclude the poll?\n\n' +
+      'This will end the voting process and select the problem statement with the most votes.\n' +
+      'This action cannot be undone.\n\n' +
+      'Do you want to proceed?'
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        toast.error('Authentication token not found. Please log in again.');
+        return;
+      }
+      
+      const response = await fetch(`${baseURL}/team-polling/conclude-poll`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          teamId: currentTeam._id
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success(`Poll concluded! Selected: ${result.winningProblemStatement || 'No votes received'}`);
+        
+        // Reload poll status to get updated state
+        await loadPollStatus();
+        
+        // Close the poll modal if open
+        setShowPollModal(false);
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Failed to conclude poll');
+      }
+    } catch (error) {
+      console.error('Error concluding poll:', error);
+      toast.error('Failed to conclude poll');
+    }
+  };
+
   // Load poll results
   const loadPollResults = async () => {
     try {
@@ -996,6 +1047,27 @@ const MyTeam = () => {
                     )}
                   </div>
                 </div>
+
+                {/* Conclude Poll Button (Only for Team Leaders) */}
+                {(currentTeam.teamLeader?._id === userId || currentTeam.teamMembers.find(m => m._id === userId)?.role === 'leader') && (
+                  <div className="mt-4 pt-4 border-t" style={{ borderColor: '#f59e0b' }}>
+                    <button
+                      onClick={concludePoll}
+                      className="w-full py-2 px-4 rounded-lg font-medium transition-colors"
+                      style={{ 
+                        backgroundColor: '#dc2626',
+                        color: 'white'
+                      }}
+                      onMouseOver={(e) => e.target.style.backgroundColor = '#b91c1c'}
+                      onMouseOut={(e) => e.target.style.backgroundColor = '#dc2626'}
+                    >
+                      🏁 Conclude Poll Now
+                    </button>
+                    <p className="text-xs mt-2 text-center" style={{ color: '#92400e', opacity: 0.8 }}>
+                      Only team leaders can conclude the poll early
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 
