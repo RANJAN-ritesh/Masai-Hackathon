@@ -52,6 +52,7 @@ const MyTeam = () => {
   const [pollStartTime, setPollStartTime] = useState(null);
   const [pollEndTime, setPollEndTime] = useState(null);
   const [timeLeft, setTimeLeft] = useState(null);
+  const [loadingPollStatus, setLoadingPollStatus] = useState(false);
 
   // Check team creation mode
   const isParticipantTeamMode = hackathon?.allowParticipantTeams && hackathon?.teamCreationMode === 'participant';
@@ -227,12 +228,11 @@ const MyTeam = () => {
 
   // Load poll status from backend
   const loadPollStatus = async () => {
-    if (!currentTeam) return;
+    if (!currentTeam || loadingPollStatus) return;
     
+    setLoadingPollStatus(true);
     try {
       const token = localStorage.getItem('authToken');
-      console.log('🔍 Token found:', token ? 'YES' : 'NO', token ? `Length: ${token.length}` : '');
-      console.log('🔍 Token preview:', token ? token.substring(0, 20) + '...' : 'null');
       
       if (!token) {
         console.error('No authentication token found');
@@ -252,7 +252,11 @@ const MyTeam = () => {
         setPollStartTime(pollData.pollStartTime ? new Date(pollData.pollStartTime) : null);
         setPollEndTime(pollData.pollEndTime ? new Date(pollData.pollEndTime) : null);
         setPollDuration(pollData.pollDuration || 90);
-        setSelectedProblemStatement(pollData.pollProblemStatement || null);
+        
+        // Only update selectedProblemStatement if there's an active poll
+        if (pollData.pollActive && pollData.pollProblemStatement) {
+          setSelectedProblemStatement(pollData.pollProblemStatement);
+        }
         
         // Update team with poll data
         if (currentTeam) {
@@ -270,6 +274,8 @@ const MyTeam = () => {
       }
     } catch (error) {
       console.error('Error loading poll status:', error);
+    } finally {
+      setLoadingPollStatus(false);
     }
   };
 
@@ -1762,9 +1768,6 @@ const MyTeam = () => {
                     )}
                     <button
                       onClick={async () => {
-                        console.log('🔍 Start Poll button clicked!');
-                        console.log('🔍 Selected problem statement:', selectedProblemStatement);
-                        
                         if (!selectedProblemStatement) {
                           toast.error('Please select a problem statement first');
                           return;
@@ -1772,9 +1775,6 @@ const MyTeam = () => {
                         
                         try {
                           const token = localStorage.getItem('authToken');
-                          console.log('🔍 Starting poll - Token found:', token ? 'YES' : 'NO', token ? `Length: ${token.length}` : '');
-                          console.log('🔍 Starting poll - Token preview:', token ? token.substring(0, 20) + '...' : 'null');
-                          
                           if (!token) {
                             toast.error('Authentication token not found. Please log in again.');
                             return;
