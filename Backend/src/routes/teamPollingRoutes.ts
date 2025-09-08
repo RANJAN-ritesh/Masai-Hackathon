@@ -27,9 +27,18 @@ router.post("/start-poll", authenticateUser, async (req, res) => {
       return res.status(404).json({ message: "Team not found" });
     }
 
-    const isLeader = team.teamLeader?.toString() === userId;
+    // Check if user is team leader - handle both ObjectId and string comparisons
+    const isLeader = team.teamLeader?.toString() === userId || 
+                     team.teamLeader?.toString() === req.user?.id ||
+                     team.createdBy?.toString() === userId;
     
     if (!isLeader) {
+      console.log('Leader check failed:', {
+        teamLeader: team.teamLeader?.toString(),
+        userId: userId,
+        reqUserId: req.user?.id,
+        createdBy: team.createdBy?.toString()
+      });
       return res.status(403).json({ message: "Only team leaders can start polls" });
     }
 
@@ -223,7 +232,12 @@ router.post("/select-problem-statement", authenticateUser, async (req, res) => {
       return res.status(404).json({ message: "Team not found" });
     }
 
-    if (team.teamLeader?.toString() !== userId) {
+    // Check if user is team leader - handle both ObjectId and string comparisons
+    const isLeader = team.teamLeader?.toString() === userId || 
+                     team.teamLeader?.toString() === req.user?.id ||
+                     team.createdBy?.toString() === userId;
+    
+    if (!isLeader) {
       return res.status(403).json({ message: "Only team leaders can select problem statements" });
     }
 
