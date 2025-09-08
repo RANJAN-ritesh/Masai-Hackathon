@@ -1,9 +1,10 @@
 import express from "express";
 import { createTeams, getTeams, deleteTeam } from "../controller/teamController";
+import { authenticateUser } from "../middleware/auth";
 
 const router = express.Router();
 
-router.post("/create-team", createTeams);
+router.post("/create-team", authenticateUser, createTeams);
 router.get("/get-teams", getTeams); // Get all teams
 
 // Get teams for a specific user and hackathon
