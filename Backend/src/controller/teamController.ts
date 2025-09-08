@@ -22,7 +22,8 @@ export const getTeams = async (req: Request, res: Response): Promise<void> => {
 
 export const createTeams = async( req:Request<{}, {}, {teamName: string, createdBy?: string, hackathonId?: string, maxMembers?: number, memberLimit?: number, description?: string, teamMembers?: string[]}>, res:Response) : Promise<void> => {
     try {
-        const { teamName, createdBy, hackathonId, maxMembers, memberLimit, description, teamMembers } = req.body;
+        const { teamName, hackathonId, maxMembers, memberLimit, description, teamMembers } = req.body;
+        const createdBy = req.body.createdBy || req.user?.id;
 
         if (!teamName) {
             res.status(400).json({ message: "Team Creation failed!!! Team name is required" });
