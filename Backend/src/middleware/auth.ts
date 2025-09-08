@@ -61,12 +61,8 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
           }
         }
       } catch (jwtError) {
-        // If JWT verification fails, try using token as direct userId (temporary fallback)
-        // Only log this occasionally to reduce noise
-        if (Math.random() < 0.01) { // Log only 1% of failures
-          console.log('JWT verification failed, trying token as userId (sample)');
-        }
-        foundUser = await user.findById(token);
+        console.log('JWT verification failed:', jwtError instanceof Error ? jwtError.message : 'Unknown error');
+        return res.status(401).json({ message: 'Invalid token' });
       }
 
       if (!foundUser) {
