@@ -72,9 +72,11 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
           foundUser = await user.findById(token);
           if (foundUser) {
             console.log('✅ Found user by userId:', foundUser._id);
+          } else {
+            console.log('❌ No user found with userId:', token);
           }
         } catch (userIdError) {
-          console.log('❌ Token is not a valid userId either');
+          console.log('❌ Token is not a valid userId either:', userIdError instanceof Error ? userIdError.message : 'Unknown error');
           return res.status(401).json({ message: 'Invalid token' });
         }
       }
