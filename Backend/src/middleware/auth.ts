@@ -51,17 +51,20 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
 
       try {
         decoded = jwt.verify(token, JWT_SECRET) as any;
+        console.log('🔍 JWT DECODED:', decoded);
 
         if (decoded.userId) {
           foundUser = await user.findById(decoded.userId);
+          console.log('🔍 FOUND USER:', foundUser ? foundUser._id : 'NOT FOUND');
 
           // Check if token is expired
           if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+            console.log('❌ TOKEN EXPIRED');
             return res.status(401).json({ message: 'Token expired' });
           }
         }
       } catch (jwtError) {
-        console.log('JWT verification failed:', jwtError instanceof Error ? jwtError.message : 'Unknown error');
+        console.log('❌ JWT verification failed:', jwtError instanceof Error ? jwtError.message : 'Unknown error');
         return res.status(401).json({ message: 'Invalid token' });
       }
 

@@ -197,6 +197,16 @@ router.post("/vote-problem-statement", authenticateUser, async (req, res) => {
       return res.status(403).json({ message: "You are not a member of this team" });
     }
 
+    // Check if poll is active
+    if (!team.pollActive) {
+      return res.status(400).json({ message: "No active poll to vote on" });
+    }
+
+    // Check if poll has ended
+    if (team.pollEndTime && new Date() > team.pollEndTime) {
+      return res.status(400).json({ message: "Poll has ended" });
+    }
+
     // Verify hackathon exists and has the problem statement
     const hackathon = await Hackathon.findById(hackathonId);
     if (!hackathon) {

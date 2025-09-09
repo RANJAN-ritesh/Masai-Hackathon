@@ -25,12 +25,19 @@ export const createTeams = async( req:Request<{}, {}, {teamName: string, created
         const { teamName, hackathonId, maxMembers, memberLimit, description, teamMembers } = req.body;
         const createdBy = req.body.createdBy || req.user?.id;
 
+        console.log('🔍 TEAM CREATION DEBUG:');
+        console.log('req.user:', req.user);
+        console.log('req.user?.id:', req.user?.id);
+        console.log('createdBy from body:', req.body.createdBy);
+        console.log('final createdBy:', createdBy);
+
         if (!teamName) {
             res.status(400).json({ message: "Team Creation failed!!! Team name is required" });
             return;
         }
 
         if (!createdBy) {
+            console.log('❌ CREATEDBY MISSING!');
             res.status(400).json({ message: "Team Creation failed!!! CreatedBy is required" });
             return;
         }

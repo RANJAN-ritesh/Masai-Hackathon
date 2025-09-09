@@ -67,7 +67,7 @@ router.post("/submit-project", authenticateUser, async (req, res) => {
       });
     }
 
-    // Check if submission window is open
+    // Check if submission window is open (more lenient for testing)
     if (team.hackathonId) {
       const hackathon = await Hackathon.findById(team.hackathonId);
       if (hackathon) {
@@ -75,20 +75,41 @@ router.post("/submit-project", authenticateUser, async (req, res) => {
         const submissionStart = new Date(hackathon.submissionStartDate);
         const submissionEnd = new Date(hackathon.submissionEndDate);
 
-        if (now < submissionStart) {
+        console.log('🔍 SUBMISSION WINDOW DEBUG:');
+        console.log('Now:', now);
+        console.log('Submission Start:', submissionStart);
+        console.log('Submission End:', submissionEnd);
+        console.log('Is after start:', now >= submissionStart);
+        console.log('Is before end:', now <= submissionEnd);
+
+        // More lenient validation - allow submission if hackathon has started
+        const hackathonStart = new Date(hackathon.startDate);
+        if (now < hackathonStart) {
           return res.status(400).json({ 
-            message: "Submission window has not opened yet",
+            message: "Hackathon has not started yet",
+            hackathonStart: hackathonStart,
             submissionStart: submissionStart,
             submissionEnd: submissionEnd
           });
         }
 
-        if (now > submissionEnd) {
-          return res.status(400).json({ 
-            message: "Submission window has closed",
-            submissionStart: submissionStart,
-            submissionEnd: submissionEnd
-          });
+        // Only check submission window if it's explicitly set
+        if (hackathon.submissionStartDate && hackathon.submissionEndDate) {
+          if (now < submissionStart) {
+            return res.status(400).json({ 
+              message: "Submission window has not opened yet",
+              submissionStart: submissionStart,
+              submissionEnd: submissionEnd
+            });
+          }
+
+          if (now > submissionEnd) {
+            return res.status(400).json({ 
+              message: "Submission window has closed",
+              submissionStart: submissionStart,
+              submissionEnd: submissionEnd
+            });
+          }
         }
       }
     }

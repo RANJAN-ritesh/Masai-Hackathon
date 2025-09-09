@@ -22,8 +22,15 @@ router.get("/download-hackathon-data/:hackathonId", authenticateUser, async (req
       return res.status(404).json({ message: "Hackathon not found" });
     }
 
-    // Check if user is admin (hackathon creator)
-    const isAdmin = (hackathon as any).createdBy?.toString() === userId;
+    // Check if user is admin (hackathon creator or has admin role)
+    const isAdmin = (hackathon as any).createdBy?.toString() === userId || req.user?.role === 'admin';
+    
+    console.log('🔍 CSV DOWNLOAD DEBUG:');
+    console.log('Hackathon createdBy:', (hackathon as any).createdBy?.toString());
+    console.log('User ID:', userId);
+    console.log('User role:', req.user?.role);
+    console.log('Is admin:', isAdmin);
+    
     if (!isAdmin) {
       return res.status(403).json({ message: "Only hackathon admin can download data" });
     }
