@@ -16,7 +16,8 @@ import {
   Mail,
   Vote,
   Target,
-  BarChart3
+  BarChart3,
+  CheckCircle
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -363,6 +364,103 @@ const MyTeam = () => {
     } catch (error) {
       console.error('Error concluding poll:', error);
       toast.error('Failed to conclude poll');
+    }
+  };
+
+  // Report team member function
+  const reportTeamMember = async (memberId, reason) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to report this team member?\n\n` +
+      `This action will notify the admin if all other team members also report this person.\n\n` +
+      `Reason: ${reason || 'No reason provided'}\n\n` +
+      `Do you want to proceed?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        toast.error('Authentication token not found. Please log in again.');
+        return;
+      }
+      
+      const response = await fetch(`${baseURL}/team-reporting/report-member`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          teamId: currentTeam._id,
+          reportedUserId: memberId,
+          reason: reason || 'No reason provided'
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success(`Member reported successfully! ${result.allMembersReported ? 'Admin has been notified.' : ''}`);
+        
+        // Reload team data to update UI
+        await loadTeamData();
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Failed to report member');
+      }
+    } catch (error) {
+      console.error('Error reporting member:', error);
+      toast.error('Failed to report member');
+    }
+  };
+
+  // Submit project function
+  const submitProject = async (submissionLink) => {
+    const confirmed = window.confirm(
+      `Are you sure you want to submit this project?\n\n` +
+      `Submission Link: ${submissionLink}\n\n` +
+      `This is your final submission and cannot be changed.\n\n` +
+      `Do you want to proceed?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        toast.error('Authentication token not found. Please log in again.');
+        return;
+      }
+      
+      const response = await fetch(`${baseURL}/submission/submit-project`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          teamId: currentTeam._id,
+          submissionLink: submissionLink
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success('Project submitted successfully!');
+        
+        // Reload team data to update UI
+        await loadTeamData();
+      } else {
+        const errorData = await response.json();
+        toast.error(errorData.message || 'Failed to submit project');
+      }
+    } catch (error) {
+      console.error('Error submitting project:', error);
+      toast.error('Failed to submit project');
     }
   };
 
@@ -895,6 +993,24 @@ const MyTeam = () => {
                   </p>
                 </div>
 
+                {/* Submission Status */}
+                {currentTeam.submissionLink && (
+                  <div className="border-t pt-4 mt-4" style={{ borderColor: '#22c55e' }}>
+                    <h4 className="font-medium mb-2 flex items-center gap-2" style={{ color: '#166534' }}>
+                      <CheckCircle className="w-4 h-4" style={{ color: '#22c55e' }} />
+                      Project Submitted
+                    </h4>
+                    <div className="p-3 rounded-lg" style={{ backgroundColor: '#f0fdf4' }}>
+                      <p className="text-sm mb-2" style={{ color: '#166534' }}>
+                        <strong>Submission Link:</strong> <a href={currentTeam.submissionLink} target="_blank" rel="noopener noreferrer" className="underline">{currentTeam.submissionLink}</a>
+                      </p>
+                      <p className="text-sm" style={{ color: '#166534', opacity: 0.8 }}>
+                        <strong>Submitted on:</strong> {currentTeam.submissionTime ? new Date(currentTeam.submissionTime).toLocaleString() : 'Unknown'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Submission Interface */}
                 {(currentTeam.teamLeader?._id === userId || currentTeam.teamMembers.find(m => m._id === userId)?.role === 'leader') ? (
                   <div className="border-t pt-4" style={{ borderColor: '#22c55e' }}>
@@ -911,10 +1027,13 @@ const MyTeam = () => {
                         color: 'white'
                       }}
                       onClick={() => {
-                        toast.info('Submission interface will be available during the submission window');
+                        const submissionLink = prompt('Please enter your project submission link:');
+                        if (submissionLink && submissionLink.trim()) {
+                          submitProject(submissionLink.trim());
+                        }
                       }}
                     >
-                      Submit Project (Available During Submission Window)
+                      Submit Project
                     </button>
                   </div>
                 ) : (
@@ -1239,7 +1358,7 @@ const MyTeam = () => {
                             >
                               {member.name.charAt(0).toUpperCase()}
                             </div>
-                            <div>
+                            <div className="flex-1">
                               <p className="font-medium" style={{ color: themeConfig.textColor }}>
                                 {member.name}
                                 {currentTeam.teamLeader?._id === member._id && (
@@ -1250,6 +1369,25 @@ const MyTeam = () => {
                                 {member.email}
                               </p>
                             </div>
+                            
+                            {/* Report Button (not for self or team leader) */}
+                            {member._id !== userId && currentTeam.teamLeader?._id !== member._id && (
+                              <button
+                                onClick={() => {
+                                  const reason = prompt('Please provide a reason for reporting this team member:');
+                                  if (reason !== null) {
+                                    reportTeamMember(member._id, reason);
+                                  }
+                                }}
+                                className="px-2 py-1 text-xs rounded text-white transition-colors"
+                                style={{ backgroundColor: '#dc2626' }}
+                                onMouseOver={(e) => e.target.style.backgroundColor = '#b91c1c'}
+                                onMouseOut={(e) => e.target.style.backgroundColor = '#dc2626'}
+                                title="Report non-responsive team member"
+                              >
+                                🚨 Report
+                              </button>
+                            )}
                           </div>
                         ))}
                       </div>

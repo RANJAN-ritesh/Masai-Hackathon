@@ -27,6 +27,10 @@ export interface ITeam extends Document {
     pollEndTime?: Date;
     pollDuration?: number; // in minutes
     pollProblemStatement?: string; // the problem statement being voted on
+    // REPORTING SYSTEM FIELDS
+    reportedMembers?: Map<string, string[]>; // userId -> array of reporting user IDs
+    submissionLink?: string;
+    submissionTime?: Date;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -69,7 +73,11 @@ const TeamSchema = new Schema<ITeam>({
     pollStartTime: { type: Date },
     pollEndTime: { type: Date },
     pollDuration: { type: Number }, // in minutes
-    pollProblemStatement: { type: String } // the problem statement being voted on
+    pollProblemStatement: { type: String }, // the problem statement being voted on
+    // REPORTING SYSTEM FIELDS
+    reportedMembers: { type: Map, of: [String], default: new Map() }, // userId -> array of reporting user IDs
+    submissionLink: { type: String },
+    submissionTime: { type: Date }
 }, { timestamps: true });
 
 export default mongoose.model<ITeam>("Team", TeamSchema);

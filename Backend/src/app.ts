@@ -21,6 +21,9 @@ import User from "./model/user";
 import Hackathon from "./model/hackathon";
 import WebSocketService from "./services/websocketService";
 import teamPollingRoutes from "./routes/teamPollingRoutes";
+import teamReportingRoutes from "./routes/teamReportingRoutes";
+import submissionRoutes from "./routes/submissionRoutes";
+import adminRoutes from "./routes/adminRoutes";
 
 // Load environment variables
 dotenv.config();
@@ -92,6 +95,9 @@ app.use("/participant-team", participantTeamRoutes); // Enable participant team 
 app.use("/problem-statements", problemStatementManagementRoutes); // Problem statement management routes
 app.use("/notifications", notificationRoutes); // Notification routes
 app.use("/team-polling", teamPollingRoutes); // Team polling routes for problem statements
+app.use("/team-reporting", teamReportingRoutes); // Team member reporting routes
+app.use("/submission", submissionRoutes); // Project submission routes
+app.use("/admin", adminRoutes); // Admin functionality routes
 
 // EMERGENCY DEBUG ROUTE - NO AUTHENTICATION
 app.get("/debug-participants/:hackathonId", async (req, res) => {
