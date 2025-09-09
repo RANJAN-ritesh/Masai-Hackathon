@@ -156,6 +156,9 @@ const EligibleHackathons = () => {
   const handleDelete = async (id) => {
     const response = await fetch(`${baseURL}/hackathons/${id}`, {
       method: "DELETE",
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+      }
     });
     if (response.ok) {
       toast.success("Hackathon Deleted successfully!", {
@@ -252,7 +255,10 @@ const EligibleHackathons = () => {
         
         const teamResponse = await fetch(`${baseURL}/team/create-team`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          },
           body: JSON.stringify(teamData)
         });
         

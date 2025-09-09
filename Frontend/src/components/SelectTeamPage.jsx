@@ -99,7 +99,10 @@ const SelectTeamPage = () => {
     try {
       const res = await fetch(`${baseURL}/team/select-problem`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('authToken')}`
+        },
         body: JSON.stringify({
           teamId: currentTeamId,
           hackathonId: hackathon._id,
@@ -146,7 +149,10 @@ const SelectTeamPage = () => {
 
       const res = await fetch(`${baseURL}/team/submissions/${teamId}`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('authToken')}`
+        },
         body: JSON.stringify(body),
       });
 
