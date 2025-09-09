@@ -54,7 +54,7 @@ const RegisterTeamPage = () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem('authToken')}`
+          "Authorization": `Bearer ${localStorage.getItem('authToken') || localStorage.getItem('userId')}`
         },
         body: JSON.stringify(teamPayload),
       });

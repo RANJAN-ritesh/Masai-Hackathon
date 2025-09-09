@@ -101,7 +101,7 @@ const SelectTeamPage = () => {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem('authToken')}`
+          "Authorization": `Bearer ${localStorage.getItem('authToken') || localStorage.getItem('userId')}`
         },
         body: JSON.stringify({
           teamId: currentTeamId,
@@ -151,7 +151,7 @@ const SelectTeamPage = () => {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem('authToken')}`
+          "Authorization": `Bearer ${localStorage.getItem('authToken') || localStorage.getItem('userId')}`
         },
         body: JSON.stringify(body),
       });

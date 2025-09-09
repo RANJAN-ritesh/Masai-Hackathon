@@ -157,7 +157,7 @@ const EligibleHackathons = () => {
     const response = await fetch(`${baseURL}/hackathons/${id}`, {
       method: "DELETE",
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        'Authorization': `Bearer ${localStorage.getItem('authToken') || localStorage.getItem('userId')}`
       }
     });
     if (response.ok) {
@@ -257,7 +257,7 @@ const EligibleHackathons = () => {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            'Authorization': `Bearer ${localStorage.getItem('authToken') || localStorage.getItem('userId')}`
           },
           body: JSON.stringify(teamData)
         });
