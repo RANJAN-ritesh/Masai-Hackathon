@@ -90,11 +90,7 @@ const ensureCSSLoaded = () => {
 };
 
 // Export for use in components
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { ensureCSSLoaded };
-} else {
-  window.ensureCSSLoaded = ensureCSSLoaded;
-}
+export { ensureCSSLoaded };
 
 // Auto-run if in browser
 if (typeof window !== 'undefined') {
