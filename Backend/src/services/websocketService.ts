@@ -23,21 +23,31 @@ class WebSocketService {
       cors: {
         origin: process.env.NODE_ENV === 'production' 
           ? [
+              'https://masai-hackathon-frontend.netlify.app',
+              'https://masai-hackathon-frontend.netlify.app/',
+              'https://masai-hackathon-frontend.netlify.app/*',
               'https://masai-hackathon.netlify.app',
               'https://masai-hackathon.netlify.app/',
-              'https://masai-hackathon.netlify.app/*'
+              'https://masai-hackathon.netlify.app/*',
+              'https://masai-hackathon.onrender.com',
+              'https://masai-hackathon.onrender.com/'
             ] 
           : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5000', 'http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175'],
         methods: ['GET', 'POST'],
         credentials: true,
         allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
       },
-      // Connection stability settings
-      pingTimeout: 60000, // 60 seconds
-      pingInterval: 25000, // 25 seconds
-      transports: ['websocket'], // Only WebSocket, no polling
+      // More flexible connection settings for better stability
+      pingTimeout: 120000, // 2 minutes
+      pingInterval: 30000, // 30 seconds
+      transports: ['websocket', 'polling'], // Allow both WebSocket and polling fallback
       allowEIO3: true,
-      maxHttpBufferSize: 1e6 // 1MB
+      maxHttpBufferSize: 1e6, // 1MB
+      // Additional stability settings
+      upgradeTimeout: 10000,
+      allowUpgrades: true,
+      compression: true,
+      serveClient: false
     });
 
     this.setupAuthentication();
@@ -50,6 +60,7 @@ class WebSocketService {
         const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.replace('Bearer ', '');
         
         if (!token) {
+          console.log('❌ WebSocket: No authentication token provided');
           return next(new Error('Authentication token required'));
         }
 
@@ -73,17 +84,28 @@ class WebSocketService {
           const decoded = jwt.verify(token, JWT_SECRET) as any;
           if (decoded.userId) {
             user = await User.findById(decoded.userId);
+            console.log('✅ WebSocket: JWT authentication successful');
           }
         } catch (jwtError) {
-          // Fallback to userId as token (temporary)
-          user = await User.findById(token);
+          console.log('⚠️ WebSocket: JWT verification failed, trying userId fallback');
+          // Fallback to userId as token (for backward compatibility)
+          try {
+            user = await User.findById(token);
+            if (user) {
+              console.log('✅ WebSocket: UserId fallback authentication successful');
+            }
+          } catch (userIdError) {
+            console.log('❌ WebSocket: Both JWT and userId authentication failed');
+          }
         }
 
         if (!user) {
+          console.log('❌ WebSocket: User not found');
           return next(new Error('User not found'));
         }
 
         if (!user.isVerified) {
+          console.log('❌ WebSocket: User not verified');
           return next(new Error('User not verified'));
         }
 
@@ -95,6 +117,7 @@ class WebSocketService {
         // Reset connection attempts on successful auth
         this.connectionAttempts.delete(token);
 
+        console.log(`✅ WebSocket: User authenticated successfully - ${user.email} (${socket.userId})`);
         next();
       } catch (error) {
         // Increment connection attempts
@@ -104,7 +127,7 @@ class WebSocketService {
           this.connectionAttempts.set(token, attempts);
         }
 
-        console.error('WebSocket authentication error:', error);
+        console.error('❌ WebSocket authentication error:', error);
         next(new Error('Authentication failed'));
       }
     });
@@ -213,10 +236,28 @@ class WebSocketService {
     console.log(`🎯 Sent team invitation to user ${userId}:`, invitation.teamName);
   }
 
-  // Send real-time join request
-  public sendJoinRequest(userId: string, request: any) {
-    this.io.to(`user_${userId}`).emit('join_request', request);
-    console.log(`📝 Sent join request to user ${userId}:`, request.teamName);
+  // Send real-time poll update to team members
+  public sendPollUpdate(teamMemberIds: string[], pollData: any) {
+    teamMemberIds.forEach(userId => {
+      this.io.to(`user_${userId}`).emit('poll_update', pollData);
+    });
+    console.log(`🗳️ Sent poll update to ${teamMemberIds.length} team members:`, pollData.type);
+  }
+
+  // Send real-time vote update to team members
+  public sendVoteUpdate(teamMemberIds: string[], voteData: any) {
+    teamMemberIds.forEach(userId => {
+      this.io.to(`user_${userId}`).emit('vote_update', voteData);
+    });
+    console.log(`🗳️ Sent vote update to ${teamMemberIds.length} team members:`, voteData.problemStatementId);
+  }
+
+  // Send poll conclusion notification to team members
+  public sendPollConclusion(teamMemberIds: string[], conclusionData: any) {
+    teamMemberIds.forEach(userId => {
+      this.io.to(`user_${userId}`).emit('poll_conclusion', conclusionData);
+    });
+    console.log(`🏁 Sent poll conclusion to ${teamMemberIds.length} team members:`, conclusionData.winningProblemStatement);
   }
 
   // Get connected users count

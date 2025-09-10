@@ -3,6 +3,7 @@ import { authenticateUser } from "../middleware/auth";
 import Team from "../model/team";
 import Hackathon from "../model/hackathon";
 import User from "../model/user";
+import websocketService from "../services/websocketService";
 
 const router = express.Router();
 
@@ -114,6 +115,20 @@ router.post("/start-poll", authenticateUser, async (req, res) => {
       problemStatementVoteCount: new Map()
     });
 
+    // Send real-time notification to all team members
+    const teamMemberIds = team.teamMembers.map(member => member.toString());
+    websocketService.sendPollUpdate(teamMemberIds, {
+      type: 'poll_started',
+      message: `Poll started for problem statement: ${problemStatementId}`,
+      pollData: {
+        pollActive: true,
+        pollStartTime: startTime,
+        pollEndTime: endTime,
+        pollDuration: duration,
+        pollProblemStatement: problemStatementId
+      }
+    });
+
     res.json({ 
       message: "Poll started successfully", 
       pollActive: true,
@@ -145,8 +160,13 @@ router.get("/poll-status/:teamId", authenticateUser, async (req, res) => {
       return res.status(404).json({ message: "Team not found" });
     }
 
-    const isMember = team.teamMembers.some(member => member._id.toString() === userId) ||
-                     team.createdBy?.toString() === userId;
+    // Enhanced member verification similar to voting
+    const isMember = team.teamMembers.some(member => 
+      member._id.toString() === userId ||
+      member._id.toString() === req.user?.id ||
+      member.toString() === userId ||
+      member.toString() === req.user?.id
+    ) || team.createdBy?.toString() === userId || team.createdBy?.toString() === req.user?.id;
     
     if (!isMember) {
       return res.status(403).json({ message: "You are not a member of this team" });
@@ -192,9 +212,32 @@ router.post("/vote-problem-statement", authenticateUser, async (req, res) => {
       return res.status(404).json({ message: "Team not found" });
     }
 
-    const isMember = team.teamMembers.some(member => member._id.toString() === userId);
+    // Enhanced member verification similar to leader verification
+    const isMember = team.teamMembers.some(member => 
+      member._id.toString() === userId ||
+      member._id.toString() === req.user?.id ||
+      member.toString() === userId ||
+      member.toString() === req.user?.id
+    ) || team.createdBy?.toString() === userId || team.createdBy?.toString() === req.user?.id;
+    
+    console.log('🗳️ VOTE - Member verification:', {
+      userId,
+      reqUserId: req.user?.id,
+      teamMembers: team.teamMembers,
+      createdBy: team.createdBy,
+      isMember
+    });
+    
     if (!isMember) {
-      return res.status(403).json({ message: "You are not a member of this team" });
+      return res.status(403).json({ 
+        message: "You are not a member of this team",
+        debug: {
+          userId,
+          reqUserId: req.user?.id,
+          teamMembers: team.teamMembers,
+          createdBy: team.createdBy
+        }
+      });
     }
 
     // Check if poll is active
@@ -238,6 +281,15 @@ router.post("/vote-problem-statement", authenticateUser, async (req, res) => {
     team.problemStatementVoteCount[problemStatementId] = (team.problemStatementVoteCount[problemStatementId] || 0) + 1;
 
     await team.save();
+
+    // Send real-time vote update to all team members
+    const teamMemberIds = team.teamMembers.map(member => member.toString());
+    websocketService.sendVoteUpdate(teamMemberIds, {
+      problemStatementId,
+      voterId: userId,
+      voteCount: team.problemStatementVoteCount[problemStatementId],
+      totalVotes: Object.values(team.problemStatementVoteCount).reduce((sum, count) => sum + count, 0)
+    });
 
     res.json({ message: "Vote recorded successfully" });
 
@@ -363,6 +415,15 @@ router.post("/conclude-poll", authenticateUser, async (req, res) => {
       selectedProblemStatement: winningProblemStatement,
       problemStatementSelectedAt: new Date(),
       pollEndTime: new Date() // Set end time to now
+    });
+
+    // Send real-time poll conclusion notification to all team members
+    const teamMemberIds = team.teamMembers.map(member => member.toString());
+    websocketService.sendPollConclusion(teamMemberIds, {
+      winningProblemStatement,
+      totalVotes: maxVotes,
+      concludedAt: new Date(),
+      voteBreakdown: team.problemStatementVoteCount
     });
 
     res.json({ 

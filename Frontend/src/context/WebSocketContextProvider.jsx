@@ -66,14 +66,16 @@ export const WebSocketProvider = ({ children }) => {
 
         const newSocket = io(baseURL, {
           auth: {
-            token: userId // Using userId as token (matches backend auth fallback)
+            token: localStorage.getItem('authToken') || userId // Try JWT first, fallback to userId
           },
-          transports: ['websocket'], // Only use WebSocket, no polling
-          timeout: 5000, // Reduced timeout
+          transports: ['websocket', 'polling'], // Allow both WebSocket and polling fallback
+          timeout: 10000, // Increased timeout for better reliability
           forceNew: false, // Don't force new connection
-          reconnection: false, // Disable automatic reconnection
-          reconnectionAttempts: 0,
-          reconnectionDelay: 0
+          reconnection: true, // Enable automatic reconnection
+          reconnectionAttempts: 5, // Allow more reconnection attempts
+          reconnectionDelay: 2000, // Start with 2 second delay
+          reconnectionDelayMax: 10000, // Max 10 second delay
+          maxReconnectionAttempts: 5
         });
 
         newSocket.on('connect', () => {
@@ -101,22 +103,33 @@ export const WebSocketProvider = ({ children }) => {
           setIsConnected(false);
           isConnectingRef.current = false;
           
-          // Only attempt reconnection for specific reasons
-          if (reason === 'io server disconnect' || reason === 'transport close') {
-            if (reconnectAttempts.current < maxReconnectAttempts) {
-              const delay = Math.min(2000 * Math.pow(1.5, reconnectAttempts.current), 10000); // Reduced delays
-              console.log(`🔄 Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})`);
-              
-              reconnectTimeoutRef.current = setTimeout(() => {
-                reconnectAttempts.current++;
-                globalConnectionPromise = null; // Reset promise
-                connectSocket();
-              }, delay);
-            } else {
-              console.log('❌ Max reconnection attempts reached');
-              toast.error('Connection lost. Please refresh the page.', { autoClose: 5000 });
-            }
+          // Show user-friendly message for different disconnect reasons
+          if (reason === 'io server disconnect') {
+            toast.warning('Connection lost. Attempting to reconnect...', { autoClose: 3000 });
+          } else if (reason === 'transport close') {
+            toast.info('Connection interrupted. Reconnecting...', { autoClose: 3000 });
           }
+        });
+
+        newSocket.on('reconnect', (attemptNumber) => {
+          console.log(`🔄 WebSocket reconnected after ${attemptNumber} attempts`);
+          setIsConnected(true);
+          toast.success('Reconnected to real-time updates!', { autoClose: 2000 });
+          
+          // Rejoin hackathon room after reconnection
+          if (userData?.currentHackathon?._id) {
+            newSocket.emit('join_hackathon', userData.currentHackathon._id);
+          }
+        });
+
+        newSocket.on('reconnect_error', (error) => {
+          console.error('🔴 WebSocket reconnection error:', error);
+          toast.error('Failed to reconnect. Please refresh the page.', { autoClose: 5000 });
+        });
+
+        newSocket.on('reconnect_failed', () => {
+          console.log('❌ WebSocket reconnection failed after all attempts');
+          toast.error('Connection lost. Please refresh the page to reconnect.', { autoClose: 8000 });
         });
 
         newSocket.on('connect_error', (error) => {
@@ -159,6 +172,28 @@ export const WebSocketProvider = ({ children }) => {
           console.log('👥 Received team update:', update);
           toast.info(`Team update: ${update.message}`, {
             autoClose: 5000
+          });
+        });
+
+        // Polling-related WebSocket events
+        newSocket.on('poll_update', (pollData) => {
+          console.log('🗳️ Received poll update:', pollData);
+          toast.info(`Poll update: ${pollData.message || 'Poll status changed'}`, {
+            autoClose: 5000
+          });
+        });
+
+        newSocket.on('vote_update', (voteData) => {
+          console.log('🗳️ Received vote update:', voteData);
+          toast.info(`New vote cast for: ${voteData.problemStatementId}`, {
+            autoClose: 3000
+          });
+        });
+
+        newSocket.on('poll_conclusion', (conclusionData) => {
+          console.log('🏁 Received poll conclusion:', conclusionData);
+          toast.success(`Poll concluded! Selected: ${conclusionData.winningProblemStatement}`, {
+            autoClose: 8000
           });
         });
 
