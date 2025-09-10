@@ -1215,7 +1215,7 @@ const MyTeam = () => {
                           backgroundColor: isSelected ? '#dbeafe' : themeConfig.backgroundColor,
                           borderColor: isSelected ? '#3b82f6' : themeConfig.borderColor
                         }}
-                        onClick={() => voteOnProblemStatement(problem._id || problem.track)}
+                        onClick={() => voteOnProblemStatement(problem.track)}
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">

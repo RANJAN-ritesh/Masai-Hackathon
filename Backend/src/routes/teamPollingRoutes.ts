@@ -256,9 +256,28 @@ router.post("/vote-problem-statement", authenticateUser, async (req, res) => {
       return res.status(404).json({ message: "Hackathon not found" });
     }
 
-    const problemExists = hackathon.problemStatements.some(ps => ps.track === problemStatementId);
+    // Check if problem statement exists - handle both track names and IDs
+    const problemExists = hackathon.problemStatements.some(ps => 
+      ps.track === problemStatementId || 
+      ps._id?.toString() === problemStatementId ||
+      ps.description === problemStatementId
+    );
+    
+    console.log('🔍 Problem statement verification:', {
+      problemStatementId,
+      hackathonProblemStatements: hackathon.problemStatements,
+      problemExists
+    });
+    
     if (!problemExists) {
-      return res.status(404).json({ message: "Problem statement not found" });
+      return res.status(404).json({ 
+        message: "Problem statement not found",
+        debug: {
+          problemStatementId,
+          availableTracks: hackathon.problemStatements.map(ps => ps.track),
+          availableDescriptions: hackathon.problemStatements.map(ps => ps.description)
+        }
+      });
     }
 
     // Record the vote
