@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { MyContext } from "../context/AuthContextProvider";
+import { useTheme } from "../context/ThemeContextProvider";
 import {
   ArrowRight,
   CalendarRange,
@@ -26,6 +27,7 @@ import "react-toastify/dist/ReactToastify.css";
 import ConfirmationModal from "./ConfirmationModal";
 import CSVManagementModal from "./CSVManagementModal";
 import HackathonCustomization from "./HackathonCustomization";
+import { ensureCSSLoaded } from "../utils/cssLoader";
 
 
 const EligibleHackathons = () => {
@@ -34,6 +36,7 @@ const EligibleHackathons = () => {
   const [loading, setLoading] = useState(true);
   const userId = localStorage.getItem("userId");
   const { setCurrentHackathonId, userData, role, setHackathon } = useContext(MyContext);
+  const { themeConfig, applyGlobalTheme } = useTheme();
   const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalConfig, setModalConfig] = useState({});
@@ -126,6 +129,22 @@ const EligibleHackathons = () => {
       setLoading(false); // fallback if no user is found
     }
   }, [userData]);
+
+  // Ensure theme is properly initialized for admin dashboard
+  useEffect(() => {
+    // Apply default theme for admin dashboard when no hackathon exists
+    if (role === 'admin' && !hackathons.length) {
+      applyGlobalTheme(themeConfig, 'Inter, sans-serif');
+    }
+  }, [role, hackathons.length, themeConfig, applyGlobalTheme]);
+
+  // Ensure CSS is properly loaded for admin dashboard
+  useEffect(() => {
+    if (role === 'admin') {
+      // Run CSS loader to ensure proper styling
+      ensureCSSLoaded();
+    }
+  }, [role]);
 
   // Add another useEffect to refresh hackathons when component mounts
   useEffect(() => {

@@ -18,6 +18,8 @@ import ChatWindow from "./components/chatbot/ChatWindow";
 import ResourceHub from "./components/ResourceHub";
 import VideoConference from "./components/VideoConference";
 import MeetingRoom from "./components/MeetingRoom";
+import "./App.css";
+import "./index.css";
 import Evolve from "./components/evolve/Evolve";
 import CSBT from "./components/csbt/CSBT";
 import ProtectedRoute from "./components/ProtectedRoute";

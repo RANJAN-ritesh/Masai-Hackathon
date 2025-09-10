@@ -214,17 +214,22 @@ export const ThemeContextProvider = ({ children }) => {
   // Get current theme variant (light or dark)
   const getCurrentVariant = () => isDarkMode ? 'dark' : 'light';
 
-  // Update theme when hackathon changes
+  // Initialize theme system on mount and update when hackathon changes
   useEffect(() => {
-    if (hackathon) {
-      const theme = hackathon.theme || 'modern-tech';
-      const font = hackathon.fontFamily || 'roboto';
-      
-      setCurrentTheme(theme);
-      setCurrentFont(font);
-      updateThemeConfig(theme, font);
-    }
+    // Always initialize with default theme, even when no hackathon exists
+    const theme = hackathon?.theme || 'modern-tech';
+    const font = hackathon?.fontFamily || 'roboto';
+    
+    setCurrentTheme(theme);
+    setCurrentFont(font);
+    updateThemeConfig(theme, font);
   }, [hackathon, isDarkMode]);
+
+  // Initialize theme on component mount (for admin dashboard when no hackathons exist)
+  useEffect(() => {
+    // Apply default theme immediately on mount
+    updateThemeConfig('modern-tech', 'roboto');
+  }, []);
 
   // Update theme configuration
   const updateThemeConfig = (theme, font) => {
