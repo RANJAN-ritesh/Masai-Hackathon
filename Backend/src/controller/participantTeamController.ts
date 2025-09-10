@@ -83,7 +83,7 @@ export const createParticipantTeam = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Invalid team size configuration for this hackathon' });
     }
 
-    // Create the team
+    // Create the team with enhanced error handling
     const team = new Team({
       teamName: teamName.toLowerCase(),
       description,
@@ -97,7 +97,19 @@ export const createParticipantTeam = async (req: Request, res: Response) => {
       teamLeader: userId
     });
 
-    await team.save();
+    try {
+      await team.save();
+    } catch (error: any) {
+      // Handle duplicate key error specifically
+      if (error.code === 11000) {
+        console.log('❌ Duplicate team name error:', error);
+        return res.status(400).json({ 
+          message: 'A team with this name already exists in this hackathon. Please choose a different name.',
+          details: 'Duplicate team name detected'
+        });
+      }
+      throw error; // Re-throw other errors
+    }
 
     // Update user
     await User.findByIdAndUpdate(userId, {
