@@ -3,7 +3,7 @@ import { authenticateUser } from "../middleware/auth";
 import Team from "../model/team";
 import Hackathon from "../model/hackathon";
 import User from "../model/user";
-import websocketService from "../services/websocketService";
+import { getWebSocketInstance } from "../services/websocketService";
 
 const router = express.Router();
 
@@ -117,7 +117,7 @@ router.post("/start-poll", authenticateUser, async (req, res) => {
 
     // Send real-time notification to all team members
     const teamMemberIds = team.teamMembers.map(member => member.toString());
-    websocketService.sendPollUpdate(teamMemberIds, {
+    getWebSocketInstance().sendPollUpdate(teamMemberIds, {
       type: 'poll_started',
       message: `Poll started for problem statement: ${problemStatementId}`,
       pollData: {
@@ -263,10 +263,9 @@ router.post("/vote-problem-statement", authenticateUser, async (req, res) => {
       return res.status(404).json({ message: "Hackathon not found" });
     }
 
-    // Check if problem statement exists - handle both track names and IDs
+    // Check if problem statement exists - handle both track names and descriptions
     const problemExists = hackathon.problemStatements.some(ps => 
       ps.track === problemStatementId || 
-      ps._id?.toString() === problemStatementId ||
       ps.description === problemStatementId
     );
     
@@ -317,7 +316,7 @@ router.post("/vote-problem-statement", authenticateUser, async (req, res) => {
 
     // Send real-time vote update to all team members
     const teamMemberIds = team.teamMembers.map(member => member.toString());
-    websocketService.sendVoteUpdate(teamMemberIds, {
+    getWebSocketInstance().sendVoteUpdate(teamMemberIds, {
       problemStatementId,
       voterId: userId,
       voteCount: team.problemStatementVoteCount[problemStatementId],
@@ -452,7 +451,7 @@ router.post("/conclude-poll", authenticateUser, async (req, res) => {
 
     // Send real-time poll conclusion notification to all team members
     const teamMemberIds = team.teamMembers.map(member => member.toString());
-    websocketService.sendPollConclusion(teamMemberIds, {
+    getWebSocketInstance().sendPollConclusion(teamMemberIds, {
       winningProblemStatement,
       totalVotes: maxVotes,
       concludedAt: new Date(),

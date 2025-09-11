@@ -46,7 +46,6 @@ class WebSocketService {
       // Additional stability settings
       upgradeTimeout: 10000,
       allowUpgrades: true,
-      compression: true,
       serveClient: false
     });
 
@@ -286,3 +285,20 @@ class WebSocketService {
 }
 
 export default WebSocketService;
+
+// Export a singleton instance for use in routes
+let websocketInstance: WebSocketService | null = null;
+
+export const initializeWebSocket = (server: HTTPServer) => {
+  if (!websocketInstance) {
+    websocketInstance = new WebSocketService(server);
+  }
+  return websocketInstance;
+};
+
+export const getWebSocketInstance = () => {
+  if (!websocketInstance) {
+    throw new Error('WebSocket service not initialized. Call initializeWebSocket first.');
+  }
+  return websocketInstance;
+};

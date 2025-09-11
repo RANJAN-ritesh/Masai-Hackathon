@@ -19,7 +19,7 @@ import notificationRoutes from "./routes/notificationRoutes";
 import cleanupService from "./services/cleanupService";
 import User from "./model/user";
 import Hackathon from "./model/hackathon";
-import WebSocketService from "./services/websocketService";
+import { initializeWebSocket } from "./services/websocketService";
 import teamPollingRoutes from "./routes/teamPollingRoutes";
 import teamReportingRoutes from "./routes/teamReportingRoutes";
 import submissionRoutes from "./routes/submissionRoutes";
@@ -45,8 +45,6 @@ const PORT = process.env.PORT || 5009;
 // Trust proxy for rate limiting (required for Render deployment)
 app.set('trust proxy', 1);
 
-// Initialize WebSocket service
-let webSocketService: WebSocketService;
 app.use(express.json());
 
 // Rate limiting with trusted proxy
@@ -225,7 +223,7 @@ server.listen(PORT, () => {
     console.log(`🔧 DEPLOYMENT TIME: ${new Date().toISOString()}`);
     
     // Initialize WebSocket service
-    webSocketService = new WebSocketService(server);
+    initializeWebSocket(server);
     console.log(`🔌 WebSocket service initialized`);
     
     // Start auto-team creation service
