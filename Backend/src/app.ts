@@ -21,6 +21,7 @@ import User from "./model/user";
 import Hackathon from "./model/hackathon";
 import { initializeWebSocket } from "./services/websocketService";
 import teamPollingRoutes from "./routes/teamPollingRoutes";
+import simplePollingRoutes from "./routes/simplePollingRoutes";
 import teamReportingRoutes from "./routes/teamReportingRoutes";
 import submissionRoutes from "./routes/submissionRoutes";
 import adminRoutes from "./routes/adminRoutes";
@@ -93,6 +94,7 @@ app.use("/participant-team", participantTeamRoutes); // Enable participant team 
 app.use("/problem-statements", problemStatementManagementRoutes); // Problem statement management routes
 app.use("/notifications", notificationRoutes); // Notification routes
 app.use("/team-polling", teamPollingRoutes); // Team polling routes for problem statements
+app.use("/simple-polling", simplePollingRoutes); // Simple polling routes
 app.use("/team-reporting", teamReportingRoutes); // Team member reporting routes
 app.use("/submission", submissionRoutes); // Project submission routes
 app.use("/admin", adminRoutes); // Admin functionality routes

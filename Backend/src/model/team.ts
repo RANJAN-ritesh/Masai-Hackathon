@@ -21,6 +21,9 @@ export interface ITeam extends Document {
     problemStatementVoteCount?: { [problemStatementId: string]: number }; // problemStatementId -> vote count
     selectedProblemStatement?: string;
     problemStatementSelectedAt?: Date;
+    // SIMPLE VOTE FIELDS
+    votes?: { [userId: string]: string }; // userId -> problemStatementId
+    voteCounts?: { [problemStatementId: string]: number }; // problemStatementId -> vote count
     // POLL STATE FIELDS
     pollActive?: boolean;
     pollStartTime?: Date;
@@ -68,6 +71,9 @@ const TeamSchema = new Schema<ITeam>({
     problemStatementVoteCount: { type: Map, of: Number, default: {} },
     selectedProblemStatement: { type: String },
     problemStatementSelectedAt: { type: Date },
+    // SIMPLE VOTE FIELDS
+    votes: { type: Schema.Types.Mixed, default: {} },
+    voteCounts: { type: Schema.Types.Mixed, default: {} },
     // POLL STATE FIELDS
     pollActive: { type: Boolean, default: false },
     pollStartTime: { type: Date },

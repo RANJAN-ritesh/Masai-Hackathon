@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { MyContext } from '../context/AuthContextProvider';
 import { useTheme } from '../context/ThemeContextProvider';
+import SimplePolling from './SimplePolling';
 import { 
   Users, 
   Search, 
@@ -1184,8 +1185,11 @@ const MyTeam = () => {
               </div>
             )}
 
-            {/* Active Poll Section (Visible to All Team Members) */}
-            {pollActive && (
+            {/* Simple Polling Component */}
+            <SimplePolling currentTeam={currentTeam} hackathon={hackathon} />
+            
+            {/* Active Poll Section (Visible to All Team Members) - DISABLED */}
+            {false && pollActive && (
               <div 
                 className="p-4 rounded-lg border-2 mb-6"
                 style={{ 
