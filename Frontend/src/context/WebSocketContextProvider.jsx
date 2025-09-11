@@ -22,6 +22,9 @@ export const WebSocketProvider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [voteUpdateCallbacks, setVoteUpdateCallbacks] = useState([]);
+  const [pollUpdateCallbacks, setPollUpdateCallbacks] = useState([]);
+  const [pollConclusionCallbacks, setPollConclusionCallbacks] = useState([]);
   const reconnectTimeoutRef = useRef(null);
   const maxReconnectAttempts = 3; // Reduced from 5
   const reconnectAttempts = useRef(0);
@@ -181,6 +184,15 @@ export const WebSocketProvider = ({ children }) => {
           toast.info(`Poll update: ${pollData.message || 'Poll status changed'}`, {
             autoClose: 5000
           });
+          
+          // Call all registered poll update callbacks
+          pollUpdateCallbacks.forEach(callback => {
+            try {
+              callback(pollData);
+            } catch (error) {
+              console.error('Error in poll update callback:', error);
+            }
+          });
         });
 
         newSocket.on('vote_update', (voteData) => {
@@ -188,12 +200,30 @@ export const WebSocketProvider = ({ children }) => {
           toast.info(`New vote cast for: ${voteData.problemStatementId}`, {
             autoClose: 3000
           });
+          
+          // Call all registered vote update callbacks
+          voteUpdateCallbacks.forEach(callback => {
+            try {
+              callback(voteData);
+            } catch (error) {
+              console.error('Error in vote update callback:', error);
+            }
+          });
         });
 
         newSocket.on('poll_conclusion', (conclusionData) => {
           console.log('🏁 Received poll conclusion:', conclusionData);
           toast.success(`Poll concluded! Selected: ${conclusionData.winningProblemStatement}`, {
             autoClose: 8000
+          });
+          
+          // Call all registered poll conclusion callbacks
+          pollConclusionCallbacks.forEach(callback => {
+            try {
+              callback(conclusionData);
+            } catch (error) {
+              console.error('Error in poll conclusion callback:', error);
+            }
           });
         });
 
@@ -332,6 +362,28 @@ export const WebSocketProvider = ({ children }) => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
+  // Callback registration functions
+  const registerVoteUpdateCallback = (callback) => {
+    setVoteUpdateCallbacks(prev => [...prev, callback]);
+    return () => {
+      setVoteUpdateCallbacks(prev => prev.filter(cb => cb !== callback));
+    };
+  };
+
+  const registerPollUpdateCallback = (callback) => {
+    setPollUpdateCallbacks(prev => [...prev, callback]);
+    return () => {
+      setPollUpdateCallbacks(prev => prev.filter(cb => cb !== callback));
+    };
+  };
+
+  const registerPollConclusionCallback = (callback) => {
+    setPollConclusionCallbacks(prev => [...prev, callback]);
+    return () => {
+      setPollConclusionCallbacks(prev => prev.filter(cb => cb !== callback));
+    };
+  };
+
   const value = {
     socket: globalSocket,
     isConnected,
@@ -342,7 +394,10 @@ export const WebSocketProvider = ({ children }) => {
     markNotificationAsRead,
     clearAllNotifications,
     connectSocket,
-    disconnectSocket
+    disconnectSocket,
+    registerVoteUpdateCallback,
+    registerPollUpdateCallback,
+    registerPollConclusionCallback
   };
 
   return (

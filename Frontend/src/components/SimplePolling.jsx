@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { MyContext } from '../context/AuthContextProvider';
 import { useTheme } from '../context/ThemeContextProvider';
+import { useWebSocket } from '../context/WebSocketContextProvider';
 import { toast } from 'react-toastify';
 
 const SimplePolling = ({ currentTeam, hackathon }) => {
   const { userId } = useContext(MyContext);
   const { themeConfig } = useTheme();
+  const { registerVoteUpdateCallback, registerPollUpdateCallback, registerPollConclusionCallback } = useWebSocket();
   
   const [pollData, setPollData] = useState({
     pollActive: false,
@@ -163,6 +165,33 @@ const SimplePolling = ({ currentTeam, hackathon }) => {
   // Load poll status on component mount and when team changes
   useEffect(() => {
     loadPollStatus();
+  }, [currentTeam?._id]);
+
+  // Register WebSocket callbacks for real-time updates
+  useEffect(() => {
+    const unsubscribeVoteUpdate = registerVoteUpdateCallback((voteData) => {
+      console.log('🔄 Vote update received in SimplePolling:', voteData);
+      // Reload poll status to get updated vote counts
+      loadPollStatus();
+    });
+
+    const unsubscribePollUpdate = registerPollUpdateCallback((pollData) => {
+      console.log('🔄 Poll update received in SimplePolling:', pollData);
+      // Reload poll status to get updated poll state
+      loadPollStatus();
+    });
+
+    const unsubscribePollConclusion = registerPollConclusionCallback((conclusionData) => {
+      console.log('🔄 Poll conclusion received in SimplePolling:', conclusionData);
+      // Reload poll status to get final results
+      loadPollStatus();
+    });
+
+    return () => {
+      unsubscribeVoteUpdate();
+      unsubscribePollUpdate();
+      unsubscribePollConclusion();
+    };
   }, [currentTeam?._id]);
 
   // Timer effect
