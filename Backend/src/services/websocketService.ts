@@ -259,6 +259,14 @@ class WebSocketService {
     console.log(`🏁 Sent poll conclusion to ${teamMemberIds.length} team members:`, conclusionData.winningProblemStatement);
   }
 
+  // Send chat message to team members
+  public sendChatMessage(teamMemberIds: string[], chatData: any) {
+    teamMemberIds.forEach(userId => {
+      this.io.to(`user_${userId}`).emit('chat_message', chatData);
+    });
+    console.log(`💬 Sent chat message to ${teamMemberIds.length} team members:`, chatData.type);
+  }
+
   // Get connected users count
   public getConnectedUsersCount(): number {
     return this.connectedUsers.size;

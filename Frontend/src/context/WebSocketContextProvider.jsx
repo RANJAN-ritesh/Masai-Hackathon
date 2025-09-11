@@ -25,6 +25,7 @@ export const WebSocketProvider = ({ children }) => {
   const [voteUpdateCallbacks, setVoteUpdateCallbacks] = useState([]);
   const [pollUpdateCallbacks, setPollUpdateCallbacks] = useState([]);
   const [pollConclusionCallbacks, setPollConclusionCallbacks] = useState([]);
+  const [chatMessageCallbacks, setChatMessageCallbacks] = useState([]);
   const reconnectTimeoutRef = useRef(null);
   const maxReconnectAttempts = 3; // Reduced from 5
   const reconnectAttempts = useRef(0);
@@ -211,18 +212,15 @@ export const WebSocketProvider = ({ children }) => {
           });
         });
 
-        newSocket.on('poll_conclusion', (conclusionData) => {
-          console.log('🏁 Received poll conclusion:', conclusionData);
-          toast.success(`Poll concluded! Selected: ${conclusionData.winningProblemStatement}`, {
-            autoClose: 8000
-          });
+        newSocket.on('chat_message', (chatData) => {
+          console.log('💬 Received chat message:', chatData);
           
-          // Call all registered poll conclusion callbacks
-          pollConclusionCallbacks.forEach(callback => {
+          // Call all registered chat message callbacks
+          chatMessageCallbacks.forEach(callback => {
             try {
-              callback(conclusionData);
+              callback(chatData);
             } catch (error) {
-              console.error('Error in poll conclusion callback:', error);
+              console.error('Error in chat message callback:', error);
             }
           });
         });
@@ -377,10 +375,10 @@ export const WebSocketProvider = ({ children }) => {
     };
   };
 
-  const registerPollConclusionCallback = (callback) => {
-    setPollConclusionCallbacks(prev => [...prev, callback]);
+  const registerChatMessageCallback = (callback) => {
+    setChatMessageCallbacks(prev => [...prev, callback]);
     return () => {
-      setPollConclusionCallbacks(prev => prev.filter(cb => cb !== callback));
+      setChatMessageCallbacks(prev => prev.filter(cb => cb !== callback));
     };
   };
 
@@ -397,7 +395,8 @@ export const WebSocketProvider = ({ children }) => {
     disconnectSocket,
     registerVoteUpdateCallback,
     registerPollUpdateCallback,
-    registerPollConclusionCallback
+    registerPollConclusionCallback,
+    registerChatMessageCallback
   };
 
   return (

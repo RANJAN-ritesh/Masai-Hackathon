@@ -22,6 +22,7 @@ import Hackathon from "./model/hackathon";
 import { initializeWebSocket } from "./services/websocketService";
 import teamPollingRoutes from "./routes/teamPollingRoutes";
 import simplePollingRoutes from "./routes/simplePollingRoutes";
+import chatRoutes from "./routes/chatRoutes";
 import teamReportingRoutes from "./routes/teamReportingRoutes";
 import submissionRoutes from "./routes/submissionRoutes";
 import adminRoutes from "./routes/adminRoutes";
@@ -47,6 +48,9 @@ const PORT = process.env.PORT || 5009;
 app.set('trust proxy', 1);
 
 app.use(express.json());
+
+// Serve uploaded files
+app.use('/uploads', express.static('uploads'));
 
 // Rate limiting with trusted proxy
 const limiter = rateLimit({
@@ -95,6 +99,7 @@ app.use("/problem-statements", problemStatementManagementRoutes); // Problem sta
 app.use("/notifications", notificationRoutes); // Notification routes
 app.use("/team-polling", teamPollingRoutes); // Team polling routes for problem statements
 app.use("/simple-polling", simplePollingRoutes); // Simple polling routes
+app.use("/chat", chatRoutes); // Team chat routes
 app.use("/team-reporting", teamReportingRoutes); // Team member reporting routes
 app.use("/submission", submissionRoutes); // Project submission routes
 app.use("/admin", adminRoutes); // Admin functionality routes

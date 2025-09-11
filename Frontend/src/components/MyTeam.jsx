@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { MyContext } from '../context/AuthContextProvider';
 import { useTheme } from '../context/ThemeContextProvider';
 import SimplePolling from './SimplePolling';
+import TeamChat from './TeamChat';
 import { 
   Users, 
   Search, 
@@ -1398,6 +1399,7 @@ const MyTeam = () => {
               <div className="flex space-x-1 rounded-lg p-1" style={{ backgroundColor: themeConfig.cardBg }}>
                 {[
                   { id: 'overview', label: 'Overview', icon: Users },
+                  { id: 'chat', label: 'Team Chat', icon: MessageSquare },
                   { id: 'search', label: 'Search Members', icon: Search },
                   { id: 'members', label: 'Show Members', icon: Eye },
                   { id: 'join', label: 'Join Team', icon: UserPlus },
@@ -1433,6 +1435,25 @@ const MyTeam = () => {
                 border: `1px solid ${themeConfig.borderColor}`
               }}
             >
+              {/* Chat Tab */}
+              {activeTab === 'chat' && (
+                <div className="h-96">
+                  {currentTeam ? (
+                    <TeamChat currentTeam={currentTeam} />
+                  ) : (
+                    <div className="text-center py-12">
+                      <MessageSquare className="w-16 h-16 mx-auto mb-4" style={{ color: themeConfig.textColor, opacity: 0.5 }} />
+                      <h3 className="text-xl font-semibold mb-2" style={{ color: themeConfig.textColor }}>
+                        No Team Chat Available
+                      </h3>
+                      <p style={{ color: themeConfig.textColor, opacity: 0.7 }}>
+                        You need to be in a team to access the chat.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Overview Tab */}
               {activeTab === 'overview' && (
                 <div>
