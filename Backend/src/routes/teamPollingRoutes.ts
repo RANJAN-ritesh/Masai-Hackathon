@@ -331,7 +331,7 @@ router.post("/vote-problem-statement", authenticateUser, async (req, res) => {
       ? Object.fromEntries(team.problemStatementVoteCount) 
       : team.problemStatementVoteCount;
     
-    const totalVotes = Object.values(voteCountObj).reduce((sum, count) => sum + count, 0);
+    const totalVotes = Object.values(voteCountObj).reduce((sum, count) => (sum as number) + (count as number), 0);
     
     getWebSocketInstance().sendVoteUpdate(teamMemberIds, {
       problemStatementId,
