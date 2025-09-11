@@ -1628,6 +1628,17 @@ const MyTeam = () => {
                           </div>
                         </div>
                       )}
+
+                      {/* Problem Statement Polling */}
+                      <div className="mt-8">
+                        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: themeConfig.textColor }}>
+                          <Vote className="w-5 h-5" style={{ color: themeConfig.accentColor }} />
+                          Problem Statement Selection
+                        </h3>
+                        <div className="rounded-lg border" style={{ borderColor: themeConfig.borderColor }}>
+                          <SimplePolling currentTeam={currentTeam} hackathon={hackathon} />
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <div className="text-center py-12">

@@ -22,10 +22,13 @@ export const WebSocketProvider = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [voteUpdateCallbacks, setVoteUpdateCallbacks] = useState([]);
-  const [pollUpdateCallbacks, setPollUpdateCallbacks] = useState([]);
-  const [pollConclusionCallbacks, setPollConclusionCallbacks] = useState([]);
-  const [chatMessageCallbacks, setChatMessageCallbacks] = useState([]);
+  
+  // Use refs instead of state for callbacks to avoid closure issues
+  const voteUpdateCallbacksRef = useRef([]);
+  const pollUpdateCallbacksRef = useRef([]);
+  const pollConclusionCallbacksRef = useRef([]);
+  const chatMessageCallbacksRef = useRef([]);
+  
   const reconnectTimeoutRef = useRef(null);
   const maxReconnectAttempts = 3; // Reduced from 5
   const reconnectAttempts = useRef(0);
@@ -187,7 +190,7 @@ export const WebSocketProvider = ({ children }) => {
           });
           
           // Call all registered poll update callbacks
-          pollUpdateCallbacks.forEach(callback => {
+          pollUpdateCallbacksRef.current.forEach(callback => {
             try {
               callback(pollData);
             } catch (error) {
@@ -203,7 +206,7 @@ export const WebSocketProvider = ({ children }) => {
           });
           
           // Call all registered vote update callbacks
-          voteUpdateCallbacks.forEach(callback => {
+          voteUpdateCallbacksRef.current.forEach(callback => {
             try {
               callback(voteData);
             } catch (error) {
@@ -216,11 +219,24 @@ export const WebSocketProvider = ({ children }) => {
           console.log('💬 Received chat message:', chatData);
           
           // Call all registered chat message callbacks
-          chatMessageCallbacks.forEach(callback => {
+          chatMessageCallbacksRef.current.forEach(callback => {
             try {
               callback(chatData);
             } catch (error) {
               console.error('Error in chat message callback:', error);
+            }
+          });
+        });
+
+        newSocket.on('poll_conclusion', (conclusionData) => {
+          console.log('🏁 Received poll conclusion:', conclusionData);
+          
+          // Call all registered poll conclusion callbacks
+          pollConclusionCallbacksRef.current.forEach(callback => {
+            try {
+              callback(conclusionData);
+            } catch (error) {
+              console.error('Error in poll conclusion callback:', error);
             }
           });
         });
@@ -362,30 +378,38 @@ export const WebSocketProvider = ({ children }) => {
 
   // Callback registration functions
   const registerVoteUpdateCallback = (callback) => {
-    setVoteUpdateCallbacks(prev => [...prev, callback]);
+    console.log('📝 Registering vote update callback');
+    voteUpdateCallbacksRef.current.push(callback);
     return () => {
-      setVoteUpdateCallbacks(prev => prev.filter(cb => cb !== callback));
+      voteUpdateCallbacksRef.current = voteUpdateCallbacksRef.current.filter(cb => cb !== callback);
+      console.log('🗑️ Unregistered vote update callback');
     };
   };
 
   const registerPollUpdateCallback = (callback) => {
-    setPollUpdateCallbacks(prev => [...prev, callback]);
+    console.log('📝 Registering poll update callback');
+    pollUpdateCallbacksRef.current.push(callback);
     return () => {
-      setPollUpdateCallbacks(prev => prev.filter(cb => cb !== callback));
+      pollUpdateCallbacksRef.current = pollUpdateCallbacksRef.current.filter(cb => cb !== callback);
+      console.log('🗑️ Unregistered poll update callback');
     };
   };
 
   const registerPollConclusionCallback = (callback) => {
-    setPollConclusionCallbacks(prev => [...prev, callback]);
+    console.log('📝 Registering poll conclusion callback');
+    pollConclusionCallbacksRef.current.push(callback);
     return () => {
-      setPollConclusionCallbacks(prev => prev.filter(cb => cb !== callback));
+      pollConclusionCallbacksRef.current = pollConclusionCallbacksRef.current.filter(cb => cb !== callback);
+      console.log('🗑️ Unregistered poll conclusion callback');
     };
   };
 
   const registerChatMessageCallback = (callback) => {
-    setChatMessageCallbacks(prev => [...prev, callback]);
+    console.log('📝 Registering chat message callback');
+    chatMessageCallbacksRef.current.push(callback);
     return () => {
-      setChatMessageCallbacks(prev => prev.filter(cb => cb !== callback));
+      chatMessageCallbacksRef.current = chatMessageCallbacksRef.current.filter(cb => cb !== callback);
+      console.log('🗑️ Unregistered chat message callback');
     };
   };
 
