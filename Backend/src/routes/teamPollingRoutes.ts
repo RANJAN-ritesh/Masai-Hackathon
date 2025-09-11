@@ -187,14 +187,23 @@ router.get("/poll-status/:teamId", authenticateUser, async (req, res) => {
       problemStatementVoteCount: team.problemStatementVoteCount
     });
 
+    // Convert Maps to objects for proper serialization
+    const votesObj = team.problemStatementVotes instanceof Map 
+      ? Object.fromEntries(team.problemStatementVotes) 
+      : team.problemStatementVotes || {};
+    
+    const voteCountObj = team.problemStatementVoteCount instanceof Map 
+      ? Object.fromEntries(team.problemStatementVoteCount) 
+      : team.problemStatementVoteCount || {};
+
     res.json({
       pollActive,
       pollStartTime: team.pollStartTime,
       pollEndTime: team.pollEndTime,
       pollDuration: team.pollDuration,
       pollProblemStatement: team.pollProblemStatement,
-      problemStatementVotes: team.problemStatementVotes || {},
-      problemStatementVoteCount: team.problemStatementVoteCount || {}
+      problemStatementVotes: votesObj,
+      problemStatementVoteCount: voteCountObj
     });
 
   } catch (error) {
@@ -316,11 +325,19 @@ router.post("/vote-problem-statement", authenticateUser, async (req, res) => {
 
     // Send real-time vote update to all team members
     const teamMemberIds = team.teamMembers.map(member => member.toString());
+    
+    // Convert Maps to objects for proper serialization
+    const voteCountObj = team.problemStatementVoteCount instanceof Map 
+      ? Object.fromEntries(team.problemStatementVoteCount) 
+      : team.problemStatementVoteCount;
+    
+    const totalVotes = Object.values(voteCountObj).reduce((sum, count) => sum + count, 0);
+    
     getWebSocketInstance().sendVoteUpdate(teamMemberIds, {
       problemStatementId,
       voterId: userId,
-      voteCount: team.problemStatementVoteCount[problemStatementId],
-      totalVotes: Object.values(team.problemStatementVoteCount).reduce((sum, count) => sum + count, 0)
+      voteCount: voteCountObj[problemStatementId],
+      totalVotes: totalVotes
     });
 
     res.json({ message: "Vote recorded successfully" });
