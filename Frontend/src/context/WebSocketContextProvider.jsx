@@ -407,3 +407,5 @@ export const WebSocketProvider = ({ children }) => {
 };
 
 export default WebSocketProvider;
+
+// Force rebuild to fix WebSocket context issues
