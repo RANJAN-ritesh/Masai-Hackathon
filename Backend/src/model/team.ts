@@ -30,6 +30,7 @@ export interface ITeam extends Document {
     pollEndTime?: Date;
     pollDuration?: number; // in minutes
     pollProblemStatement?: string; // the problem statement being voted on
+    pollProblemStatements?: Array<{ track: string; description?: string }>; // multiple problem statements for polling
     // REPORTING SYSTEM FIELDS
     reportedMembers?: Map<string, string[]>; // userId -> array of reporting user IDs
     submissionLink?: string;
@@ -80,6 +81,10 @@ const TeamSchema = new Schema<ITeam>({
     pollEndTime: { type: Date },
     pollDuration: { type: Number }, // in minutes
     pollProblemStatement: { type: String }, // the problem statement being voted on
+    pollProblemStatements: [{ 
+        track: { type: String, required: true },
+        description: { type: String }
+    }], // multiple problem statements for polling
     // REPORTING SYSTEM FIELDS
     reportedMembers: { type: Map, of: [String], default: new Map() }, // userId -> array of reporting user IDs
     submissionLink: { type: String },

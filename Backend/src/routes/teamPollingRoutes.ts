@@ -15,7 +15,7 @@ router.get("/test", (req, res) => {
 // Start a problem statement poll
 router.post("/start-poll", authenticateUser, async (req, res) => {
   try {
-    const { teamId, problemStatementId, duration } = req.body;
+    const { teamId, problemStatementId, duration, problemStatements } = req.body;
     const userId = req.user?.id;
 
     if (!userId) {
@@ -105,12 +105,16 @@ router.post("/start-poll", authenticateUser, async (req, res) => {
     const startTime = new Date();
     const endTime = new Date(startTime.getTime() + duration * 60 * 1000);
 
+    // Use all problem statements if provided, otherwise fall back to single problem statement
+    const pollProblemStatements = problemStatements || (problemStatementId ? [{ track: problemStatementId }] : []);
+
     await Team.findByIdAndUpdate(teamId, {
       pollActive: true,
       pollStartTime: startTime,
       pollEndTime: endTime,
       pollDuration: duration,
-      pollProblemStatement: problemStatementId,
+      pollProblemStatement: problemStatementId, // Keep for backward compatibility
+      pollProblemStatements: pollProblemStatements, // New field for multiple problem statements
       problemStatementVotes: new Map(),
       problemStatementVoteCount: new Map()
     });
@@ -119,13 +123,14 @@ router.post("/start-poll", authenticateUser, async (req, res) => {
     const teamMemberIds = team.teamMembers.map(member => member.toString());
     getWebSocketInstance().sendPollUpdate(teamMemberIds, {
       type: 'poll_started',
-      message: `Poll started for problem statement: ${problemStatementId}`,
+      message: `Poll started for ${pollProblemStatements.length} problem statements`,
       pollData: {
         pollActive: true,
         pollStartTime: startTime,
         pollEndTime: endTime,
         pollDuration: duration,
-        pollProblemStatement: problemStatementId
+        pollProblemStatement: problemStatementId,
+        pollProblemStatements: pollProblemStatements
       }
     });
 

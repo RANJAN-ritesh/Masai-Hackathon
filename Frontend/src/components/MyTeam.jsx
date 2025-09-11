@@ -51,7 +51,7 @@ const MyTeam = () => {
   const [pollResults, setPollResults] = useState({});
   const [showPollModal, setShowPollModal] = useState(false);
   const [selectedProblemStatement, setSelectedProblemStatement] = useState(null);
-  const [pollDuration, setPollDuration] = useState(90); // Default 90 minutes (1.5 hours)
+  const [pollDuration, setPollDuration] = useState(30); // Default 30 minutes
   const [pollStartTime, setPollStartTime] = useState(null);
   const [pollEndTime, setPollEndTime] = useState(null);
   const [timeLeft, setTimeLeft] = useState(null);
@@ -2066,33 +2066,33 @@ const MyTeam = () => {
               {!pollActive ? (
                 <div>
                   <p className="mb-4" style={{ color: themeConfig.textColor }}>
-                    Select problem statements for your team to vote on, then configure the poll duration.
+                    All problem statements will be included in the poll. Choose the poll duration and start voting!
                   </p>
                   
-                  {/* Problem Statement Selection */}
+                  {/* Problem Statements Preview */}
                   <div className="mb-4">
                     <label className="block text-sm font-medium mb-2" style={{ color: themeConfig.textColor }}>
-                      Available Problem Statements
+                      Problem Statements in Poll ({problemStatements.length})
                     </label>
-                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                    <div className="space-y-2 max-h-32 overflow-y-auto bg-gray-50 rounded-lg p-3">
                       {problemStatements.map((problem, index) => (
                         <div 
                           key={index}
-                          className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                            selectedProblemStatement === problem.track ? 'ring-2 ring-blue-500' : ''
-                          }`}
+                          className="flex items-center gap-2 p-2 rounded border"
                           style={{ 
-                            backgroundColor: selectedProblemStatement === problem.track ? '#dbeafe' : themeConfig.backgroundColor,
-                            borderColor: selectedProblemStatement === problem.track ? '#3b82f6' : themeConfig.borderColor
+                            backgroundColor: themeConfig.backgroundColor,
+                            borderColor: themeConfig.borderColor
                           }}
-                          onClick={() => setSelectedProblemStatement(problem.track)}
                         >
-                          <h4 className="font-medium mb-1" style={{ color: themeConfig.textColor }}>
-                            {problem.track}
-                          </h4>
-                          <p className="text-sm" style={{ color: themeConfig.textColor, opacity: 0.7 }}>
-                            {problem.description?.substring(0, 80)}...
-                          </p>
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                          <div>
+                            <h4 className="font-medium text-sm" style={{ color: themeConfig.textColor }}>
+                              {problem.track}
+                            </h4>
+                            <p className="text-xs" style={{ color: themeConfig.textColor, opacity: 0.7 }}>
+                              {problem.description?.substring(0, 50)}...
+                            </p>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -2102,41 +2102,38 @@ const MyTeam = () => {
                     <label className="block text-sm font-medium mb-2" style={{ color: themeConfig.textColor }}>
                       Poll Duration
                     </label>
-                    <select
-                      value={pollDuration}
-                      onChange={(e) => setPollDuration(parseInt(e.target.value))}
-                      className="w-full p-2 border rounded-lg"
-                      style={{ 
-                        backgroundColor: themeConfig.backgroundColor,
-                        borderColor: themeConfig.borderColor,
-                        color: themeConfig.textColor
-                      }}
-                    >
-                      <option value={60}>1 hour</option>
-                      <option value={90}>1.5 hours</option>
-                      <option value={120}>2 hours</option>
-                    </select>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { value: 10, label: '10 min', color: 'bg-blue-500' },
+                        { value: 30, label: '30 min', color: 'bg-green-500' },
+                        { value: 60, label: '60 min', color: 'bg-purple-500' }
+                      ].map((option) => (
+                        <button
+                          key={option.value}
+                          onClick={() => setPollDuration(option.value)}
+                          className={`p-3 rounded-lg text-white font-medium transition-all ${
+                            pollDuration === option.value 
+                              ? `${option.color} ring-2 ring-offset-2 ring-current` 
+                              : `${option.color} opacity-70 hover:opacity-90`
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="flex gap-3">
-                    {!selectedProblemStatement && (
-                      <div className="w-full text-center py-2 px-4 rounded-lg bg-yellow-100 border border-yellow-300 text-yellow-800 text-sm">
-                        ⚠️ Please select a problem statement above to enable the Start Poll button
-                      </div>
-                    )}
                     <button
                       onClick={async () => {
-                        if (!selectedProblemStatement) {
-                          toast.error('Please select a problem statement first');
-                          return;
-                        }
-                        
                         try {
                           const token = localStorage.getItem('authToken');
                           if (!token) {
                             toast.error('Authentication token not found. Please log in again.');
                             return;
                           }
+                          
+                          // Start poll with ALL problem statements
                           const response = await fetch(`${baseURL}/team-polling/start-poll`, {
                             method: 'POST',
                             headers: {
@@ -2145,8 +2142,8 @@ const MyTeam = () => {
                             },
                             body: JSON.stringify({
                               teamId: currentTeam._id,
-                              problemStatementId: selectedProblemStatement,
-                              duration: pollDuration
+                              duration: pollDuration,
+                              problemStatements: problemStatements // Send all problem statements
                             })
                           });
 
@@ -2156,7 +2153,7 @@ const MyTeam = () => {
                             setPollStartTime(new Date(result.pollStartTime));
                             setPollEndTime(new Date(result.pollEndTime));
                             setShowPollModal(false);
-                            toast.success(`Poll started for "${selectedProblemStatement}"! Duration: ${pollDuration} minutes. Team members can now vote.`);
+                            toast.success(`Poll started for ${pollDuration} minutes! All team members can now vote.`);
                             
                             // Poll status will be updated automatically via useEffect
                           } else {
@@ -2168,20 +2165,15 @@ const MyTeam = () => {
                           toast.error('Failed to start poll');
                         }
                       }}
-                      disabled={!selectedProblemStatement}
-                      className="flex-1 py-2 px-4 rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
-                      style={{ 
-                        backgroundColor: selectedProblemStatement ? '#f59e0b' : '#9ca3af',
-                        color: 'white'
-                      }}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
                     >
-                      Start Poll
+                      <Vote className="w-4 h-4" />
+                      Start Poll ({pollDuration} min)
                     </button>
                     <button
                       onClick={() => setShowPollModal(false)}
-                      className="flex-1 py-2 px-4 rounded-lg border font-medium transition"
+                      className="px-4 py-2 border rounded-lg font-medium transition-colors"
                       style={{ 
-                        backgroundColor: themeConfig.backgroundColor,
                         borderColor: themeConfig.borderColor,
                         color: themeConfig.textColor
                       }}
