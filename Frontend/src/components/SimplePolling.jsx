@@ -274,35 +274,47 @@ const SimplePolling = ({ currentTeam, hackathon }) => {
 
           {/* Voting Options */}
           <div className="space-y-3 mb-4">
-            {(pollData.pollProblemStatements || problemStatements).map((problem, index) => {
-              const userVote = pollData.votes?.[userId];
-              const isSelected = userVote === problem.track;
-              const voteCount = pollData.voteCounts?.[problem.track] || 0;
-              
-              return (
-                <div 
-                  key={index}
-                  className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                    isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'border-gray-200'
-                  }`}
-                  onClick={() => !isSelected && voteOnProblemStatement(problem.track)}
-                >
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h4 className="font-medium">{problem.track}</h4>
-                      <p className="text-sm text-gray-600">{problem.description}</p>
+            {/* Debug info */}
+            {console.log('🔍 DEBUG: pollData.pollProblemStatements:', pollData.pollProblemStatements)}
+            {console.log('🔍 DEBUG: hackathon.problemStatements:', problemStatements)}
+            {console.log('🔍 DEBUG: Combined problem statements:', (pollData.pollProblemStatements || problemStatements))}
+            
+            {(pollData.pollProblemStatements || problemStatements).length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>⚠️ No problem statements available for voting</p>
+                <p className="text-xs mt-2">Debug: pollProblemStatements={JSON.stringify(pollData.pollProblemStatements)} | hackathonProblemStatements={JSON.stringify(problemStatements)}</p>
+              </div>
+            ) : (
+              (pollData.pollProblemStatements || problemStatements).map((problem, index) => {
+                const userVote = pollData.votes?.[userId];
+                const isSelected = userVote === problem.track;
+                const voteCount = pollData.voteCounts?.[problem.track] || 0;
+                
+                return (
+                  <div 
+                    key={index}
+                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                      isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'border-gray-200'
+                    }`}
+                    onClick={() => !isSelected && voteOnProblemStatement(problem.track)}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h4 className="font-medium">{problem.track}</h4>
+                        <p className="text-sm text-gray-600">{problem.description}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-blue-600">{voteCount}</div>
+                        <div className="text-xs text-gray-500">votes</div>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-lg font-bold text-blue-600">{voteCount}</div>
-                      <div className="text-xs text-gray-500">votes</div>
-                    </div>
+                    {isSelected && (
+                      <div className="mt-2 text-sm text-green-600 font-medium">✓ You voted for this</div>
+                    )}
                   </div>
-                  {isSelected && (
-                    <div className="mt-2 text-sm text-green-600 font-medium">✓ You voted for this</div>
-                  )}
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
 
           {/* Live Vote Results */}

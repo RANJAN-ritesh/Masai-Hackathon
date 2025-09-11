@@ -201,12 +201,28 @@ router.get("/poll-status/:teamId", authenticateUser, async (req, res) => {
       ? Object.fromEntries(team.problemStatementVoteCount) 
       : team.problemStatementVoteCount || {};
 
+    // Get problem statements - either from poll or from hackathon as fallback
+    let problemStatements = team.pollProblemStatements || [];
+    
+    if (problemStatements.length === 0 && team.hackathonId) {
+      try {
+        const hackathon = await Hackathon.findById(team.hackathonId);
+        if (hackathon && hackathon.problemStatements) {
+          problemStatements = hackathon.problemStatements;
+          console.log(`📋 Using hackathon problem statements as fallback: ${problemStatements.length} statements`);
+        }
+      } catch (hackathonError) {
+        console.error('Error fetching hackathon problem statements:', hackathonError);
+      }
+    }
+
     res.json({
       pollActive,
       pollStartTime: team.pollStartTime,
       pollEndTime: team.pollEndTime,
       pollDuration: team.pollDuration,
       pollProblemStatement: team.pollProblemStatement,
+      pollProblemStatements: problemStatements, // Use fallback logic
       problemStatementVotes: votesObj,
       problemStatementVoteCount: voteCountObj
     });
