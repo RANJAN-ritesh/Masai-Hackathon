@@ -375,6 +375,13 @@ export const WebSocketProvider = ({ children }) => {
     };
   };
 
+  const registerPollConclusionCallback = (callback) => {
+    setPollConclusionCallbacks(prev => [...prev, callback]);
+    return () => {
+      setPollConclusionCallbacks(prev => prev.filter(cb => cb !== callback));
+    };
+  };
+
   const registerChatMessageCallback = (callback) => {
     setChatMessageCallbacks(prev => [...prev, callback]);
     return () => {
