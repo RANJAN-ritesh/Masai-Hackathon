@@ -220,6 +220,8 @@ const TeamChat = ({ currentTeam }) => {
 
   // Register WebSocket callbacks
   useEffect(() => {
+    console.log('🔌 Registering WebSocket callbacks for TeamChat');
+    
     const unsubscribeChatMessage = registerChatMessageCallback((chatData) => {
       console.log('💬 Chat message received:', chatData);
       
@@ -238,6 +240,7 @@ const TeamChat = ({ currentTeam }) => {
     });
 
     return () => {
+      console.log('🔌 Unregistering WebSocket callbacks for TeamChat');
       unsubscribeChatMessage();
     };
   }, [currentTeam?._id]);

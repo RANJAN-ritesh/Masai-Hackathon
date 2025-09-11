@@ -28,7 +28,7 @@ const SimplePolling = ({ currentTeam, hackathon }) => {
     
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${import.meta.env.VITE_BASE_URL}/simple-polling/poll-status/${currentTeam._id}`, {
+      const response = await fetch(`${import.meta.env.VITE_BASE_URL}/team-polling/poll-status/${currentTeam._id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -37,7 +37,16 @@ const SimplePolling = ({ currentTeam, hackathon }) => {
       
       if (response.ok) {
         const data = await response.json();
-        setPollData(data);
+        setPollData({
+          pollActive: data.pollActive || false,
+          pollStartTime: data.pollStartTime,
+          pollEndTime: data.pollEndTime,
+          pollDuration: data.pollDuration,
+          pollProblemStatement: data.pollProblemStatement,
+          pollProblemStatements: data.pollProblemStatements || [],
+          votes: data.problemStatementVotes || {},
+          voteCounts: data.problemStatementVoteCount || {}
+        });
         
         // Update timer if poll is active
         if (data.pollActive && data.pollEndTime) {
@@ -67,7 +76,7 @@ const SimplePolling = ({ currentTeam, hackathon }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('authToken');
-      const response = await fetch(`${import.meta.env.VITE_BASE_URL}/simple-polling/vote`, {
+      const response = await fetch(`${import.meta.env.VITE_BASE_URL}/team-polling/vote-problem-statement`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -75,18 +84,19 @@ const SimplePolling = ({ currentTeam, hackathon }) => {
         },
         body: JSON.stringify({
           teamId: currentTeam._id,
-          problemStatementId: problemStatementId
+          problemStatementId: problemStatementId,
+          hackathonId: hackathon?._id
         })
       });
       
       if (response.ok) {
         const result = await response.json();
-        toast.success(result.message);
+        toast.success(result.message || 'Vote cast successfully!');
         // Reload poll status to get updated vote counts
         await loadPollStatus();
       } else {
         const error = await response.json();
-        toast.error(error.message);
+        toast.error(error.message || 'Failed to vote');
       }
     } catch (error) {
       console.error('Error voting:', error);
@@ -169,6 +179,8 @@ const SimplePolling = ({ currentTeam, hackathon }) => {
 
   // Register WebSocket callbacks for real-time updates
   useEffect(() => {
+    console.log('🔌 Registering WebSocket callbacks for SimplePolling');
+    
     const unsubscribeVoteUpdate = registerVoteUpdateCallback((voteData) => {
       console.log('🔄 Vote update received in SimplePolling:', voteData);
       // Reload poll status to get updated vote counts
@@ -188,6 +200,7 @@ const SimplePolling = ({ currentTeam, hackathon }) => {
     });
 
     return () => {
+      console.log('🔌 Unregistering WebSocket callbacks for SimplePolling');
       unsubscribeVoteUpdate();
       unsubscribePollUpdate();
       unsubscribePollConclusion();
@@ -261,7 +274,7 @@ const SimplePolling = ({ currentTeam, hackathon }) => {
 
           {/* Voting Options */}
           <div className="space-y-3 mb-4">
-            {problemStatements.map((problem, index) => {
+            {(pollData.pollProblemStatements || problemStatements).map((problem, index) => {
               const userVote = pollData.votes?.[userId];
               const isSelected = userVote === problem.track;
               const voteCount = pollData.voteCounts?.[problem.track] || 0;
