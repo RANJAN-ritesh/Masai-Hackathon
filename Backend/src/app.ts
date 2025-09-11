@@ -231,6 +231,3 @@ server.listen(PORT, () => {
     // Start automatic cleanup service
     cleanupService.startPeriodicCleanup(24 * 60 * 60 * 1000); // Every 24 hours
 });
-
-// Export WebSocket service for use in other modules
-export { webSocketService };
