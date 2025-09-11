@@ -10,6 +10,7 @@ import teamRequests from "./model/teamRequests";
 import problemStatement from "./model/problemStatement";
 import { autoTeamCreationService } from "./services/autoTeamCreationService";
 import userRoutes from "./routes/userRoutes";
+import authRoutes from "./routes/authRoutes";
 import teamRoutes from "./routes/teamRoutes";
 import teamRequestRoutes from "./routes/teamRequestRoutes";
 import problemStatementRoutes from "./routes/problemStatementRoutes";
@@ -91,6 +92,7 @@ connectDB();
 
 // Routes
 app.use("/users", userRoutes);
+app.use("/auth", authRoutes);
 app.use("/team", teamRoutes);
 app.use("/team-request", teamRequestRoutes);
 app.use("/hackathons", problemStatementRoutes); // Mount hackathon routes at /hackathons level
