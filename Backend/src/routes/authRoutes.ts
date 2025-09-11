@@ -87,7 +87,7 @@ router.post("/register", async (req, res) => {
 
   } catch (error) {
     console.error("Registration error:", error);
-    res.status(500).json({ message: "Internal server error", error: error.message });
+    res.status(500).json({ message: "Internal server error", error: error instanceof Error ? error.message : String(error) });
   }
 });
 
@@ -133,7 +133,7 @@ router.post("/login", async (req, res) => {
 
   } catch (error) {
     console.error("Login error:", error);
-    res.status(500).json({ message: "Internal server error", error: error.message });
+    res.status(500).json({ message: "Internal server error", error: error instanceof Error ? error.message : String(error) });
   }
 });
 
