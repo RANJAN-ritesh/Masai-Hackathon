@@ -67,10 +67,17 @@ const MyTeam = () => {
 
   // Load poll status when team data is loaded
   useEffect(() => {
-    if (currentTeam) {
+    if (currentTeam && !loadingPollStatus) {
       loadPollStatus();
     }
-  }, [currentTeam]);
+    
+    // Cleanup function to clear any pending timeouts
+    return () => {
+      if (loadPollStatus.timeout) {
+        clearTimeout(loadPollStatus.timeout);
+      }
+    };
+  }, [currentTeam?._id]); // Only depend on team ID, not the entire team object
 
   // Poll timer effect
   useEffect(() => {
@@ -267,7 +274,13 @@ const MyTeam = () => {
   const loadPollStatus = async () => {
     if (!currentTeam || loadingPollStatus) return;
     
-    setLoadingPollStatus(true);
+    // Debounce rapid calls
+    if (loadPollStatus.timeout) {
+      clearTimeout(loadPollStatus.timeout);
+    }
+    
+    loadPollStatus.timeout = setTimeout(async () => {
+      setLoadingPollStatus(true);
     try {
       const token = localStorage.getItem('authToken');
       
@@ -315,6 +328,7 @@ const MyTeam = () => {
     } finally {
       setLoadingPollStatus(false);
     }
+    }, 500); // 500ms debounce
   };
 
   // Vote on problem statement
@@ -2108,8 +2122,7 @@ const MyTeam = () => {
                             setShowPollModal(false);
                             toast.success(`Poll started for "${selectedProblemStatement}"! Duration: ${pollDuration} minutes. Team members can now vote.`);
                             
-                            // Reload poll status to sync with backend
-                            setTimeout(() => loadPollStatus(), 1000);
+                            // Poll status will be updated automatically via useEffect
                           } else {
                             const error = await response.json();
                             toast.error(error.message || 'Failed to start poll');
