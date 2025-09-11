@@ -62,13 +62,13 @@ class NotificationService {
           const webSocketService = getWebSocketInstance();
           webSocketService.sendNotificationToUser(userId, notification);
         } catch (error) {
-          console.log('WebSocket service not initialized yet:', error.message);
+          console.log('WebSocket service not initialized yet:', error instanceof Error ? error.message : String(error));
         }
       }).catch(error => {
-        console.log('WebSocket service not available:', error.message);
+        console.log('WebSocket service not available:', error instanceof Error ? error.message : String(error));
       });
     } catch (error) {
-      console.log('Failed to send real-time notification:', error);
+      console.log('Failed to send real-time notification:', error instanceof Error ? error.message : String(error));
     }
   }
 
