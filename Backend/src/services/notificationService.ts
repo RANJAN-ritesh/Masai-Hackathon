@@ -57,9 +57,12 @@ class NotificationService {
   private sendRealTimeNotification(userId: string, notification: NotificationData): void {
     try {
       // Dynamically import WebSocket service to avoid circular dependencies
-      import('../app').then(({ webSocketService }) => {
-        if (webSocketService) {
+      import('../services/websocketService').then(({ getWebSocketInstance }) => {
+        try {
+          const webSocketService = getWebSocketInstance();
           webSocketService.sendNotificationToUser(userId, notification);
+        } catch (error) {
+          console.log('WebSocket service not initialized yet:', error.message);
         }
       }).catch(error => {
         console.log('WebSocket service not available:', error.message);
