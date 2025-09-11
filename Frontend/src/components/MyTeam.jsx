@@ -297,6 +297,7 @@ const MyTeam = () => {
         
         // Update team with poll data
         if (currentTeam) {
+          console.log('📊 Updating team with poll data:', pollData);
           setCurrentTeam(prev => ({
             ...prev,
             pollActive: pollData.pollActive,
@@ -1206,6 +1207,8 @@ const MyTeam = () => {
                     const userVote = currentTeam.problemStatementVotes?.[userId];
                     const isSelected = userVote === problem._id || userVote === problem.track;
                     const voteCount = currentTeam.problemStatementVoteCount?.[problem._id] || currentTeam.problemStatementVoteCount?.[problem.track] || 0;
+                    
+                    console.log('🗳️ Vote count for', problem.track, ':', voteCount, 'from', currentTeam.problemStatementVoteCount);
                     
                     return (
                       <div 

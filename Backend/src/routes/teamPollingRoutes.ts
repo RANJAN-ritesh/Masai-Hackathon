@@ -180,14 +180,21 @@ router.get("/poll-status/:teamId", authenticateUser, async (req, res) => {
       pollActive = false;
     }
 
+    console.log('📊 Poll status for team:', {
+      teamId,
+      pollActive,
+      problemStatementVotes: team.problemStatementVotes,
+      problemStatementVoteCount: team.problemStatementVoteCount
+    });
+
     res.json({
       pollActive,
       pollStartTime: team.pollStartTime,
       pollEndTime: team.pollEndTime,
       pollDuration: team.pollDuration,
       pollProblemStatement: team.pollProblemStatement,
-      problemStatementVotes: team.problemStatementVotes ? Object.fromEntries(team.problemStatementVotes as any) : {},
-      problemStatementVoteCount: team.problemStatementVoteCount ? Object.fromEntries(team.problemStatementVoteCount as any) : {}
+      problemStatementVotes: team.problemStatementVotes || {},
+      problemStatementVoteCount: team.problemStatementVoteCount || {}
     });
 
   } catch (error) {
@@ -298,6 +305,13 @@ router.post("/vote-problem-statement", authenticateUser, async (req, res) => {
       team.problemStatementVoteCount = {};
     }
     team.problemStatementVoteCount[problemStatementId] = (team.problemStatementVoteCount[problemStatementId] || 0) + 1;
+
+    console.log('🗳️ Vote recorded:', {
+      userId,
+      problemStatementId,
+      voteCount: team.problemStatementVoteCount[problemStatementId],
+      allVoteCounts: team.problemStatementVoteCount
+    });
 
     await team.save();
 
