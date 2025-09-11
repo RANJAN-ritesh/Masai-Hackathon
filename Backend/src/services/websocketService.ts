@@ -245,10 +245,18 @@ class WebSocketService {
 
   // Send real-time vote update to team members
   public sendVoteUpdate(teamMemberIds: string[], voteData: any) {
-    teamMemberIds.forEach(userId => {
-      this.io.to(`user_${userId}`).emit('vote_update', voteData);
+    console.log(`🗳️ Sending vote update to ${teamMemberIds.length} team members:`, {
+      teamMemberIds,
+      voteData
     });
-    console.log(`🗳️ Sent vote update to ${teamMemberIds.length} team members:`, voteData.problemStatementId);
+    
+    teamMemberIds.forEach(userId => {
+      const roomName = `user_${userId}`;
+      console.log(`🗳️ Sending vote update to room: ${roomName}`);
+      this.io.to(roomName).emit('vote_update', voteData);
+    });
+    
+    console.log(`🗳️ Vote update sent to ${teamMemberIds.length} team members:`, voteData.problemStatementId);
   }
 
   // Send poll conclusion notification to team members
@@ -261,10 +269,19 @@ class WebSocketService {
 
   // Send chat message to team members
   public sendChatMessage(teamMemberIds: string[], chatData: any) {
-    teamMemberIds.forEach(userId => {
-      this.io.to(`user_${userId}`).emit('chat_message', chatData);
+    console.log(`💬 Sending chat message to ${teamMemberIds.length} team members:`, {
+      teamMemberIds,
+      chatDataType: chatData.type,
+      messageId: chatData.message?._id
     });
-    console.log(`💬 Sent chat message to ${teamMemberIds.length} team members:`, chatData.type);
+    
+    teamMemberIds.forEach(userId => {
+      const roomName = `user_${userId}`;
+      console.log(`💬 Sending to room: ${roomName}`);
+      this.io.to(roomName).emit('chat_message', chatData);
+    });
+    
+    console.log(`💬 Chat message sent to ${teamMemberIds.length} team members:`, chatData.type);
   }
 
   // Get connected users count
