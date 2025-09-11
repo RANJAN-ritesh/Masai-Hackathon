@@ -295,29 +295,44 @@ router.post("/vote-problem-statement", authenticateUser, async (req, res) => {
       });
     }
 
-    // Record the vote
+    // Record the vote - ensure we're working with objects
     if (!team.problemStatementVotes) {
       team.problemStatementVotes = {};
     }
+    
+    // Convert Map to object if needed
+    if (team.problemStatementVotes instanceof Map) {
+      team.problemStatementVotes = Object.fromEntries(team.problemStatementVotes);
+    }
 
     // Check if user has already voted
-    if (team.problemStatementVotes[userId]) {
+    if (team.problemStatementVotes && team.problemStatementVotes[userId]) {
       return res.status(400).json({ message: "You have already voted" });
     }
 
     // Record the vote
-    team.problemStatementVotes[userId] = problemStatementId;
+    if (team.problemStatementVotes) {
+      team.problemStatementVotes[userId] = problemStatementId;
+    }
     
-    // Update vote count
+    // Update vote count - ensure we're working with objects
     if (!team.problemStatementVoteCount) {
       team.problemStatementVoteCount = {};
     }
-    team.problemStatementVoteCount[problemStatementId] = (team.problemStatementVoteCount[problemStatementId] || 0) + 1;
+    
+    // Convert Map to object if needed
+    if (team.problemStatementVoteCount instanceof Map) {
+      team.problemStatementVoteCount = Object.fromEntries(team.problemStatementVoteCount);
+    }
+    
+    if (team.problemStatementVoteCount) {
+      team.problemStatementVoteCount[problemStatementId] = (team.problemStatementVoteCount[problemStatementId] || 0) + 1;
+    }
 
     console.log('🗳️ Vote recorded:', {
       userId,
       problemStatementId,
-      voteCount: team.problemStatementVoteCount[problemStatementId],
+      voteCount: team.problemStatementVoteCount?.[problemStatementId],
       allVoteCounts: team.problemStatementVoteCount
     });
 
@@ -336,7 +351,7 @@ router.post("/vote-problem-statement", authenticateUser, async (req, res) => {
     getWebSocketInstance().sendVoteUpdate(teamMemberIds, {
       problemStatementId,
       voterId: userId,
-      voteCount: voteCountObj[problemStatementId],
+      voteCount: team.problemStatementVoteCount?.[problemStatementId] || 0,
       totalVotes: totalVotes
     });
 
