@@ -1369,6 +1369,20 @@ const MyTeam = () => {
                 )}
               </div>
             )}
+
+            {/* Team Chat Section */}
+            <div className="mt-8">
+              <h3 
+                className="text-lg font-semibold mb-4 flex items-center gap-2"
+                style={{ color: themeConfig.textColor }}
+              >
+                <MessageSquare className="w-5 h-5" style={{ color: themeConfig.accentColor }} />
+                Team Chat
+              </h3>
+              <div className="h-96 rounded-lg border" style={{ borderColor: themeConfig.borderColor }}>
+                <TeamChat currentTeam={currentTeam} />
+              </div>
+            </div>
           </div>
         )}
 
