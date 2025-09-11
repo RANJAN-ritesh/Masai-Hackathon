@@ -116,6 +116,60 @@ const ProblemStatement = ({ hackathonData }) => {
     );
   };
 
+  // Get unique tracks from actual problem statements
+  const getUniqueTracks = () => {
+    if (!hackathonData?.problemStatements) return [];
+    const tracks = [...new Set(hackathonData.problemStatements.map(ps => ps.track))];
+    return tracks;
+  };
+
+  // Get icon and colors for each track
+  const getTrackConfig = (track) => {
+    const trackLower = track.toLowerCase();
+    if (trackLower.includes('software') || trackLower.includes('development') || trackLower.includes('frontend')) {
+      return {
+        icon: <Code size={24} />,
+        bgColor: 'from-blue-50 to-blue-100',
+        borderColor: 'border-blue-200',
+        iconBg: 'bg-blue-500',
+        titleColor: 'text-blue-800',
+        descColor: 'text-blue-700',
+        linkColor: 'text-blue-600 hover:text-blue-800'
+      };
+    } else if (trackLower.includes('data') || trackLower.includes('analytics') || trackLower.includes('da')) {
+      return {
+        icon: <Database size={24} />,
+        bgColor: 'from-purple-50 to-purple-100',
+        borderColor: 'border-purple-200',
+        iconBg: 'bg-purple-500',
+        titleColor: 'text-purple-800',
+        descColor: 'text-purple-700',
+        linkColor: 'text-purple-600 hover:text-purple-800'
+      };
+    } else if (trackLower.includes('sdet') || trackLower.includes('test') || trackLower.includes('qa')) {
+      return {
+        icon: <TestTube size={24} />,
+        bgColor: 'from-green-50 to-green-100',
+        borderColor: 'border-green-200',
+        iconBg: 'bg-green-500',
+        titleColor: 'text-green-800',
+        descColor: 'text-green-700',
+        linkColor: 'text-green-600 hover:text-green-800'
+      };
+    } else {
+      // Default configuration for other tracks
+      return {
+        icon: <Code size={24} />,
+        bgColor: 'from-gray-50 to-gray-100',
+        borderColor: 'border-gray-200',
+        iconBg: 'bg-gray-500',
+        titleColor: 'text-gray-800',
+        descColor: 'text-gray-700',
+        linkColor: 'text-gray-600 hover:text-gray-800'
+      };
+    }
+  };
+
   return (
     <>
       {/* Modal */}
@@ -124,20 +178,10 @@ const ProblemStatement = ({ hackathonData }) => {
           <div className="bg-white rounded-xl p-8 w-full max-w-lg relative shadow-2xl">
             <div
               className={`absolute -top-4 -left-4 p-3 rounded-full ${
-                selectedTrack === "Software Development"
-                  ? "bg-blue-500"
-                  : selectedTrack === "DA"
-                  ? "bg-purple-500"
-                  : "bg-green-500"
+                getTrackConfig(selectedTrack).iconBg
               } text-white`}
             >
-              {selectedTrack === "Software Development" ? (
-                <Code size={24} />
-              ) : selectedTrack === "DA" ? (
-                <Database size={24} />
-              ) : (
-                <TestTube size={24} />
-              )}
+              {getTrackConfig(selectedTrack).icon}
             </div>
 
             <button
@@ -224,62 +268,43 @@ const ProblemStatement = ({ hackathonData }) => {
         <h2 className="text-2xl font-bold mb-6 text-gray-800">
           Problem Statements
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Software Development */}
-          <div
-            onClick={() => openModal("Software Development")}
-            className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-lg border border-blue-200 hover:shadow-md transition transform hover:-translate-y-1 cursor-pointer"
-          >
-            <div className="bg-blue-500 text-white p-3 rounded-full w-12 h-12 flex items-center justify-center mb-4">
-              <Code size={24} />
+        
+        {/* Show message if no problem statements */}
+        {!hackathonData?.problemStatements || hackathonData.problemStatements.length === 0 ? (
+          <div className="text-center py-12 text-gray-500">
+            <div className="mb-4">
+              <Code size={48} className="mx-auto text-gray-300" />
             </div>
-            <h3 className="text-lg font-semibold text-blue-800 mb-2">
-              Software Development
-            </h3>
-            <p className="text-blue-700 text-sm mb-4">
-              Build innovative UI/UX solutions with modern frameworks
-            </p>
-            <span className="flex items-center text-blue-600 font-medium text-sm hover:text-blue-800">
-              View Challenges <ChevronRight size={16} />
-            </span>
+            <h3 className="text-lg font-semibold mb-2">No Problem Statements Available</h3>
+            <p className="text-sm">Problem statements will be added by the admin soon.</p>
           </div>
-
-          {/* DA */}
-          <div
-            onClick={() => openModal("DA")}
-            className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-lg border border-purple-200 hover:shadow-md transition transform hover:-translate-y-1 cursor-pointer"
-          >
-            <div className="bg-purple-500 text-white p-3 rounded-full w-12 h-12 flex items-center justify-center mb-4">
-              <Database size={24} />
-            </div>
-            <h3 className="text-lg font-semibold text-purple-800 mb-2">
-              Data Analytics
-            </h3>
-            <p className="text-purple-700 text-sm mb-4">
-              Extract insights from complex datasets
-            </p>
-            <span className="flex items-center text-purple-600 font-medium text-sm hover:text-purple-800">
-              View Challenges <ChevronRight size={16} />
-            </span>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {getUniqueTracks().map((track) => {
+              const config = getTrackConfig(track);
+              return (
+                <div
+                  key={track}
+                  onClick={() => openModal(track)}
+                  className={`bg-gradient-to-br ${config.bgColor} p-6 rounded-lg border ${config.borderColor} hover:shadow-md transition transform hover:-translate-y-1 cursor-pointer`}
+                >
+                  <div className={`${config.iconBg} text-white p-3 rounded-full w-12 h-12 flex items-center justify-center mb-4`}>
+                    {config.icon}
+                  </div>
+                  <h3 className={`text-lg font-semibold ${config.titleColor} mb-2`}>
+                    {track}
+                  </h3>
+                  <p className={`${config.descColor} text-sm mb-4`}>
+                    {getFilteredProblems(track)?.length || 0} challenge{(getFilteredProblems(track)?.length || 0) !== 1 ? 's' : ''} available
+                  </p>
+                  <span className={`flex items-center ${config.linkColor} font-medium text-sm`}>
+                    View Challenges <ChevronRight size={16} />
+                  </span>
+                </div>
+              );
+            })}
           </div>
-
-          {/* SDET */}
-          <div
-            onClick={() => openModal("SDET")}
-            className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-lg border border-green-200 hover:shadow-md transition transform hover:-translate-y-1 cursor-pointer"
-          >
-            <div className="bg-green-500 text-white p-3 rounded-full w-12 h-12 flex items-center justify-center mb-4">
-              <TestTube size={24} />
-            </div>
-            <h3 className="text-lg font-semibold text-green-800 mb-2">SDET</h3>
-            <p className="text-green-700 text-sm mb-4">
-              Create robust testing frameworks and automation
-            </p>
-            <span className="flex items-center text-green-600 font-medium text-sm hover:text-green-800">
-              View Challenges <ChevronRight size={16} />
-            </span>
-          </div>
-        </div>
+        )}
       </div>
     </>
   );
