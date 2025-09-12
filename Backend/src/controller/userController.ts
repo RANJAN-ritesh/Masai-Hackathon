@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import user from "../model/user";
 import team from "../model/team";
-import { generateToken } from "../middleware/auth";
+import { generateToken } from "../config/jwt";
 
 export const leaveTeam = async (req: Request, res: Response): Promise<void> => {
     try {
