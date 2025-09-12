@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { MyContext } from '../context/AuthContextProvider';
 import { useTheme } from '../context/ThemeContextProvider';
-import SimplePolling from './SimplePolling';
+import NewSimplePolling from './NewSimplePolling';
 import TeamChat from './TeamChat';
 import { 
   Users, 
@@ -1187,7 +1187,7 @@ const MyTeam = () => {
             )}
 
             {/* Simple Polling Component */}
-            <SimplePolling currentTeam={currentTeam} hackathon={hackathon} />
+            <NewSimplePolling teamId={currentTeam?._id} />
             
             {/* Active Poll Section (Visible to All Team Members) - DISABLED */}
             {false && pollActive && (
@@ -1636,7 +1636,7 @@ const MyTeam = () => {
                           Problem Statement Selection
                         </h3>
                         <div className="rounded-lg border" style={{ borderColor: themeConfig.borderColor }}>
-                          <SimplePolling currentTeam={currentTeam} hackathon={hackathon} />
+                          <NewSimplePolling teamId={currentTeam?._id} />
                         </div>
                       </div>
                     </div>

@@ -1,0 +1,16 @@
+{
+  "name": "masai-hackathon-tests",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Comprehensive testing for Masai Hackathon application",
+  "main": "test-comprehensive-features.js",
+  "scripts": {
+    "test": "node test-comprehensive-features.js"
+  },
+  "dependencies": {
+    "form-data": "^4.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "node-fetch": "^3.3.2"
+  }
+}
+
