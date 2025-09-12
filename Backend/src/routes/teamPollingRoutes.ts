@@ -236,7 +236,7 @@ router.get("/poll-status/:teamId", authenticateUser, async (req, res) => {
 // Vote on problem statement
 router.post("/vote-problem-statement", authenticateUser, async (req, res) => {
   try {
-    const { teamId, problemStatementId, hackathonId } = req.body;
+    const { teamId, problemStatementTrack } = req.body;
     const userId = req.user?.id;
 
     if (!userId) {
@@ -248,6 +248,8 @@ router.post("/vote-problem-statement", authenticateUser, async (req, res) => {
     if (!team) {
       return res.status(404).json({ message: "Team not found" });
     }
+
+    const hackathonId = team.hackathonId;
 
     // Enhanced member verification similar to leader verification
     const isMember = team.teamMembers.some(member => 
@@ -293,14 +295,13 @@ router.post("/vote-problem-statement", authenticateUser, async (req, res) => {
       return res.status(404).json({ message: "Hackathon not found" });
     }
 
-    // Check if problem statement exists - handle both track names and descriptions
+    // Check if problem statement track exists
     const problemExists = hackathon.problemStatements.some(ps => 
-      ps.track === problemStatementId || 
-      ps.description === problemStatementId
+      ps.track === problemStatementTrack
     );
     
     console.log('🔍 Problem statement verification:', {
-      problemStatementId,
+      problemStatementTrack,
       hackathonProblemStatements: hackathon.problemStatements,
       problemExists
     });
@@ -309,7 +310,7 @@ router.post("/vote-problem-statement", authenticateUser, async (req, res) => {
       return res.status(404).json({ 
         message: "Problem statement not found",
         debug: {
-          problemStatementId,
+          problemStatementTrack,
           availableTracks: hackathon.problemStatements.map(ps => ps.track),
           availableDescriptions: hackathon.problemStatements.map(ps => ps.description)
         }
@@ -333,7 +334,7 @@ router.post("/vote-problem-statement", authenticateUser, async (req, res) => {
 
     // Record the vote
     if (team.problemStatementVotes) {
-      team.problemStatementVotes[userId] = problemStatementId;
+      team.problemStatementVotes[userId] = problemStatementTrack;
     }
     
     // Update vote count - ensure we're working with objects
@@ -347,13 +348,13 @@ router.post("/vote-problem-statement", authenticateUser, async (req, res) => {
     }
     
     if (team.problemStatementVoteCount) {
-      team.problemStatementVoteCount[problemStatementId] = (team.problemStatementVoteCount[problemStatementId] || 0) + 1;
+      team.problemStatementVoteCount[problemStatementTrack] = (team.problemStatementVoteCount[problemStatementTrack] || 0) + 1;
     }
 
     console.log('🗳️ Vote recorded:', {
       userId,
-      problemStatementId,
-      voteCount: team.problemStatementVoteCount?.[problemStatementId],
+      problemStatementTrack,
+      voteCount: team.problemStatementVoteCount?.[problemStatementTrack],
       allVoteCounts: team.problemStatementVoteCount
     });
 
@@ -370,9 +371,9 @@ router.post("/vote-problem-statement", authenticateUser, async (req, res) => {
     const totalVotes = Object.values(voteCountObj).reduce((sum, count) => (sum as number) + (count as number), 0);
     
     getWebSocketInstance().sendVoteUpdate(teamMemberIds, {
-      problemStatementId,
+      problemStatementTrack,
       voterId: userId,
-      voteCount: team.problemStatementVoteCount?.[problemStatementId] || 0,
+      voteCount: team.problemStatementVoteCount?.[problemStatementTrack] || 0,
       totalVotes: totalVotes
     });
 

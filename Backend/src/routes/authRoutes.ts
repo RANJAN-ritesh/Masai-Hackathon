@@ -1,8 +1,8 @@
 import express from "express";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import User from "../model/user";
 import { authenticateUser } from "../middleware/auth";
+import { generateToken } from "../config/jwt";
 
 const router = express.Router();
 
@@ -59,7 +59,7 @@ router.post("/register", async (req, res) => {
       skills: Array.isArray(skills) ? skills : [skills],
       vertical,
       phoneNumber: phoneNumber || '',
-      isVerified: false,
+      isVerified: true, // Set to true for testing
       teamsCreated: [],
       canSendRequests: true,
       canReceiveRequests: true
@@ -67,12 +67,12 @@ router.post("/register", async (req, res) => {
 
     await user.save();
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || "fallback-secret",
-      { expiresIn: "7d" }
-    );
+    // Generate JWT token using centralized config
+    const token = generateToken({
+      userId: (user._id as any).toString(),
+      email: user.email,
+      role: user.role
+    });
 
     res.status(201).json({
       message: "User registered successfully",
@@ -113,12 +113,12 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id, email: user.email, role: user.role },
-      process.env.JWT_SECRET || "fallback-secret",
-      { expiresIn: "7d" }
-    );
+    // Generate JWT token using centralized config
+    const token = generateToken({
+      userId: (user._id as any).toString(),
+      email: user.email,
+      role: user.role
+    });
 
     res.json({
       message: "Login successful",

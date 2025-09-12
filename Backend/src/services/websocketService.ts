@@ -1,10 +1,7 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import { Server as HTTPServer } from 'http';
-import jwt from 'jsonwebtoken';
+import { verifyToken } from '../config/jwt';
 import User from '../model/user';
-
-// JWT secret - in production, use environment variable
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -79,9 +76,9 @@ class WebSocketService {
 
         let user;
         try {
-          // Try JWT first
-          const decoded = jwt.verify(token, JWT_SECRET) as any;
-          if (decoded.userId) {
+          // Try JWT first using centralized verification
+          const decoded = verifyToken(token);
+          if (decoded && decoded.userId) {
             user = await User.findById(decoded.userId);
             console.log('✅ WebSocket: JWT authentication successful');
           }

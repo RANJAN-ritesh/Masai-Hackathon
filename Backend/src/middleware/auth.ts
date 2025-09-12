@@ -1,10 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import user from '../model/user';
-import jwt from 'jsonwebtoken';
 import rateLimit from 'express-rate-limit';
+import { verifyToken } from '../config/jwt';
 
-// JWT secret - in production, use environment variable
-const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
+// JWT configuration is now centralized in config/jwt.ts
 
 // Rate limiting for authentication endpoints
 export const authRateLimit = rateLimit({
@@ -45,59 +44,46 @@ export const authenticateUser = async (req: Request, res: Response, next: NextFu
     }
 
     try {
-      // First try to verify as JWT token
-      let decoded;
-      let foundUser;
+      // Use centralized JWT verification
+      const decoded = verifyToken(token);
+      
+      if (!decoded) {
+        console.log('❌ JWT verification failed: Invalid token');
+        return res.status(401).json({ message: 'Invalid token' });
+      }
 
-      try {
-        decoded = jwt.verify(token, JWT_SECRET) as any;
-        console.log('🔍 JWT DECODED:', decoded);
+      console.log('✅ JWT DECODED:', decoded);
 
-        if (decoded.userId) {
-          foundUser = await user.findById(decoded.userId);
-          console.log('🔍 FOUND USER:', foundUser ? foundUser._id : 'NOT FOUND');
+      if (decoded.userId) {
+        const foundUser = await user.findById(decoded.userId);
+        console.log('🔍 FOUND USER:', foundUser ? foundUser._id : 'NOT FOUND');
 
-          // Check if token is expired
-          if (decoded.exp && Date.now() >= decoded.exp * 1000) {
-            console.log('❌ TOKEN EXPIRED');
-            return res.status(401).json({ message: 'Token expired' });
-          }
+        // Check if token is expired
+        if (decoded.exp && Date.now() >= decoded.exp * 1000) {
+          console.log('❌ TOKEN EXPIRED');
+          return res.status(401).json({ message: 'Token expired' });
         }
-      } catch (jwtError) {
-        console.log('❌ JWT verification failed:', jwtError instanceof Error ? jwtError.message : 'Unknown error');
-        
-        // Fallback: try to use token as userId directly (for backward compatibility)
-        console.log('🔄 Trying token as userId:', token);
-        try {
-          foundUser = await user.findById(token);
-          if (foundUser) {
-            console.log('✅ Found user by userId:', foundUser._id);
-          } else {
-            console.log('❌ No user found with userId:', token);
-          }
-        } catch (userIdError) {
-          console.log('❌ Token is not a valid userId either:', userIdError instanceof Error ? userIdError.message : 'Unknown error');
-          return res.status(401).json({ message: 'Invalid token' });
+
+        if (!foundUser) {
+          return res.status(401).json({ message: 'User not found' });
         }
+
+        if (!foundUser.isVerified) {
+          return res.status(401).json({ message: 'User not verified' });
+        }
+
+        // Add user info to request
+        req.user = {
+          id: (foundUser._id as any).toString(),
+          email: foundUser.email,
+          role: foundUser.role,
+          name: foundUser.name
+        };
+
+        next();
+      } else {
+        return res.status(401).json({ message: 'Invalid token payload' });
       }
-
-      if (!foundUser) {
-        return res.status(401).json({ message: 'User not found' });
-      }
-
-      if (!foundUser.isVerified) {
-        return res.status(401).json({ message: 'User not verified' });
-      }
-
-      // Add user info to request
-      req.user = {
-        id: (foundUser._id as any).toString(),
-        email: foundUser.email,
-        role: foundUser.role,
-        name: foundUser.name
-      };
-
-      next();
     } catch (error) {
       console.error('Authentication error:', error);
       return res.status(401).json({ message: 'Authentication failed' });
@@ -119,16 +105,18 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
       
       if (token) {
         try {
-          const decoded = jwt.verify(token, JWT_SECRET) as any;
-          const foundUser = await user.findById(decoded.userId);
-        
-          if (foundUser && foundUser.isVerified) {
-            req.user = {
-              id: (foundUser._id as any).toString(),
-              email: foundUser.email,
-              role: foundUser.role,
-              name: foundUser.name
-            };
+          const decoded = verifyToken(token);
+          if (decoded && decoded.userId) {
+            const foundUser = await user.findById(decoded.userId);
+          
+            if (foundUser && foundUser.isVerified) {
+              req.user = {
+                id: (foundUser._id as any).toString(),
+                email: foundUser.email,
+                role: foundUser.role,
+                name: foundUser.name
+              };
+            }
           }
         } catch (jwtError) {
           // Continue without authentication if JWT is invalid
@@ -176,24 +164,4 @@ export const requireTeamMemberOrAdmin = (req: Request, res: Response, next: Next
   next();
 };
 
-// Generate JWT token for user
-export const generateToken = (userData: { userId: string; email: string; role: string }): string => {
-  return jwt.sign(
-    { 
-      userId: userData.userId, 
-      email: userData.email, 
-      role: userData.role,
-      exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
-    },
-    JWT_SECRET
-  );
-};
-
-// Verify JWT token
-export const verifyToken = (token: string): any => {
-  try {
-    return jwt.verify(token, JWT_SECRET);
-  } catch (error) {
-    return null;
-  }
-}; 
+// JWT utility functions are now centralized in config/jwt.ts 
