@@ -7,6 +7,7 @@ export interface IHackathon extends Document {
   endDate: Date;
   submissionStartDate: Date;
   submissionEndDate: Date;
+  submissionDescription: string;
   eventPlan: string;
   schedule: Array<{
     date: Date;
@@ -60,6 +61,7 @@ const HackathonSchema = new Schema<IHackathon>(
     endDate: { type: Date, required: true },
     submissionStartDate: { type: Date },
     submissionEndDate: { type: Date },
+    submissionDescription: { type: String, default: "Please submit your project solution here." },
     eventPlan: { type: String },
     schedule: [{
       date: { type: Date },

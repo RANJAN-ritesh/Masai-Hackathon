@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { MyContext } from '../context/AuthContextProvider';
 import { useTheme } from '../context/ThemeContextProvider';
-import NewSimplePolling from './NewSimplePolling';
+// Removed polling system - using direct team leader selection instead
 import TeamChat from './TeamChat';
 import { 
   Users, 
@@ -14,11 +14,8 @@ import {
   Send,
   Check,
   X,
-  Clock,
   Mail,
-  Vote,
   Target,
-  BarChart3,
   CheckCircle
 } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -45,17 +42,12 @@ const MyTeam = () => {
   const [sentInvitations, setSentInvitations] = useState(new Set()); // Track sent invitations
   const [invitationLoading, setInvitationLoading] = useState(new Set()); // Track loading states
 
-  // Problem Statement Polling State
+  // Problem Statement Selection State
   const [problemStatements, setProblemStatements] = useState([]);
-  const [pollActive, setPollActive] = useState(false);
-  const [pollResults, setPollResults] = useState({});
-  const [showPollModal, setShowPollModal] = useState(false);
   const [selectedProblemStatement, setSelectedProblemStatement] = useState(null);
-  const [pollDuration, setPollDuration] = useState(30); // Default 30 minutes
-  const [pollStartTime, setPollStartTime] = useState(null);
-  const [pollEndTime, setPollEndTime] = useState(null);
-  const [timeLeft, setTimeLeft] = useState(null);
-  const [loadingPollStatus, setLoadingPollStatus] = useState(false);
+  const [showProblemSelectionModal, setShowProblemSelectionModal] = useState(false);
+  const [submissionLink, setSubmissionLink] = useState('');
+  const [showSubmissionModal, setShowSubmissionModal] = useState(false);
 
   // Check team creation mode
   const isParticipantTeamMode = hackathon?.allowParticipantTeams && hackathon?.teamCreationMode === 'participant';
@@ -67,52 +59,12 @@ const MyTeam = () => {
     }
   }, [hackathon, userId]);
 
-  // Load poll status when team data is loaded
+  // Load selected problem statement when team data is loaded
   useEffect(() => {
-    if (currentTeam && !loadingPollStatus) {
-      loadPollStatus();
+    if (currentTeam?.selectedProblemStatement) {
+      setSelectedProblemStatement(currentTeam.selectedProblemStatement);
     }
-    
-    // Cleanup function to clear any pending timeouts
-    return () => {
-      if (loadPollStatus.timeout) {
-        clearTimeout(loadPollStatus.timeout);
-      }
-    };
-  }, [currentTeam?._id]); // Only depend on team ID, not the entire team object
-
-  // Poll timer effect
-  useEffect(() => {
-    if (!pollActive || !pollStartTime) return;
-
-    const interval = setInterval(() => {
-      const now = new Date();
-      const endTime = new Date(pollEndTime);
-      const diff = endTime - now;
-
-      if (diff <= 0) {
-        setTimeLeft({ hours: 0, minutes: 0, seconds: 0, expired: true });
-        setPollActive(false);
-        toast.warning('Poll time has ended! Team leader should select the final problem statement.');
-        clearInterval(interval);
-        return;
-      }
-
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff / (1000 * 60)) % 60);
-      const seconds = Math.floor((diff / 1000) % 60);
-
-      setTimeLeft({ hours, minutes, seconds, expired: false });
-
-      // Send notifications at specific intervals
-      const totalMinutes = Math.floor(diff / (1000 * 60));
-      if (totalMinutes === 20 || totalMinutes === 10) {
-        toast.info(`Poll ends in ${totalMinutes} minutes! Please cast your vote.`);
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [pollActive, pollStartTime, pollEndTime]);
+  }, [currentTeam?.selectedProblemStatement]);
 
   const loadData = async () => {
     setLoading(true);
@@ -251,146 +203,12 @@ const MyTeam = () => {
     }
   };
 
-  // Start problem statement poll
-  const startProblemStatementPoll = async () => {
-    if (!currentTeam) {
-      toast.error('You need to be in a team to start a poll');
-      return;
-    }
-
-    if (currentTeam.teamLeader?._id !== userId && !currentTeam.teamMembers.find(m => m._id === userId)?.role === 'leader') {
-      toast.error('Only team leaders can start problem statement polls');
-      return;
-    }
-
-    if (problemStatements.length === 0) {
-      toast.error('No problem statements available for this hackathon');
-      return;
-    }
-
-    // Just show the modal - don't start poll automatically
-    setShowPollModal(true);
-  };
-
-  // Load poll status from backend
-  const loadPollStatus = async () => {
-    if (!currentTeam || loadingPollStatus) return;
-    
-    // Debounce rapid calls
-    if (loadPollStatus.timeout) {
-      clearTimeout(loadPollStatus.timeout);
-    }
-    
-    loadPollStatus.timeout = setTimeout(async () => {
-      setLoadingPollStatus(true);
-    try {
-      const token = localStorage.getItem('authToken');
-      
-      if (!token) {
-        console.error('No authentication token found');
-        return;
-      }
-      
-      const response = await fetch(`${baseURL}/team-polling/poll-status/${currentTeam._id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        const pollData = await response.json();
-        setPollActive(pollData.pollActive || false);
-        setPollStartTime(pollData.pollStartTime ? new Date(pollData.pollStartTime) : null);
-        setPollEndTime(pollData.pollEndTime ? new Date(pollData.pollEndTime) : null);
-        setPollDuration(pollData.pollDuration || 90);
-        
-        // Only update selectedProblemStatement if there's an active poll
-        if (pollData.pollActive && pollData.pollProblemStatement) {
-          setSelectedProblemStatement(pollData.pollProblemStatement);
-        }
-        
-        // Update team with poll data
-        if (currentTeam) {
-          setCurrentTeam(prev => ({
-            ...prev,
-            pollActive: pollData.pollActive,
-            pollStartTime: pollData.pollStartTime,
-            pollEndTime: pollData.pollEndTime,
-            pollDuration: pollData.pollDuration,
-            pollProblemStatement: pollData.pollProblemStatement,
-            problemStatementVotes: pollData.problemStatementVotes || {},
-            problemStatementVoteCount: pollData.problemStatementVoteCount || {}
-          }));
-        }
-      }
-    } catch (error) {
-      console.error('Error loading poll status:', error);
-    } finally {
-      setLoadingPollStatus(false);
-    }
-    }, 500); // 500ms debounce
-  };
-
-  // Vote on problem statement
-  const voteOnProblemStatement = async (problemStatementId) => {
-    try {
-      console.log('🗳️ Voting on problem statement:', problemStatementId);
-      console.log('🗳️ Current team:', currentTeam?._id);
-      console.log('🗳️ Hackathon:', hackathon?._id);
-
-      if (!currentTeam) {
-        toast.error('You need to be in a team to vote');
-        return;
-      }
-
-      if (!pollActive) {
-        toast.error('No active poll to vote on');
-        return;
-      }
-
-      const token = localStorage.getItem('authToken') || localStorage.getItem('userId');
-      if (!token) {
-        toast.error('Authentication token not found. Please log in again.');
-        return;
-      }
-      
-      const response = await fetch(`${baseURL}/team-polling/vote-problem-statement`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          teamId: currentTeam._id,
-          problemStatementId,
-          hackathonId: hackathon._id
-        })
-      });
-
-      if (response.ok) {
-        toast.success('Vote recorded successfully!');
-        // Reload poll status to get updated vote counts
-        await loadPollStatus();
-      } else {
-        const error = await response.json();
-        console.error('🗳️ Vote error response:', error);
-        toast.error(error.message || 'Failed to record vote');
-      }
-    } catch (error) {
-      console.error('Error voting on problem statement:', error);
-      toast.error('Failed to record vote');
-    }
-  };
-
-  // Conclude poll function
-  const concludePoll = async () => {
-    // Show confirmation dialog
+  // Select problem statement (team leader only)
+  const selectProblemStatement = async (problemStatement) => {
     const confirmed = window.confirm(
-      'Are you sure you want to conclude the poll?\n\n' +
-      'This will end the voting process and select the problem statement with the most votes.\n' +
-      'This action cannot be undone.\n\n' +
-      'Do you want to proceed?'
+      `Are you sure you want to select "${problemStatement.track}"?\n\n` +
+      `This will be your team's final problem statement and cannot be changed.\n\n` +
+      `Do you want to proceed?`
     );
 
     if (!confirmed) {
@@ -398,57 +216,102 @@ const MyTeam = () => {
     }
 
     try {
-      console.log('🏁 Concluding poll for team:', currentTeam?._id);
-
-      if (!currentTeam) {
-        toast.error('You need to be in a team to conclude a poll');
-        return;
-      }
-
-      if (!pollActive) {
-        toast.error('No active poll to conclude');
-        return;
-      }
-
       const token = localStorage.getItem('authToken') || localStorage.getItem('userId');
       if (!token) {
         toast.error('Authentication token not found. Please log in again.');
         return;
       }
-      
-      const response = await fetch(`${baseURL}/team-polling/conclude-poll`, {
+
+      const response = await fetch(`${baseURL}/team/select-problem-statement`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          teamId: currentTeam._id
+          teamId: currentTeam._id,
+          problemStatement: problemStatement.track
         })
       });
 
       if (response.ok) {
-        const result = await response.json();
-        toast.success(`Poll concluded! Selected: ${result.winningProblemStatement || 'No votes received'}`);
+        toast.success(`Problem statement "${problemStatement.track}" selected successfully!`);
+        setSelectedProblemStatement(problemStatement.track);
+        setShowProblemSelectionModal(false);
         
-        // Update local state
-        setPollActive(false);
-        
-        // Reload poll status to get updated state
-        await loadPollStatus();
-        
-        // Close the poll modal if open
-        setShowPollModal(false);
+        // Update local team data
+        setCurrentTeam(prev => ({
+          ...prev,
+          selectedProblemStatement: problemStatement.track
+        }));
       } else {
-        const errorData = await response.json();
-        console.error('🏁 Conclude poll error response:', errorData);
-        toast.error(errorData.message || 'Failed to conclude poll');
+        const error = await response.json();
+        toast.error(error.message || 'Failed to select problem statement');
       }
     } catch (error) {
-      console.error('Error concluding poll:', error);
-      toast.error('Failed to conclude poll');
+      console.error('Error selecting problem statement:', error);
+      toast.error('Failed to select problem statement');
     }
   };
+
+  // Submit project (team leader only)
+  const submitProject = async () => {
+    if (!submissionLink.trim()) {
+      toast.error('Please enter a submission link');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to submit this project?\n\n` +
+      `Submission Link: ${submissionLink}\n\n` +
+      `This is your final submission and cannot be changed.\n\n` +
+      `Do you want to proceed?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('authToken') || localStorage.getItem('userId');
+      if (!token) {
+        toast.error('Authentication token not found. Please log in again.');
+        return;
+      }
+
+      const response = await fetch(`${baseURL}/team/submit-project`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          teamId: currentTeam._id,
+          submissionLink: submissionLink.trim()
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Project submitted successfully!');
+        setShowSubmissionModal(false);
+        setSubmissionLink('');
+        
+        // Update local team data
+        setCurrentTeam(prev => ({
+          ...prev,
+          submissionLink: submissionLink.trim(),
+          submissionTime: new Date().toISOString()
+        }));
+      } else {
+        const error = await response.json();
+        toast.error(error.message || 'Failed to submit project');
+      }
+    } catch (error) {
+      console.error('Error submitting project:', error);
+      toast.error('Failed to submit project');
+    }
+  };
+
 
   // Report team member function
   const reportTeamMember = async (memberId, reason) => {
@@ -499,102 +362,6 @@ const MyTeam = () => {
     }
   };
 
-  // Submit project function
-  const submitProject = async (submissionLink) => {
-    const confirmed = window.confirm(
-      `Are you sure you want to submit this project?\n\n` +
-      `Submission Link: ${submissionLink}\n\n` +
-      `This is your final submission and cannot be changed.\n\n` +
-      `Do you want to proceed?`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('authToken');
-      if (!token) {
-        toast.error('Authentication token not found. Please log in again.');
-        return;
-      }
-      
-      const response = await fetch(`${baseURL}/submission/submit-project`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          teamId: currentTeam._id,
-          submissionLink: submissionLink
-        })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        toast.success('Project submitted successfully!');
-        
-        // Reload team data to update UI
-        await loadTeamData();
-      } else {
-        const errorData = await response.json();
-        toast.error(errorData.message || 'Failed to submit project');
-      }
-    } catch (error) {
-      console.error('Error submitting project:', error);
-      toast.error('Failed to submit project');
-    }
-  };
-
-  // Load poll results
-  const loadPollResults = async () => {
-    try {
-      const response = await fetch(`${baseURL}/team-polling/poll-results/${currentTeam._id}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPollResults(data.results || {});
-      }
-    } catch (error) {
-      console.error('Error loading poll results:', error);
-    }
-  };
-
-  // End poll and select problem statement
-  const endPollAndSelectProblem = async (problemStatementId) => {
-    try {
-      const response = await fetch(`${baseURL}/team-polling/select-problem-statement`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify({
-          teamId: currentTeam._id,
-          problemStatementId,
-          hackathonId: hackathon._id
-        })
-      });
-
-      if (response.ok) {
-        setPollActive(false);
-        setShowPollModal(false);
-        setSelectedProblemStatement(problemStatementId);
-        toast.success('Problem statement selected successfully!');
-      } else {
-        const error = await response.json();
-        toast.error(error.message || 'Failed to select problem statement');
-      }
-    } catch (error) {
-      console.error('Error selecting problem statement:', error);
-      toast.error('Failed to select problem statement');
-    }
-  };
 
   const createTeam = async () => {
     if (!teamCreationData.teamName.trim()) {
@@ -846,8 +613,8 @@ const MyTeam = () => {
           </p>
         </div>
 
-        {/* Problem Statement Poll Modal */}
-        {showPollModal && (
+        {/* Problem Statement Selection Modal */}
+        {showProblemSelectionModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div 
               className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto"
@@ -858,82 +625,38 @@ const MyTeam = () => {
                   className="text-2xl font-bold"
                   style={{ color: themeConfig.textColor }}
                 >
-                  Problem Statement Poll
+                  Select Problem Statement
                 </h2>
                 <button
-                  onClick={() => setShowPollModal(false)}
+                  onClick={() => setShowProblemSelectionModal(false)}
                   className="text-gray-500 hover:text-gray-700"
                 >
                   <X className="w-6 h-6" />
                 </button>
               </div>
 
-              {/* Poll Duration Configuration (only for team leaders before poll starts) */}
-              {!pollActive && currentTeam?.teamLeader?._id === userId && (
-                <div className="mb-6 p-4 rounded-lg" style={{ backgroundColor: themeConfig.accentColor + '10' }}>
-                  <h3 className="font-semibold mb-3" style={{ color: themeConfig.textColor }}>
-                    Configure Poll Duration
-                  </h3>
-                  <div className="flex items-center space-x-4">
-                    <label className="text-sm" style={{ color: themeConfig.textColor }}>
-                      Duration:
-                    </label>
-                    <select
-                      value={pollDuration}
-                      onChange={(e) => setPollDuration(parseInt(e.target.value))}
-                      className="px-3 py-2 rounded-lg border"
-                      style={{
-                        backgroundColor: themeConfig.backgroundColor,
-                        borderColor: themeConfig.borderColor,
-                        color: themeConfig.textColor
-                      }}
-                    >
-                      <option value={60}>1 hour</option>
-                      <option value={90}>1.5 hours</option>
-                      <option value={120}>2 hours</option>
-                    </select>
-                    <button
-                      onClick={startProblemStatementPoll}
-                      className="px-4 py-2 rounded-lg transition"
-                      style={{ 
-                        backgroundColor: themeConfig.accentColor,
-                        color: 'white'
-                      }}
-                    >
-                      Start Poll
-                    </button>
-                  </div>
+              <div className="mb-4 p-4 rounded-lg" style={{ backgroundColor: '#fef3c7' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Target className="w-5 h-5" style={{ color: '#92400e' }} />
+                  <span className="font-medium" style={{ color: '#92400e' }}>
+                    Important Notice
+                  </span>
                 </div>
-              )}
-
-              {/* Poll Timer Display */}
-              {pollActive && timeLeft && (
-                <div className="mb-6 p-4 rounded-lg text-center" style={{ backgroundColor: timeLeft.expired ? '#ef4444' + '20' : themeConfig.accentColor + '10' }}>
-                  <div className="flex items-center justify-center space-x-2 mb-2">
-                    <Clock className="w-5 h-5" style={{ color: timeLeft.expired ? '#ef4444' : themeConfig.accentColor }} />
-                    <span className="font-semibold" style={{ color: timeLeft.expired ? '#ef4444' : themeConfig.textColor }}>
-                      {timeLeft.expired ? 'Poll Ended' : 'Time Remaining'}
-                    </span>
-                  </div>
-                  {!timeLeft.expired && (
-                    <div className="text-2xl font-mono" style={{ color: themeConfig.textColor }}>
-                      {timeLeft.hours.toString().padStart(2, '0')}:
-                      {timeLeft.minutes.toString().padStart(2, '0')}:
-                      {timeLeft.seconds.toString().padStart(2, '0')}
-                    </div>
-                  )}
-                </div>
-              )}
+                <p className="text-sm" style={{ color: '#92400e' }}>
+                  Once you select a problem statement, it cannot be changed. Please discuss with your team members via chat before making your final decision.
+                </p>
+              </div>
 
               <div className="space-y-4">
                 {problemStatements.map((problem, index) => (
                   <div 
                     key={index}
-                    className="p-4 rounded-lg border"
+                    className="p-4 rounded-lg border cursor-pointer transition-all hover:shadow-md"
                     style={{ 
                       backgroundColor: themeConfig.backgroundColor,
                       borderColor: themeConfig.borderColor
                     }}
+                    onClick={() => selectProblemStatement(problem)}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
@@ -949,63 +672,124 @@ const MyTeam = () => {
                         >
                           {problem.description}
                         </p>
-                        {pollResults[problem.track] && (
-                          <div className="mt-2">
-                            <div className="flex items-center space-x-2">
-                              <BarChart3 className="w-4 h-4" style={{ color: themeConfig.accentColor }} />
-                              <span 
-                                className="text-sm"
-                                style={{ color: themeConfig.textColor }}
-                              >
-                                {pollResults[problem.track]} votes
-                              </span>
-                            </div>
-                          </div>
-                        )}
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="ml-4">
                         <button
-                          onClick={() => voteOnProblemStatement(problem.track)}
                           className="px-4 py-2 rounded-lg transition"
                           style={{ 
                             backgroundColor: themeConfig.accentColor,
                             color: 'white'
                           }}
                         >
-                          <Vote className="w-4 h-4" />
+                          Select
                         </button>
-                        {currentTeam?.teamLeader?._id === userId && (
-                          <button
-                            onClick={() => endPollAndSelectProblem(problem.track)}
-                            className="px-4 py-2 rounded-lg transition border"
-                            style={{ 
-                              borderColor: themeConfig.accentColor,
-                              color: themeConfig.accentColor
-                            }}
-                          >
-                            <Target className="w-4 h-4" />
-                          </button>
-                        )}
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
 
-              {currentTeam?.teamLeader?._id === userId && (
-                <div className="mt-6 text-center">
-                  <button
-                    onClick={() => setShowPollModal(false)}
-                    className="px-6 py-2 rounded-lg transition"
-                    style={{ 
-                      backgroundColor: themeConfig.accentColor,
-                      color: 'white'
-                    }}
-                  >
-                    Close Poll
-                  </button>
+              <div className="mt-6 text-center">
+                <button
+                  onClick={() => setShowProblemSelectionModal(false)}
+                  className="px-6 py-2 rounded-lg transition border"
+                  style={{ 
+                    borderColor: themeConfig.borderColor,
+                    color: themeConfig.textColor
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Submission Modal */}
+        {showSubmissionModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div 
+              className="bg-white rounded-lg p-6 max-w-md w-full mx-4"
+              style={{ backgroundColor: themeConfig.cardBg }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 
+                  className="text-xl font-bold"
+                  style={{ color: themeConfig.textColor }}
+                >
+                  Submit Project
+                </h2>
+                <button
+                  onClick={() => setShowSubmissionModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="mb-4 p-4 rounded-lg" style={{ backgroundColor: '#fef3c7' }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle className="w-5 h-5" style={{ color: '#92400e' }} />
+                  <span className="font-medium" style={{ color: '#92400e' }}>
+                    Final Submission
+                  </span>
                 </div>
-              )}
+                <p className="text-sm" style={{ color: '#92400e' }}>
+                  This is your final submission and cannot be changed once submitted.
+                </p>
+                {hackathon?.submissionDescription && (
+                  <div className="mt-2 p-2 rounded" style={{ backgroundColor: '#fbbf24' }}>
+                    <p className="text-sm font-medium" style={{ color: '#92400e' }}>
+                      Submission Instructions:
+                    </p>
+                    <p className="text-sm" style={{ color: '#92400e' }}>
+                      {hackathon.submissionDescription}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2" style={{ color: themeConfig.textColor }}>
+                  Submission Link *
+                </label>
+                <input
+                  type="url"
+                  value={submissionLink}
+                  onChange={(e) => setSubmissionLink(e.target.value)}
+                  placeholder="https://github.com/your-repo or https://your-project.com"
+                  className="w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                  style={{
+                    backgroundColor: themeConfig.backgroundColor,
+                    borderColor: themeConfig.borderColor,
+                    color: themeConfig.textColor,
+                    '--tw-ring-color': themeConfig.accentColor
+                  }}
+                />
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={submitProject}
+                  className="flex-1 py-2 px-4 rounded-lg font-medium transition"
+                  style={{ 
+                    backgroundColor: themeConfig.accentColor,
+                    color: 'white'
+                  }}
+                >
+                  Submit Project
+                </button>
+                <button
+                  onClick={() => setShowSubmissionModal(false)}
+                  className="px-4 py-2 rounded-lg transition border"
+                  style={{ 
+                    borderColor: themeConfig.borderColor,
+                    color: themeConfig.textColor
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -1126,26 +910,52 @@ const MyTeam = () => {
                 {(currentTeam.teamLeader?._id === userId || currentTeam.teamMembers.find(m => m._id === userId)?.role === 'leader') ? (
                   <div className="border-t pt-4" style={{ borderColor: '#22c55e' }}>
                     <h4 className="font-medium mb-2" style={{ color: '#166534' }}>
-                      Team Leader Submission Interface
+                      Project Submission
                     </h4>
                     <p className="text-sm mb-3" style={{ color: '#166534', opacity: 0.8 }}>
                       Once your team is ready, you can submit your project solution. This is a final submission that cannot be changed.
                     </p>
-                    <button 
-                      className="px-4 py-2 rounded-lg font-medium transition"
-                      style={{ 
-                        backgroundColor: '#22c55e',
-                        color: 'white'
-                      }}
-                      onClick={() => {
-                        const submissionLink = prompt('Please enter your project submission link:');
-                        if (submissionLink && submissionLink.trim()) {
-                          submitProject(submissionLink.trim());
-                        }
-                      }}
-                    >
-                      Submit Project
-                    </button>
+                    {hackathon?.submissionStartDate && hackathon?.submissionEndDate ? (
+                      (() => {
+                        const now = new Date();
+                        const startDate = new Date(hackathon.submissionStartDate);
+                        const endDate = new Date(hackathon.submissionEndDate);
+                        const isSubmissionPeriod = now >= startDate && now <= endDate;
+                        
+                        return isSubmissionPeriod ? (
+                          <button 
+                            className="px-4 py-2 rounded-lg font-medium transition"
+                            style={{ 
+                              backgroundColor: '#22c55e',
+                              color: 'white'
+                            }}
+                            onClick={() => setShowSubmissionModal(true)}
+                          >
+                            Submit Project
+                          </button>
+                        ) : (
+                          <div className="p-3 rounded-lg" style={{ backgroundColor: '#fef3c7' }}>
+                            <p className="text-sm" style={{ color: '#92400e' }}>
+                              {now < startDate 
+                                ? `Submission period starts: ${startDate.toLocaleDateString()}`
+                                : `Submission period ended: ${endDate.toLocaleDateString()}`
+                              }
+                            </p>
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      <button 
+                        className="px-4 py-2 rounded-lg font-medium transition"
+                        style={{ 
+                          backgroundColor: '#22c55e',
+                          color: 'white'
+                        }}
+                        onClick={() => setShowSubmissionModal(true)}
+                      >
+                        Submit Project
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="border-t pt-4" style={{ borderColor: '#22c55e' }}>
@@ -1186,8 +996,39 @@ const MyTeam = () => {
               </div>
             )}
 
-            {/* Simple Polling Component */}
-            <NewSimplePolling teamId={currentTeam?._id} />
+            {/* Problem Statement Selection */}
+            {!selectedProblemStatement && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2" style={{ color: themeConfig.textColor }}>
+                  <Target className="w-5 h-5" style={{ color: themeConfig.accentColor }} />
+                  Problem Statement Selection
+                </h3>
+                <div className="p-4 rounded-lg border" style={{ 
+                  backgroundColor: '#f0f9ff',
+                  borderColor: '#0ea5e9'
+                }}>
+                  <p className="text-sm mb-3" style={{ color: '#0c4a6e' }}>
+                    <strong>Team Leader:</strong> Please select a problem statement for your team. This decision should be made after discussing with your team members via chat.
+                  </p>
+                  {(currentTeam.teamLeader?._id === userId || currentTeam.teamMembers.find(m => m._id === userId)?.role === 'leader') ? (
+                    <button
+                      onClick={() => setShowProblemSelectionModal(true)}
+                      className="px-4 py-2 rounded-lg transition"
+                      style={{ 
+                        backgroundColor: themeConfig.accentColor,
+                        color: 'white'
+                      }}
+                    >
+                      Select Problem Statement
+                    </button>
+                  ) : (
+                    <p className="text-sm" style={{ color: '#0c4a6e', opacity: 0.8 }}>
+                      Waiting for team leader to select a problem statement...
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
             
             {/* Active Poll Section (Visible to All Team Members) - DISABLED */}
             {false && pollActive && (
@@ -1317,12 +1158,11 @@ const MyTeam = () => {
                 Team Instructions
               </h3>
               <div className="text-sm space-y-2" style={{ color: '#0c4a6e' }}>
-                <p>• <strong>Problem Statement Selection:</strong> Only the team leader can initiate and manage polls for problem selection.</p>
-                <p>• <strong>Voting:</strong> All team members can vote during active polls to help choose the problem statement.</p>
+                <p>• <strong>Problem Statement Selection:</strong> Only the team leader can select the problem statement after discussing with teammates via chat.</p>
+                <p>• <strong>Communication:</strong> Use the team chat to discuss and coordinate on problem statement selection.</p>
                 <p>• <strong>Final Submission:</strong> Only the team leader can submit the final project for the team.</p>
-                <p>• <strong>Communication:</strong> Stay coordinated with your team leader for all major decisions.</p>
-                <p>• <strong>Poll Duration:</strong> Polls run for 1-2 hours as configured by the team leader.</p>
                 <p>• <strong>Problem Locking:</strong> Once a problem is selected, it cannot be changed.</p>
+                <p>• <strong>Submission Locking:</strong> Once a project is submitted, it cannot be changed.</p>
               </div>
             </div>
 
@@ -1340,25 +1180,57 @@ const MyTeam = () => {
                   Team Leader Actions
                 </h3>
                 <div className="flex flex-wrap gap-3">
-                  <button
-                    onClick={() => setShowPollModal(true)}
-                    className="px-6 py-3 rounded-lg transition-all hover:shadow-lg flex items-center gap-2 font-medium"
-                    style={{ 
-                      backgroundColor: '#f59e0b',
-                      color: 'white'
-                    }}
-                  >
-                    <Vote className="w-5 h-5" />
-                    {pollActive ? 'View Poll Progress' : 'Start Problem Statement Poll'}
-                  </button>
-                  
-                  {pollActive && (
-                    <div className="flex items-center gap-2 px-4 py-2 rounded-lg" style={{ backgroundColor: '#fbbf24' }}>
-                      <Clock className="w-4 h-4" style={{ color: '#92400e' }} />
-                      <span className="text-sm font-medium" style={{ color: '#92400e' }}>
-                        Poll Active
+                  {!selectedProblemStatement ? (
+                    <button
+                      onClick={() => setShowProblemSelectionModal(true)}
+                      className="px-6 py-3 rounded-lg transition-all hover:shadow-lg flex items-center gap-2 font-medium"
+                      style={{ 
+                        backgroundColor: '#f59e0b',
+                        color: 'white'
+                      }}
+                    >
+                      <Target className="w-5 h-5" />
+                      Select Problem Statement
+                    </button>
+                  ) : (
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-lg" style={{ backgroundColor: '#dcfce7' }}>
+                      <CheckCircle className="w-4 h-4" style={{ color: '#166534' }} />
+                      <span className="text-sm font-medium" style={{ color: '#166534' }}>
+                        Problem Selected: {selectedProblemStatement}
                       </span>
                     </div>
+                  )}
+                  
+                  {selectedProblemStatement && !currentTeam.submissionLink && (
+                    (() => {
+                      const now = new Date();
+                      const startDate = hackathon?.submissionStartDate ? new Date(hackathon.submissionStartDate) : null;
+                      const endDate = hackathon?.submissionEndDate ? new Date(hackathon.submissionEndDate) : null;
+                      const isSubmissionPeriod = !startDate || !endDate || (now >= startDate && now <= endDate);
+                      
+                      return isSubmissionPeriod ? (
+                        <button
+                          onClick={() => setShowSubmissionModal(true)}
+                          className="px-6 py-3 rounded-lg transition-all hover:shadow-lg flex items-center gap-2 font-medium"
+                          style={{ 
+                            backgroundColor: '#22c55e',
+                            color: 'white'
+                          }}
+                        >
+                          <CheckCircle className="w-5 h-5" />
+                          Submit Project
+                        </button>
+                      ) : (
+                        <div className="px-4 py-2 rounded-lg" style={{ backgroundColor: '#fef3c7' }}>
+                          <span className="text-sm font-medium" style={{ color: '#92400e' }}>
+                            {now < startDate 
+                              ? `Submission starts: ${startDate.toLocaleDateString()}`
+                              : `Submission ended: ${endDate.toLocaleDateString()}`
+                            }
+                          </span>
+                        </div>
+                      );
+                    })()
                   )}
                 </div>
                 
@@ -1629,15 +1501,98 @@ const MyTeam = () => {
                         </div>
                       )}
 
-                      {/* Problem Statement Polling */}
+                      {/* Problem Statement Selection */}
                       <div className="mt-8">
                         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2" style={{ color: themeConfig.textColor }}>
-                          <Vote className="w-5 h-5" style={{ color: themeConfig.accentColor }} />
+                          <Target className="w-5 h-5" style={{ color: themeConfig.accentColor }} />
                           Problem Statement Selection
                         </h3>
-                        <div className="rounded-lg border" style={{ borderColor: themeConfig.borderColor }}>
-                          <NewSimplePolling teamId={currentTeam?._id} />
-                        </div>
+                        {!selectedProblemStatement ? (
+                          <div className="p-4 rounded-lg border" style={{ 
+                            backgroundColor: '#f0f9ff',
+                            borderColor: '#0ea5e9'
+                          }}>
+                            <p className="text-sm mb-3" style={{ color: '#0c4a6e' }}>
+                              <strong>Team Leader:</strong> Please select a problem statement for your team. This decision should be made after discussing with your team members via chat.
+                            </p>
+                            {currentTeam.teamLeader?._id === userId ? (
+                              <button
+                                onClick={() => setShowProblemSelectionModal(true)}
+                                className="px-4 py-2 rounded-lg transition"
+                                style={{ 
+                                  backgroundColor: themeConfig.accentColor,
+                                  color: 'white'
+                                }}
+                              >
+                                Select Problem Statement
+                              </button>
+                            ) : (
+                              <p className="text-sm" style={{ color: '#0c4a6e', opacity: 0.8 }}>
+                                Waiting for team leader to select a problem statement...
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="p-4 rounded-lg border-2" style={{
+                            backgroundColor: '#dcfce7',
+                            borderColor: '#22c55e'
+                          }}>
+                            <h4 className="font-medium mb-2 flex items-center gap-2" style={{ color: '#166534' }}>
+                              <CheckCircle className="w-5 h-5" style={{ color: '#22c55e' }} />
+                              Selected Problem Statement
+                            </h4>
+                            <p className="text-sm" style={{ color: '#166534' }}>
+                              <strong>{selectedProblemStatement}</strong>
+                            </p>
+                            
+                            {/* Submission Interface for Leader */}
+                            {currentTeam.teamLeader?._id === userId && !currentTeam.submissionLink && (
+                              <div className="mt-4 pt-4 border-t" style={{ borderColor: '#22c55e' }}>
+                                {hackathon?.submissionStartDate && hackathon?.submissionEndDate ? (
+                                  (() => {
+                                    const now = new Date();
+                                    const startDate = new Date(hackathon.submissionStartDate);
+                                    const endDate = new Date(hackathon.submissionEndDate);
+                                    const isSubmissionPeriod = now >= startDate && now <= endDate;
+                                    
+                                    return isSubmissionPeriod ? (
+                                      <button
+                                        onClick={() => setShowSubmissionModal(true)}
+                                        className="px-4 py-2 rounded-lg font-medium transition"
+                                        style={{ 
+                                          backgroundColor: '#22c55e',
+                                          color: 'white'
+                                        }}
+                                      >
+                                        Submit Project
+                                      </button>
+                                    ) : (
+                                      <div className="p-3 rounded-lg" style={{ backgroundColor: '#fef3c7' }}>
+                                        <p className="text-sm" style={{ color: '#92400e' }}>
+                                          {now < startDate 
+                                            ? `Submission period starts: ${startDate.toLocaleDateString()}`
+                                            : `Submission period ended: ${endDate.toLocaleDateString()}`
+                                          }
+                                        </p>
+                                      </div>
+                                    );
+                                  })()
+                                ) : (
+                                  <button
+                                    onClick={() => setShowSubmissionModal(true)}
+                                    className="px-4 py-2 rounded-lg font-medium transition"
+                                    style={{ 
+                                      backgroundColor: '#22c55e',
+                                      color: 'white'
+                                    }}
+                                  >
+                                    Submit Project
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -2054,199 +2009,6 @@ const MyTeam = () => {
           </>
         )}
 
-        {/* Poll Modal */}
-        {showPollModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div 
-              className="bg-white rounded-lg p-6 w-full max-w-md mx-4"
-              style={{ backgroundColor: themeConfig.cardBg }}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2" style={{ color: themeConfig.textColor }}>
-                  <Vote className="w-5 h-5" style={{ color: themeConfig.accentColor }} />
-                  Problem Statement Poll
-                </h3>
-                <button
-                  onClick={() => setShowPollModal(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              {!pollActive ? (
-                <div>
-                  <p className="mb-4" style={{ color: themeConfig.textColor }}>
-                    All problem statements will be included in the poll. Choose the poll duration and start voting!
-                  </p>
-                  
-                  {/* Problem Statements Preview */}
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium mb-2" style={{ color: themeConfig.textColor }}>
-                      Problem Statements in Poll ({problemStatements.length})
-                    </label>
-                    <div className="space-y-2 max-h-32 overflow-y-auto bg-gray-50 rounded-lg p-3">
-                      {problemStatements.map((problem, index) => (
-                        <div 
-                          key={index}
-                          className="flex items-center gap-2 p-2 rounded border"
-                          style={{ 
-                            backgroundColor: themeConfig.backgroundColor,
-                            borderColor: themeConfig.borderColor
-                          }}
-                        >
-                          <CheckCircle className="w-4 h-4 text-green-500" />
-                          <div>
-                            <h4 className="font-medium text-sm" style={{ color: themeConfig.textColor }}>
-                              {problem.track}
-                            </h4>
-                            <p className="text-xs" style={{ color: themeConfig.textColor, opacity: 0.7 }}>
-                              {problem.description?.substring(0, 50)}...
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium mb-2" style={{ color: themeConfig.textColor }}>
-                      Poll Duration
-                    </label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {[
-                        { value: 10, label: '10 min', color: 'bg-blue-500' },
-                        { value: 30, label: '30 min', color: 'bg-green-500' },
-                        { value: 60, label: '60 min', color: 'bg-purple-500' }
-                      ].map((option) => (
-                        <button
-                          key={option.value}
-                          onClick={() => setPollDuration(option.value)}
-                          className={`p-3 rounded-lg text-white font-medium transition-all ${
-                            pollDuration === option.value 
-                              ? `${option.color} ring-2 ring-offset-2 ring-current` 
-                              : `${option.color} opacity-70 hover:opacity-90`
-                          }`}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      onClick={async () => {
-                        try {
-                          const token = localStorage.getItem('authToken');
-                          if (!token) {
-                            toast.error('Authentication token not found. Please log in again.');
-                            return;
-                          }
-                          
-                          // Start poll with ALL problem statements
-                          const response = await fetch(`${baseURL}/team-polling/start-poll`, {
-                            method: 'POST',
-                            headers: {
-                              'Authorization': `Bearer ${token}`,
-                              'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                              teamId: currentTeam._id,
-                              duration: pollDuration,
-                              problemStatements: problemStatements // Send all problem statements
-                            })
-                          });
-
-                          if (response.ok) {
-                            const result = await response.json();
-                            setPollActive(true);
-                            setPollStartTime(new Date(result.pollStartTime));
-                            setPollEndTime(new Date(result.pollEndTime));
-                            setShowPollModal(false);
-                            toast.success(`Poll started for ${pollDuration} minutes! All team members can now vote.`);
-                            
-                            // Poll status will be updated automatically via useEffect
-                          } else {
-                            const error = await response.json();
-                            toast.error(error.message || 'Failed to start poll');
-                          }
-                        } catch (error) {
-                          console.error('Error starting poll:', error);
-                          toast.error('Failed to start poll');
-                        }
-                      }}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Vote className="w-4 h-4" />
-                      Start Poll ({pollDuration} min)
-                    </button>
-                    <button
-                      onClick={() => setShowPollModal(false)}
-                      className="px-4 py-2 border rounded-lg font-medium transition-colors"
-                      style={{ 
-                        borderColor: themeConfig.borderColor,
-                        color: themeConfig.textColor
-                      }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <div className="mb-4 p-3 rounded-lg" style={{ backgroundColor: '#fef3c7' }}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Clock className="w-4 h-4" style={{ color: '#92400e' }} />
-                      <span className="font-medium" style={{ color: '#92400e' }}>
-                        Poll Active
-                      </span>
-                    </div>
-                    {timeLeft && !timeLeft.expired && (
-                      <div className="text-lg font-mono" style={{ color: '#92400e' }}>
-                        {timeLeft.hours.toString().padStart(2, '0')}:
-                        {timeLeft.minutes.toString().padStart(2, '0')}:
-                        {timeLeft.seconds.toString().padStart(2, '0')}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mb-4">
-                    <h4 className="font-medium mb-2" style={{ color: themeConfig.textColor }}>
-                      Vote Results
-                    </h4>
-                    {Object.keys(pollResults).length > 0 ? (
-                      <div className="space-y-2">
-                        {Object.entries(pollResults).map(([problemId, votes]) => (
-                          <div key={problemId} className="flex justify-between items-center p-2 rounded" style={{ backgroundColor: themeConfig.backgroundColor }}>
-                            <span style={{ color: themeConfig.textColor }}>{problemId}</span>
-                            <span className="font-medium" style={{ color: themeConfig.accentColor }}>{votes} votes</span>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm" style={{ color: themeConfig.textColor, opacity: 0.7 }}>
-                        No votes yet
-                      </p>
-                    )}
-                  </div>
-
-                  <button
-                    onClick={() => setShowPollModal(false)}
-                    className="w-full py-2 px-4 rounded-lg border font-medium transition"
-                    style={{ 
-                      backgroundColor: themeConfig.backgroundColor,
-                      borderColor: themeConfig.borderColor,
-                      color: themeConfig.textColor
-                    }}
-                  >
-                    Close
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
