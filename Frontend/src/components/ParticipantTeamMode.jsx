@@ -379,9 +379,12 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
         if (response === 'accepted') {
           toast.success('Invitation accepted! You are now part of the team! 🎉');
           setActiveTab('overview');
+          // Reload data to show updated team
+          await loadData();
         } else {
           toast.success('Invitation declined successfully.');
         }
+        // Reload data to update team status
         await loadData();
       } else {
         const error = await res.json();
@@ -491,7 +494,9 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
                   {/* Team Members */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                     {currentTeam.teamMembers.map((member) => {
-                      const isLeader = currentTeam.teamLeader?._id === member._id || member.role === 'leader';
+                      const isLeader = currentTeam.teamLeader?._id === member._id || 
+                                      currentTeam.createdBy?._id === member._id ||
+                                      member.role === 'leader';
                       return (
                         <div 
                           key={member._id}
@@ -573,7 +578,7 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
                       )}
 
                       {/* Submission Interface */}
-                      {(currentTeam.teamLeader?._id === userId || currentTeam.teamMembers.find(m => m._id === userId)?.role === 'leader') ? (
+                      {(currentTeam.teamLeader?._id === userId || currentTeam.createdBy?._id === userId) ? (
                         <div className="border-t pt-4" style={{ borderColor: '#22c55e' }}>
                           <h4 className="font-medium mb-2" style={{ color: '#166534' }}>
                             Project Submission
@@ -647,7 +652,7 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
                         <p className="text-sm mb-3" style={{ color: '#0c4a6e' }}>
                           <strong>Team Leader:</strong> Please select a problem statement for your team. This decision should be made after discussing with your team members via chat.
                         </p>
-                        {(currentTeam.teamLeader?._id === userId || currentTeam.teamMembers.find(m => m._id === userId)?.role === 'leader') ? (
+                        {(currentTeam.teamLeader?._id === userId || currentTeam.createdBy?._id === userId) ? (
                           <button
                             onClick={() => setShowProblemSelectionModal(true)}
                             className="px-4 py-2 rounded-lg transition"
@@ -689,7 +694,7 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
                   </div>
 
                   {/* Leader Actions */}
-                  {(currentTeam.teamLeader?._id === userId || currentTeam.teamMembers.find(m => m._id === userId)?.role === 'leader') && (
+                  {(currentTeam.teamLeader?._id === userId || currentTeam.createdBy?._id === userId) && (
                     <div 
                       className="p-4 rounded-lg border-2"
                       style={{ 
@@ -837,8 +842,10 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
                       </th>
                     </tr>
                   </thead>
-                  <tbody>
-                    {hackathonParticipants.map((participant) => (
+                      <tbody>
+                        {hackathonParticipants
+                          .filter(participant => participant.currentTeamId) // Only show in-team members
+                          .map((participant) => (
                       <tr 
                         key={participant._id}
                         style={{ borderBottom: `1px solid ${themeConfig.borderColor}` }}
@@ -878,7 +885,7 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
                           </span>
                         </td>
                         <td className="py-3 px-4">
-                          {/* Show invite button for team leaders and available participants */}
+                          {/* Show invite button for team leaders only and available participants */}
                           {currentTeam && 
                            (currentTeam.createdBy?._id === userId || currentTeam.teamLeader?._id === userId) &&
                            !participant.currentTeamId && 
@@ -914,70 +921,88 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
               
               {!currentTeam ? (
                 <div className="space-y-6">
-                  {/* Create Team Section */}
-                  <div className="p-6 rounded-lg border" style={{ 
-                    backgroundColor: themeConfig.backgroundColor,
-                    borderColor: themeConfig.borderColor
-                  }}>
-                    <h4 className="text-lg font-semibold mb-4" style={{ color: themeConfig.textColor }}>
-                      Create New Team
-                    </h4>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2" style={{ color: themeConfig.textColor }}>
-                          Team Name *
-                        </label>
-                        <input
-                          type="text"
-                          value={teamCreationData.teamName}
-                          onChange={(e) => setTeamCreationData(prev => ({
-                            ...prev,
-                            teamName: e.target.value
-                          }))}
-                          placeholder="Enter team name..."
-                          className="w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2"
-                          style={{
-                            backgroundColor: themeConfig.backgroundColor,
-                            borderColor: themeConfig.borderColor,
-                            color: themeConfig.textColor,
-                            '--tw-ring-color': themeConfig.accentColor
+                  {/* Create Team Section - Only show for participant team selection */}
+                  {hackathon?.teamCreationMode === 'participant' && (
+                    <div className="p-6 rounded-lg border" style={{ 
+                      backgroundColor: themeConfig.backgroundColor,
+                      borderColor: themeConfig.borderColor
+                    }}>
+                      <h4 className="text-lg font-semibold mb-4" style={{ color: themeConfig.textColor }}>
+                        Create New Team
+                      </h4>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-2" style={{ color: themeConfig.textColor }}>
+                            Team Name *
+                          </label>
+                          <input
+                            type="text"
+                            value={teamCreationData.teamName}
+                            onChange={(e) => setTeamCreationData(prev => ({
+                              ...prev,
+                              teamName: e.target.value
+                            }))}
+                            placeholder="Enter team name..."
+                            className="w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                            style={{
+                              backgroundColor: themeConfig.backgroundColor,
+                              borderColor: themeConfig.borderColor,
+                              color: themeConfig.textColor,
+                              '--tw-ring-color': themeConfig.accentColor
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-2" style={{ color: themeConfig.textColor }}>
+                            Description
+                          </label>
+                          <textarea
+                            value={teamCreationData.description}
+                            onChange={(e) => setTeamCreationData(prev => ({
+                              ...prev,
+                              description: e.target.value
+                            }))}
+                            placeholder="Describe your team..."
+                            rows={3}
+                            className="w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2"
+                            style={{
+                              backgroundColor: themeConfig.backgroundColor,
+                              borderColor: themeConfig.borderColor,
+                              color: themeConfig.textColor,
+                              '--tw-ring-color': themeConfig.accentColor
+                            }}
+                          />
+                        </div>
+                        <button
+                          onClick={createTeam}
+                          disabled={!teamCreationData.teamName.trim()}
+                          className="w-full py-3 rounded-lg transition disabled:opacity-50"
+                          style={{ 
+                            backgroundColor: themeConfig.accentColor,
+                            color: 'white'
                           }}
-                        />
+                        >
+                          Create Team
+                        </button>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2" style={{ color: themeConfig.textColor }}>
-                          Description
-                        </label>
-                        <textarea
-                          value={teamCreationData.description}
-                          onChange={(e) => setTeamCreationData(prev => ({
-                            ...prev,
-                            description: e.target.value
-                          }))}
-                          placeholder="Describe your team..."
-                          rows={3}
-                          className="w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2"
-                          style={{
-                            backgroundColor: themeConfig.backgroundColor,
-                            borderColor: themeConfig.borderColor,
-                            color: themeConfig.textColor,
-                            '--tw-ring-color': themeConfig.accentColor
-                          }}
-                        />
-                      </div>
-                      <button
-                        onClick={createTeam}
-                        disabled={!teamCreationData.teamName.trim()}
-                        className="w-full py-3 rounded-lg transition disabled:opacity-50"
-                        style={{ 
-                          backgroundColor: themeConfig.accentColor,
-                          color: 'white'
-                        }}
-                      >
-                        Create Team
-                      </button>
                     </div>
-                  </div>
+                  )}
+
+                  {/* Admin Team Selection Message */}
+                  {hackathon?.teamCreationMode === 'admin' && (
+                    <div className="p-6 rounded-lg border" style={{ 
+                      backgroundColor: '#fef3c7',
+                      borderColor: '#f59e0b'
+                    }}>
+                      <h4 className="text-lg font-semibold mb-4" style={{ color: '#92400e' }}>
+                        Admin Team Selection
+                      </h4>
+                      <p className="text-sm" style={{ color: '#92400e' }}>
+                        This hackathon uses admin-based team selection. Teams will be created and managed by administrators.
+                        You cannot create teams yourself.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Join Team Section */}
                   <div className="p-6 rounded-lg border" style={{ 
