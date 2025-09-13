@@ -55,20 +55,29 @@ class NotificationService {
 
   // Send real-time notification via WebSocket
   private sendRealTimeNotification(userId: string, notification: NotificationData): void {
+    console.log('🔔 Attempting to send real-time notification to user:', userId);
+    console.log('🔔 Notification details:', {
+      title: notification.title,
+      type: notification.type,
+      userId: notification.userId
+    });
+    
     try {
       // Dynamically import WebSocket service to avoid circular dependencies
       import('../services/websocketService').then(({ getWebSocketInstance }) => {
         try {
           const webSocketService = getWebSocketInstance();
+          console.log('🔔 WebSocket service found, sending notification...');
           webSocketService.sendNotificationToUser(userId, notification);
+          console.log('✅ Real-time notification sent successfully');
         } catch (error) {
-          console.log('WebSocket service not initialized yet:', error instanceof Error ? error.message : String(error));
+          console.log('❌ WebSocket service error:', error instanceof Error ? error.message : String(error));
         }
       }).catch(error => {
-        console.log('WebSocket service not available:', error instanceof Error ? error.message : String(error));
+        console.log('❌ WebSocket service not available:', error instanceof Error ? error.message : String(error));
       });
     } catch (error) {
-      console.log('Failed to send real-time notification:', error instanceof Error ? error.message : String(error));
+      console.log('❌ Error in sendRealTimeNotification:', error instanceof Error ? error.message : String(error));
     }
   }
 

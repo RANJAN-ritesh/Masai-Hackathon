@@ -92,8 +92,15 @@ export const WebSocketProvider = ({ children }) => {
           isConnectingRef.current = false;
           
           // Join user's notification room
+          if (userData?._id) {
+            newSocket.emit('join_user', userData._id);
+            console.log(`👤 Joined user room: ${userData._id}`);
+          }
+          
+          // Join hackathon room
           if (userData?.currentHackathon?._id) {
             newSocket.emit('join_hackathon', userData.currentHackathon._id);
+            console.log(`🏆 Joined hackathon room: ${userData.currentHackathon._id}`);
           }
           
           // Only show toast on first connection, not reconnections

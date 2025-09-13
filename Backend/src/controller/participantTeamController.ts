@@ -321,6 +321,14 @@ export const sendInvitation = async (req: Request, res: Response) => {
     console.log('✅ Invitation saved:', invitation._id);
 
     // Create notification for participant
+    console.log('🔔 Creating notification for participant:', {
+      participantId,
+      hackathonId: team.hackathonId,
+      teamName: team.teamName,
+      fromUserName: req.user?.name || 'Team Leader',
+      requestId: invitation._id
+    });
+    
     createInvitationReceivedNotification(
       participantId,
       team.hackathonId || '',
@@ -328,6 +336,8 @@ export const sendInvitation = async (req: Request, res: Response) => {
       req.user?.name || 'Team Leader',
       (invitation._id as any).toString()
     );
+    
+    console.log('✅ Notification created successfully');
 
     console.log('✅ Invitation sent successfully');
 
