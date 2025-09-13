@@ -36,6 +36,10 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
   const [submissionLink, setSubmissionLink] = useState('');
   const [showSubmissionModal, setShowSubmissionModal] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [teamCreationData, setTeamCreationData] = useState({
+    teamName: '',
+    description: ''
+  });
 
   // Load data on component mount
   useEffect(() => {
@@ -311,6 +315,49 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
     }
   };
 
+  // Create team
+  const createTeam = async () => {
+    if (!teamCreationData.teamName.trim()) {
+      toast.error('Please enter a team name');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('authToken') || localStorage.getItem('userId');
+      if (!token) {
+        toast.error('Authentication token not found. Please log in again.');
+        return;
+      }
+
+      const response = await fetch(`${baseURL}/participant-team/create-team`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          teamName: teamCreationData.teamName.trim(),
+          description: teamCreationData.description.trim(),
+          hackathonId: hackathon._id,
+          memberLimit: 4
+        })
+      });
+
+      if (response.ok) {
+        toast.success('Team created successfully!');
+        setTeamCreationData({ teamName: '', description: '' });
+        await loadData(); // Reload data to show the new team
+        setActiveTab('overview'); // Switch to overview tab
+      } else {
+        const error = await response.json();
+        toast.error(error.message || 'Failed to create team');
+      }
+    } catch (error) {
+      console.error('Error creating team:', error);
+      toast.error('Failed to create team');
+    }
+  };
+
   // Respond to invitation
   const respondToInvitation = async (requestId, response) => {
     try {
@@ -367,21 +414,7 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
       style={{ backgroundColor: themeConfig.backgroundColor }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 
-            className="text-3xl font-bold mb-2"
-            style={{ color: themeConfig.textColor }}
-          >
-            My Team
-          </h1>
-          <p 
-            className="text-lg"
-            style={{ color: themeConfig.textColor, opacity: 0.7 }}
-          >
-            {hackathon?.title || 'Hackathon'} - Participant Team Mode
-          </p>
-        </div>
+        {/* Header - Removed to avoid duplication with parent component */}
 
         {/* Navigation Tabs */}
         <div className="mb-6">
@@ -896,6 +929,11 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
                         </label>
                         <input
                           type="text"
+                          value={teamCreationData.teamName}
+                          onChange={(e) => setTeamCreationData(prev => ({
+                            ...prev,
+                            teamName: e.target.value
+                          }))}
                           placeholder="Enter team name..."
                           className="w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2"
                           style={{
@@ -911,6 +949,11 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
                           Description
                         </label>
                         <textarea
+                          value={teamCreationData.description}
+                          onChange={(e) => setTeamCreationData(prev => ({
+                            ...prev,
+                            description: e.target.value
+                          }))}
                           placeholder="Describe your team..."
                           rows={3}
                           className="w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2"
@@ -923,7 +966,9 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
                         />
                       </div>
                       <button
-                        className="w-full py-3 rounded-lg transition"
+                        onClick={createTeam}
+                        disabled={!teamCreationData.teamName.trim()}
+                        className="w-full py-3 rounded-lg transition disabled:opacity-50"
                         style={{ 
                           backgroundColor: themeConfig.accentColor,
                           color: 'white'

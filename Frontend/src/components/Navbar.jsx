@@ -54,9 +54,12 @@ const Navbar = () => {
     if (!userId || !isAuth) return;
 
     try {
+      const token = localStorage.getItem('authToken') || localStorage.getItem('userId');
+      if (!token) return;
+
       const response = await fetch(`${baseURL}/notifications/${userId}`, {
         headers: {
-          'Authorization': `Bearer ${userId}`
+          'Authorization': `Bearer ${token}`
         }
       });
 
