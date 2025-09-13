@@ -25,7 +25,7 @@ export const createParticipantTeam = async (req: Request, res: Response) => {
     // Validate team name
     if (!validateTeamName(teamName)) {
       return res.status(400).json({ 
-        message: 'Team name must be 16 characters or less and contain only lowercase letters, underscores, and hyphens' 
+        message: 'Team name must be 1-50 characters and contain only letters, numbers, spaces, underscores, and hyphens' 
       });
     }
 

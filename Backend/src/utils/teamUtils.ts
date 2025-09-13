@@ -28,12 +28,13 @@ export const isRequestExpired = async (request: ITeamRequest, hackathonModel: an
   return { expired: false };
 };
 
-// Validate team name (16 chars, a-z, _, - only)
+// Validate team name (more flexible validation)
 export const validateTeamName = (teamName: string): boolean => {
-  if (!teamName || teamName.length > 16) return false;
+  if (!teamName || teamName.trim().length === 0) return false;
+  if (teamName.length > 50) return false; // Increased limit to 50 characters
   
-  // Only allow a-z, _, and -
-  const validPattern = /^[a-z_-]+$/;
+  // Allow letters, numbers, spaces, underscores, and hyphens
+  const validPattern = /^[a-zA-Z0-9\s_-]+$/;
   return validPattern.test(teamName);
 };
 
