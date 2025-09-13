@@ -400,9 +400,10 @@ export const respondToRequest = async (req: Request, res: Response) => {
           $pull: { pendingRequests: request._id }
         });
 
-        // Update user
+        // Update user - set role as 'member' (not leader)
         await User.findByIdAndUpdate(userId, {
           currentTeamId: request.teamId,
+          role: 'member', // Explicitly set as member, not leader
           canSendRequests: false,
           canReceiveRequests: false,
           lastTeamActivity: new Date()
@@ -413,6 +414,29 @@ export const respondToRequest = async (req: Request, res: Response) => {
         if (updatedTeam && updatedTeam.teamMembers.length >= updatedTeam.memberLimit) {
           updatedTeam.canReceiveRequests = false;
           await updatedTeam.save();
+        }
+
+        // Broadcast team update to all team members
+        try {
+          const { getWebSocketInstance } = await import('../services/websocketService');
+          const webSocketService = getWebSocketInstance();
+          
+          updatedTeam?.teamMembers.forEach(memberId => {
+            webSocketService.sendNotificationToUser(memberId.toString(), {
+              userId: memberId.toString(),
+              hackathonId: updatedTeam.hackathonId?.toString() || '',
+              type: 'team_member_joined',
+              title: 'New Team Member! 👥',
+              message: `${user?.name || 'A new member'} has joined your team!`,
+              isRead: false,
+              metadata: { teamId: request.teamId.toString() },
+              createdAt: new Date(),
+              updatedAt: new Date()
+            });
+          });
+          console.log('📡 Team member update broadcasted to all team members');
+        } catch (error) {
+          console.log('⚠️ Failed to broadcast team member update:', error);
         }
 
         res.json({ message: 'Invitation accepted successfully' });
@@ -527,9 +551,10 @@ export const respondToInvitation = async (req: Request, res: Response) => {
         $pull: { pendingRequests: request._id }
       });
 
-      // Update user
+      // Update user - set role as 'member' (not leader)
       await User.findByIdAndUpdate(userId, {
         currentTeamId: request.teamId,
+        role: 'member', // Explicitly set as member, not leader
         canSendRequests: false,
         canReceiveRequests: false,
         lastTeamActivity: new Date()
@@ -540,6 +565,29 @@ export const respondToInvitation = async (req: Request, res: Response) => {
       if (updatedTeam && updatedTeam.teamMembers.length >= updatedTeam.memberLimit) {
         updatedTeam.canReceiveRequests = false;
         await updatedTeam.save();
+      }
+
+      // Broadcast team update to all team members
+      try {
+        const { getWebSocketInstance } = await import('../services/websocketService');
+        const webSocketService = getWebSocketInstance();
+        
+        updatedTeam?.teamMembers.forEach(memberId => {
+          webSocketService.sendNotificationToUser(memberId.toString(), {
+            userId: memberId.toString(),
+            hackathonId: updatedTeam.hackathonId?.toString() || '',
+            type: 'team_member_joined',
+            title: 'New Team Member! 👥',
+            message: `${user?.name || 'A new member'} has joined your team!`,
+            isRead: false,
+            metadata: { teamId: request.teamId.toString() },
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+        });
+        console.log('📡 Team member update broadcasted to all team members');
+      } catch (error) {
+        console.log('⚠️ Failed to broadcast team member update:', error);
       }
 
       res.json({ message: 'Invitation accepted successfully' });

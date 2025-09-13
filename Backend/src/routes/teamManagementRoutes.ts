@@ -2,6 +2,7 @@ import express from 'express';
 import { authenticateUser } from '../middleware/auth';
 import Team from '../model/team';
 import Hackathon from '../model/hackathon';
+import { getWebSocketInstance } from '../services/websocketService';
 
 const router = express.Router();
 
@@ -51,6 +52,27 @@ router.post('/select-problem-statement', authenticateUser, async (req, res) => {
     });
 
     console.log('✅ Problem statement selected successfully');
+
+    // Broadcast to all team members via WebSocket
+    try {
+      const webSocketService = getWebSocketInstance();
+      team.teamMembers.forEach(memberId => {
+        webSocketService.sendNotificationToUser(memberId.toString(), {
+          userId: memberId.toString(),
+          hackathonId: team.hackathonId?.toString() || '',
+          type: 'problem_statement_selected',
+          title: 'Problem Statement Selected! 🎯',
+          message: `Your team leader has selected "${problemStatement}" as your problem statement.`,
+          isRead: false,
+          metadata: { teamId: team._id.toString(), problemStatement },
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+      });
+      console.log('📡 Problem statement selection broadcasted to team members');
+    } catch (error) {
+      console.log('⚠️ Failed to broadcast problem statement selection:', error);
+    }
 
     res.json({
       message: 'Problem statement selected successfully',

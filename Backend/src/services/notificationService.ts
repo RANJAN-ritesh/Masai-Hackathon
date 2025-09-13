@@ -1,4 +1,5 @@
 import { INotification } from '../model/notification';
+import Notification from '../model/notification';
 
 // Interface for notification data without Mongoose-specific fields
 interface NotificationData {
@@ -47,9 +48,34 @@ class NotificationService {
     // Update the map
     this.notifications.set(userId, userNotifications);
 
+    // Save to database for offline users
+    this.saveNotificationToDatabase(newNotification);
+
     // Send real-time notification via WebSocket if enabled
     if (sendRealTime) {
       this.sendRealTimeNotification(userId, newNotification);
+    }
+  }
+
+  // Save notification to database for offline users
+  private async saveNotificationToDatabase(notification: NotificationData): Promise<void> {
+    try {
+      const dbNotification = new Notification({
+        userId: notification.userId,
+        hackathonId: notification.hackathonId,
+        type: notification.type as any,
+        title: notification.title,
+        message: notification.message,
+        isRead: notification.isRead || false,
+        relatedTeamId: notification.metadata?.teamId,
+        relatedRequestId: notification.metadata?.requestId,
+        createdAt: notification.createdAt || new Date()
+      });
+      
+      await dbNotification.save();
+      console.log('💾 Notification saved to database:', notification.title);
+    } catch (error) {
+      console.error('❌ Failed to save notification to database:', error);
     }
   }
 
