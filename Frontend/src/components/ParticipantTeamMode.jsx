@@ -843,9 +843,7 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
                     </tr>
                   </thead>
                       <tbody>
-                        {hackathonParticipants
-                          .filter(participant => participant.currentTeamId) // Only show in-team members
-                          .map((participant) => (
+                        {hackathonParticipants.map((participant) => (
                       <tr 
                         key={participant._id}
                         style={{ borderBottom: `1px solid ${themeConfig.borderColor}` }}

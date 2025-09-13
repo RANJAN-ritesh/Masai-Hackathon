@@ -654,13 +654,26 @@ const EligibleHackathons = () => {
 
                           <div className="pt-4 border-t border-gray-100 mt-auto">
                             <div className="flex flex-wrap gap-3 items-center justify-between">
-                              <button
-                                onClick={() => openModal("create", registration)}
-                                className="bg-gradient-to-r from-purple-300 to-indigo-400 hover:from-purple-600 hover:to-indigo-700 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm hover:shadow flex items-center"
-                              >
-                                <Users className="w-4 h-4 mr-2" />
-                                Create Teams
-                              </button>
+                              {/* Only show Create Teams button for admin-based team selection */}
+                              {registration.teamCreationMode === 'admin' && (
+                                <button
+                                  onClick={() => openModal("create", registration)}
+                                  className="bg-gradient-to-r from-purple-300 to-indigo-400 hover:from-purple-600 hover:to-indigo-700 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm hover:shadow flex items-center"
+                                >
+                                  <Users className="w-4 h-4 mr-2" />
+                                  Create Teams
+                                </button>
+                              )}
+                              
+                              {/* Show message for participant-based team selection */}
+                              {registration.teamCreationMode === 'participant' && (
+                                <div className="px-4 py-2 rounded-lg bg-blue-50 border border-blue-200">
+                                  <span className="text-blue-700 text-sm font-medium">
+                                    <Users className="w-4 h-4 mr-2 inline" />
+                                    Participant Team Selection
+                                  </span>
+                                </div>
+                              )}
 
                               <div className="flex space-x-2">
                                 <button
