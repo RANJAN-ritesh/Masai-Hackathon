@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { MyContext } from '../context/AuthContextProvider';
+import { useWebSocket } from '../context/WebSocketContextProvider';
 import { useTheme } from '../context/ThemeContextProvider';
 import TeamChat from './TeamChat';
 import { 
@@ -21,6 +22,7 @@ import { toast } from 'react-toastify';
 
 const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
   const { themeConfig } = useTheme();
+  const { registerTeamUpdateCallback, registerProblemStatementCallback } = useWebSocket();
   
   // State management
   const [loading, setLoading] = useState(true);
@@ -52,6 +54,27 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
   useEffect(() => {
     loadNotificationCount();
   }, [teamRequests]);
+
+  // WebSocket event listeners for real-time updates
+  useEffect(() => {
+    // Register team update callback
+    const unregisterTeamUpdate = registerTeamUpdateCallback((update) => {
+      console.log('🔄 Team update received in ParticipantTeamMode, refreshing data...');
+      loadData(); // Refresh all team data
+    });
+
+    // Register problem statement callback
+    const unregisterProblemStatement = registerProblemStatementCallback((update) => {
+      console.log('🎯 Problem statement update received in ParticipantTeamMode, refreshing data...');
+      loadData(); // Refresh all team data
+    });
+
+    // Cleanup on unmount
+    return () => {
+      unregisterTeamUpdate();
+      unregisterProblemStatement();
+    };
+  }, [registerTeamUpdateCallback, registerProblemStatementCallback]);
 
   const loadData = async () => {
     setLoading(true);

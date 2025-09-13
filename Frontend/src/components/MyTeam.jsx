@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { MyContext } from '../context/AuthContextProvider';
 import { useTheme } from '../context/ThemeContextProvider';
+import { useWebSocket } from '../context/WebSocketContextProvider';
 import ParticipantTeamMode from './ParticipantTeamMode';
 import { 
   Users, 
@@ -22,6 +23,7 @@ import { toast } from 'react-toastify';
 const MyTeam = () => {
   const { hackathon, role } = useContext(MyContext);
   const { themeConfig } = useTheme();
+  const { registerTeamUpdateCallback, registerProblemStatementCallback } = useWebSocket();
   const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
   const userId = localStorage.getItem("userId");
 
@@ -64,6 +66,27 @@ const MyTeam = () => {
       setSelectedProblemStatement(currentTeam.selectedProblemStatement);
     }
   }, [currentTeam?.selectedProblemStatement]);
+
+  // WebSocket event listeners for real-time updates
+  useEffect(() => {
+    // Register team update callback
+    const unregisterTeamUpdate = registerTeamUpdateCallback((update) => {
+      console.log('🔄 Team update received, refreshing data...');
+      loadData(); // Refresh all team data
+    });
+
+    // Register problem statement callback
+    const unregisterProblemStatement = registerProblemStatementCallback((update) => {
+      console.log('🎯 Problem statement update received, refreshing data...');
+      loadData(); // Refresh all team data
+    });
+
+    // Cleanup on unmount
+    return () => {
+      unregisterTeamUpdate();
+      unregisterProblemStatement();
+    };
+  }, [registerTeamUpdateCallback, registerProblemStatementCallback]);
 
   const loadData = async () => {
     setLoading(true);

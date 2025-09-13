@@ -28,6 +28,8 @@ export const WebSocketProvider = ({ children }) => {
   const pollUpdateCallbacksRef = useRef([]);
   const pollConclusionCallbacksRef = useRef([]);
   const chatMessageCallbacksRef = useRef([]);
+  const teamUpdateCallbacksRef = useRef([]);
+  const problemStatementCallbacksRef = useRef([]);
   
   const reconnectTimeoutRef = useRef(null);
   const maxReconnectAttempts = 3; // Reduced from 5
@@ -186,6 +188,40 @@ export const WebSocketProvider = ({ children }) => {
           console.log('👥 Received team update:', update);
           toast.info(`Team update: ${update.message}`, {
             autoClose: 5000
+          });
+        });
+
+        // Team member joined event
+        newSocket.on('team_member_joined', (update) => {
+          console.log('👥 Received team member joined:', update);
+          toast.success(`New team member joined!`, {
+            autoClose: 3000
+          });
+          
+          // Call all registered team update callbacks
+          teamUpdateCallbacksRef.current.forEach(callback => {
+            try {
+              callback(update);
+            } catch (error) {
+              console.error('Error in team update callback:', error);
+            }
+          });
+        });
+
+        // Problem statement selected event
+        newSocket.on('problem_statement_selected', (update) => {
+          console.log('🎯 Received problem statement selected:', update);
+          toast.success(`Problem statement selected: ${update.metadata?.problemStatement}`, {
+            autoClose: 5000
+          });
+          
+          // Call all registered problem statement callbacks
+          problemStatementCallbacksRef.current.forEach(callback => {
+            try {
+              callback(update);
+            } catch (error) {
+              console.error('Error in problem statement callback:', error);
+            }
           });
         });
 
@@ -420,6 +456,24 @@ export const WebSocketProvider = ({ children }) => {
     };
   };
 
+  const registerTeamUpdateCallback = (callback) => {
+    console.log('📝 Registering team update callback');
+    teamUpdateCallbacksRef.current.push(callback);
+    return () => {
+      teamUpdateCallbacksRef.current = teamUpdateCallbacksRef.current.filter(cb => cb !== callback);
+      console.log('🗑️ Unregistered team update callback');
+    };
+  };
+
+  const registerProblemStatementCallback = (callback) => {
+    console.log('📝 Registering problem statement callback');
+    problemStatementCallbacksRef.current.push(callback);
+    return () => {
+      problemStatementCallbacksRef.current = problemStatementCallbacksRef.current.filter(cb => cb !== callback);
+      console.log('🗑️ Unregistered problem statement callback');
+    };
+  };
+
   const value = {
     socket: globalSocket,
     isConnected,
@@ -434,7 +488,9 @@ export const WebSocketProvider = ({ children }) => {
     registerVoteUpdateCallback,
     registerPollUpdateCallback,
     registerPollConclusionCallback,
-    registerChatMessageCallback
+    registerChatMessageCallback,
+    registerTeamUpdateCallback,
+    registerProblemStatementCallback
   };
 
   return (
