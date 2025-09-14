@@ -37,6 +37,7 @@ const EligibleHackathons = () => {
   const [loading, setLoading] = useState(true);
   const [hackathonData, setHackathonData] = useState(null);
   const [showHackathonData, setShowHackathonData] = useState(false);
+  const [hackathonTeams, setHackathonTeams] = useState([]);
   const userId = localStorage.getItem("userId");
   const { setCurrentHackathonId, userData, role, setHackathon } = useContext(MyContext);
   const { themeConfig, applyGlobalTheme } = useTheme();
@@ -469,6 +470,7 @@ const EligibleHackathons = () => {
         
         const teams = data.teams || [];
         setTeamsData(teams);
+        setHackathonTeams(teams); // Also update hackathonTeams for hasTeamsCreated check
         
         if (teams.length === 0) {
           toast.info(`No teams found for "${hackathon.title}". Create teams first!`, {
@@ -492,6 +494,7 @@ const EligibleHackathons = () => {
           autoClose: 5000
         });
         setTeamsData([]);
+        setHackathonTeams([]); // Clear hackathonTeams on error
       }
     } catch (error) {
       console.error("Network error fetching teams:", error);
@@ -506,6 +509,7 @@ const EligibleHackathons = () => {
         });
       }
       setTeamsData([]);
+      setHackathonTeams([]); // Clear hackathonTeams on error
     } finally {
       clearTimeout(loadingTimeout);
       setTeamsLoading(false);
