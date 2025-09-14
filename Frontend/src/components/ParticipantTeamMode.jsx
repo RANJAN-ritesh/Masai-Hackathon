@@ -214,12 +214,13 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
 
       if (response.ok) {
         toast.success(`Problem statement "${problemStatement.track}" selected successfully!`);
-        setSelectedProblemStatement(problemStatement.track);
+        setSelectedProblemStatement(problemStatement);
         setShowProblemSelectionModal(false);
         
         setCurrentTeam(prev => ({
           ...prev,
-          selectedProblemStatement: problemStatement.track
+          selectedProblemStatement: problemStatement.track,
+          selectedProblemDetails: problemStatement
         }));
       } else {
         const error = await response.json();
@@ -575,10 +576,44 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
                         Selected Problem Statement
                       </h3>
                       <div className="p-3 rounded-lg mb-4" style={{ backgroundColor: '#f0fdf4' }}>
-                        <h4 className="font-medium mb-1" style={{ color: '#166534' }}>
+                        <h4 className="font-medium mb-2" style={{ color: '#166534' }}>
                           {currentTeam.selectedProblemStatement}
                         </h4>
-                        <p className="text-sm" style={{ color: '#166534', opacity: 0.7 }}>
+                        {currentTeam.selectedProblemDetails && (
+                          <div className="space-y-2">
+                            {currentTeam.selectedProblemDetails.description && (
+                              <div>
+                                <span className="font-medium text-sm" style={{ color: '#166534' }}>Description:</span>
+                                <p className="text-sm mt-1" style={{ color: '#166534', opacity: 0.8 }}>
+                                  {currentTeam.selectedProblemDetails.description}
+                                </p>
+                              </div>
+                            )}
+                            {currentTeam.selectedProblemDetails.difficulty && (
+                              <div>
+                                <span className="font-medium text-sm" style={{ color: '#166534' }}>Difficulty:</span>
+                                <span className="text-sm ml-2" style={{ color: '#166534', opacity: 0.8 }}>
+                                  {currentTeam.selectedProblemDetails.difficulty}
+                                </span>
+                              </div>
+                            )}
+                            {currentTeam.selectedProblemDetails.link && (
+                              <div>
+                                <span className="font-medium text-sm" style={{ color: '#166534' }}>Resources:</span>
+                                <a 
+                                  href={currentTeam.selectedProblemDetails.link} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-sm ml-2 underline" 
+                                  style={{ color: '#22c55e' }}
+                                >
+                                  View Full Problem Statement
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <p className="text-sm mt-3" style={{ color: '#166534', opacity: 0.7 }}>
                           This problem has been selected for your team.
                         </p>
                       </div>
