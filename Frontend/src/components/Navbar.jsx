@@ -2,7 +2,7 @@ import React, { useContext, useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { MyContext } from "../context/AuthContextProvider";
 import { useWebSocket } from "../context/WebSocketContextProvider";
-import { useNewTheme } from "../context/NewThemeContextProvider";
+import { useTheme } from "../context/ThemeContextProvider";
 import {
   LogOut,
   User,
@@ -25,7 +25,7 @@ const Navbar = () => {
   const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
   const userId = localStorage.getItem("userId");
   const { isAuth, setIsAuth, hackathon, role } = useContext(MyContext);
-  const { themeConfig, isDarkMode, toggleDarkMode } = useNewTheme();
+  const { themeConfig, isDarkMode, toggleDarkMode } = useTheme();
   const { isConnected, unreadCount } = useWebSocket();
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -201,10 +201,16 @@ const Navbar = () => {
             {/* Logo */}
             <Link to="/" className="flex items-center space-x-2">
               <div className="text-2xl font-bold">
-                <span className="text-red-600">xto</span>
-                <span className="text-gray-900">10x</span>
+                <span style={{ color: themeConfig.accentColor }}>xto</span>
+                <span style={{ color: themeConfig.textColor }}>10x</span>
               </div>
-              <span className="text-sm px-2 py-1 rounded bg-gradient-to-r from-red-600 to-red-700 text-white">
+              <span 
+                className="text-sm px-2 py-1 rounded"
+                style={{ 
+                  backgroundColor: themeConfig.accentColor,
+                  color: 'white'
+                }}
+              >
                 by masai
               </span>
             </Link>
@@ -212,10 +218,16 @@ const Navbar = () => {
             {/* Center - Hackathon Info */}
             {isAuth && hackathon && (
               <div className="hidden md:flex flex-col items-center">
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 
+                  className="text-lg font-semibold"
+                  style={{ color: themeConfig.textColor }}
+                >
                   {hackathon.title || "Hackathon"}
                 </h2>
-                <p className="text-sm text-gray-600">
+                <p 
+                  className="text-sm"
+                  style={{ color: themeConfig.textColor, opacity: 0.7 }}
+                >
                   {currentDate}
                 </p>
               </div>
@@ -226,7 +238,7 @@ const Navbar = () => {
               {/* Theme Toggle Button */}
               <button
                 onClick={handleThemeToggle}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-all duration-300 text-gray-600 hover:text-gray-900"
+                className="p-2 rounded-lg theme-toggle transition-all duration-300"
                 title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
               >
                 {isDarkMode ? (
@@ -239,7 +251,7 @@ const Navbar = () => {
               {/* Mobile menu button */}
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="md:hidden p-2 rounded-md hover:bg-gray-100 text-gray-600 hover:text-gray-900"
+                className="md:hidden p-2 rounded-md theme-button-secondary"
               >
                 {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
               </button>
@@ -267,7 +279,7 @@ const Navbar = () => {
                   {/* Notification Bell */}
                   <button
                     onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                    className="relative p-2 rounded-lg hover:bg-gray-100 transition-all duration-300 text-gray-600 hover:text-gray-900"
+                    className="relative p-2 rounded-lg theme-button-secondary transition-all duration-300"
                     title="Notifications"
                   >
                     <Bell className="h-5 w-5" />
@@ -281,7 +293,7 @@ const Navbar = () => {
                   {/* My Team Button - Only for non-admin users */}
                   {role !== "admin" && (
                     <Link to="/my-team">
-                      <button className="px-4 py-2 rounded-lg hover:bg-gray-100 transition text-gray-600 hover:text-gray-900">
+                      <button className="theme-button-secondary px-4 py-2 rounded-lg transition">
                         My Team
                       </button>
                     </Link>

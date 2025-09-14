@@ -66,7 +66,7 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
 
     // Register problem statement callback
     const unregisterProblemStatement = registerProblemStatementCallback((update) => {
-      console.log('🎯 Problem statement update received in ParticipantTeamMode, refreshing data...');
+      console.log('Problem statement update received in ParticipantTeamMode, refreshing data...');
       loadData(); // Refresh all team data
     });
 
@@ -401,7 +401,7 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
 
       if (res.ok) {
         if (response === 'accepted') {
-          toast.success('Invitation accepted! You are now part of the team! 🎉');
+          toast.success('Invitation accepted! You are now part of the team!');
           setActiveTab('overview');
           // Reload data to show updated team
           await loadData();

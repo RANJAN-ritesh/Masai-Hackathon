@@ -67,7 +67,7 @@ const EligibleHackathons = () => {
   };
 
   const handleRefresh = () => {
-    console.log("Manual refresh triggered");
+    console.log("🔄 Manual refresh triggered");
     setLoading(true);
     fetchHackathons(userData).then(() => {
       // Show success message after refresh
@@ -330,7 +330,7 @@ const EligibleHackathons = () => {
     if (selectedHackathon) {
       // Update the context with the selected hackathon
       setHackathon(selectedHackathon);
-      console.log("Setting hackathon in context:", selectedHackathon);
+      console.log("🔍 Setting hackathon in context:", selectedHackathon);
     }
     
     navigate(`/hackathon`);
@@ -936,7 +936,7 @@ const EligibleHackathons = () => {
                       onClick={() => handleViewTeams(selectedHackathonForTeams)}
                       className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
                     >
-                      Refresh Teams
+                      🔄 Refresh Teams
                     </button>
                   </div>
                 ) : (

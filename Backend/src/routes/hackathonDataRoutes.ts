@@ -3,8 +3,6 @@ import { authenticateUser } from '../middleware/auth';
 import Hackathon from '../model/hackathon';
 import Team from '../model/team';
 import User from '../model/user';
-import { ITeam } from '../model/team';
-import { IUser } from '../model/user';
 
 const router = express.Router();
 
@@ -38,26 +36,23 @@ router.get('/data/:hackathonId', authenticateUser, async (req, res) => {
     console.log('📊 Found participants:', participants.length);
 
     // Build the data table
-    const dataTable: any[] = [];
+    const dataTable = [];
 
     // Process each participant
     for (const participant of participants) {
-      const participantId = participant._id?.toString();
-      if (!participantId) continue;
-
       const team = teams.find(t => 
-        t.teamMembers.some((member: any) => member._id?.toString() === participantId) ||
-        t.createdBy?.toString() === participantId
+        t.teamMembers.some(member => member._id.toString() === participant._id.toString()) ||
+        t.createdBy?.toString() === participant._id.toString()
       );
 
       const isLeader = team ? (
-        team.createdBy?.toString() === participantId ||
-        team.teamLeader?.toString() === participantId ||
-        (team as any).members?.some((member: any) => member._id?.toString() === participantId && member.role === 'leader')
+        team.createdBy?.toString() === participant._id.toString() ||
+        team.teamLeader?.toString() === participant._id.toString() ||
+        team.members?.some(member => member._id.toString() === participant._id.toString() && member.role === 'leader')
       ) : false;
 
       // Find participation date (when user was added to hackathon)
-      const participationDate = (participant as any).currentHackathonJoinedAt || 
+      const participationDate = participant.currentHackathonJoinedAt || 
                                participant.createdAt || 
                                new Date();
 
@@ -96,11 +91,11 @@ router.get('/data/:hackathonId', authenticateUser, async (req, res) => {
       }
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Error fetching hackathon data:', error);
     res.status(500).json({ 
       message: 'Internal server error',
-      error: error?.message || 'Unknown error'
+      error: error.message 
     });
   }
 });
@@ -129,14 +124,14 @@ router.get('/status/:hackathonId', authenticateUser, async (req, res) => {
       isEnded,
       chatLocked,
       chatEndDate: chatEndDate.toISOString(),
-      timeUntilChatLock: chatLocked ? 0 : Math.max(0, chatEndDate.getTime() - now.getTime())
+      timeUntilChatLock: chatLocked ? 0 : Math.max(0, chatEndDate - now)
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('❌ Error checking hackathon status:', error);
     res.status(500).json({ 
       message: 'Internal server error',
-      error: error?.message || 'Unknown error'
+      error: error.message 
     });
   }
 });

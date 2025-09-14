@@ -11,7 +11,8 @@ import {
   Trash2, 
   MoreVertical,
   Smile,
-  Users
+  Users,
+  MessageSquare
 } from 'lucide-react';
 
 const TeamChat = ({ currentTeam, hackathon }) => {
@@ -232,7 +233,7 @@ const TeamChat = ({ currentTeam, hackathon }) => {
     console.log('🔌 Registering WebSocket callbacks for TeamChat');
     
     const unsubscribeChatMessage = registerChatMessageCallback((chatData) => {
-      console.log('💬 Chat message received:', chatData);
+      console.log('Chat message received:', chatData);
       
       if (chatData.type === 'new_message') {
         setMessages(prev => [...prev, chatData.message]);
@@ -301,7 +302,9 @@ const TeamChat = ({ currentTeam, hackathon }) => {
       >
         {messages.length === 0 ? (
           <div className="text-center py-8">
-            <div className="text-4xl mb-2">💬</div>
+            <div className="text-4xl mb-2 flex items-center justify-center">
+              <MessageSquare className="w-12 h-12" />
+            </div>
             <p style={{ color: themeConfig.textColor, opacity: 0.7 }}>
               No messages yet. Start the conversation!
             </p>

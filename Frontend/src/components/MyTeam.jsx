@@ -99,7 +99,7 @@ const MyTeam = () => {
   useEffect(() => {
     // Register team update callback
     const unregisterTeamUpdate = registerTeamUpdateCallback((update) => {
-      console.log('Team update received, refreshing data...');
+      console.log('🔄 Team update received, refreshing data...');
       loadData(); // Refresh all team data
     });
 
@@ -579,7 +579,7 @@ const MyTeam = () => {
   const respondToInvitation = async (requestId, response) => {
     try {
       const token = localStorage.getItem('authToken') || userId;
-      console.log('Responding to invitation:', { requestId, response });
+      console.log('🔍 Responding to invitation:', { requestId, response });
       
       const res = await fetch(`${baseURL}/participant-team/respond-request/${requestId}`, {
         method: 'PUT',

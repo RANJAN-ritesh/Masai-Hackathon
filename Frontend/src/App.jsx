@@ -9,7 +9,6 @@ import SelectTeamPage from "./components/SelectTeamPage";
 import { RegisterTeamPage } from "./components/RegisterTeamPage";
 import { MyContext } from "./context/AuthContextProvider";
 import { WebSocketProvider } from "./context/WebSocketContextProvider";
-import { NewThemeProvider } from "./context/NewThemeContextProvider";
 import Login from "./components/login";
 import { ToastContainer } from "react-toastify";
 import CreateHackathon from "./components/CreateHackathon";
@@ -21,7 +20,6 @@ import VideoConference from "./components/VideoConference";
 import MeetingRoom from "./components/MeetingRoom";
 import "./App.css";
 import "./index.css";
-import "./styles/theme.css";
 import Evolve from "./components/evolve/Evolve";
 import CSBT from "./components/csbt/CSBT";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -34,8 +32,6 @@ import MyTeam from "./components/MyTeam";
 import ParticipantTeamCreation from "./components/ParticipantTeamCreation";
 import AllUsers from "./components/AllUsers";
 import ErrorHandler from "./components/ErrorHandler";
-import AdminDashboard from "./components/dashboard/AdminDashboard";
-import ParticipantDashboard from "./components/dashboard/ParticipantDashboard";
 
 function App() {
   const { isAuth, hackathon, role, userDataError } = useContext(MyContext);
@@ -59,12 +55,12 @@ function App() {
   // Role-based dashboard component
   const DashboardComponent = () => {
     if (role === "admin") {
-      return <AdminDashboard />;
+      return <EligibleHackathons />;
     } else {
       // For participants, show different content based on hackathon availability
       if (!hackathon) {
-        // No hackathon - show participant dashboard with guidance
-        return <ParticipantDashboard />;
+        // No hackathon - show member dashboard with guidance
+        return <MemberDashboard />;
       }
       
       // Has hackathon - show appropriate content
@@ -84,9 +80,8 @@ function App() {
   return (
     <>
       <ToastContainer />
-      <NewThemeProvider>
-        <WebSocketProvider>
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
+      <WebSocketProvider>
+        <div className="min-h-screen bg-gray-50">
           {!isMeetingRoom && <Navbar />}
         {isAuth &&
           !isDashboard &&
@@ -252,8 +247,7 @@ function App() {
           </>
         )}
         </div>
-        </WebSocketProvider>
-      </NewThemeProvider>
+      </WebSocketProvider>
     </>
   );
 }

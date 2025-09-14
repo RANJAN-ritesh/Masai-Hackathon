@@ -83,7 +83,10 @@ const HackathonConclusion = ({ hackathon, currentTeam, userId }) => {
           {/* Team Achievement */}
           {currentTeam && (
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-white/20 mb-8">
-              <h3 className="text-2xl font-bold mb-6 text-center">Team Achievement</h3>
+              <h3 className="text-2xl font-bold mb-6 text-center flex items-center justify-center gap-2">
+                <Trophy className="w-6 h-6" />
+                Team Achievement
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h4 className="text-lg font-semibold mb-2 flex items-center gap-2">

@@ -2,7 +2,7 @@ import React, { useState, useContext, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import Papa from 'papaparse';
 import { MyContext } from '../context/AuthContextProvider';
-import { X, Upload, Eye, Mail, Users, Download } from 'lucide-react';
+import { X, Upload, Eye, Mail, Users, Download, AlertTriangle } from 'lucide-react';
 
 const CSVManagementModal = ({ isOpen, onClose, hackathonId }) => {
   const { userData, hackathon } = useContext(MyContext);
@@ -24,12 +24,15 @@ const CSVManagementModal = ({ isOpen, onClose, hackathonId }) => {
 
 
   if (!effectiveHackathonId) {
-    console.error('❌ CSV MODAL: No valid hackathon ID found');
+    console.error('CSV MODAL: No valid hackathon ID found');
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
           <div className="text-center">
-            <h2 className="text-2xl font-bold text-red-600 mb-4">⚠️ Hackathon ID Required</h2>
+            <h2 className="text-2xl font-bold text-red-600 mb-4 flex items-center justify-center gap-2">
+              <AlertTriangle className="w-6 h-6" />
+              Hackathon ID Required
+            </h2>
             <p className="text-gray-600 mb-4">
               No valid hackathon ID found. Please close this modal and open it from a specific hackathon card.
             </p>
