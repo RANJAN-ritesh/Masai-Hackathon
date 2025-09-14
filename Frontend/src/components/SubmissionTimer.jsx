@@ -136,7 +136,7 @@ const SubmissionTimer = ({ hackathon, userRole = 'member' }) => {
         </div>
       )}
 
-      {hackathon?.submissionDescription && (
+      {hackathon?.submissionDescription && userRole === 'leader' && (
         <div className="mt-4 p-3 bg-white/50 rounded-md">
           <p className="text-sm font-medium mb-1">Submission Guidelines:</p>
           <p className="text-sm opacity-90">{hackathon.submissionDescription}</p>
