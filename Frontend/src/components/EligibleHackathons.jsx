@@ -708,7 +708,7 @@ const EligibleHackathons = () => {
                                   {(registration.teamCreationMode === 'admin' || !registration.teamCreationMode) && !hasTeamsCreated(registration._id) && (
                                     <button
                                       onClick={() => openModal("create", registration)}
-                                      className="bg-gradient-to-r from-purple-300 to-indigo-400 hover:from-purple-600 hover:to-indigo-700 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm hover:shadow flex items-center"
+                                      className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm hover:shadow flex items-center"
                                     >
                                       <Users className="w-4 h-4 mr-2" />
                                       Create Teams
@@ -740,7 +740,7 @@ const EligibleHackathons = () => {
                               <div className="flex space-x-2">
                                 <button
                                   onClick={() => handleCSVUploadClick(registration._id)}
-                                  className="bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white p-2 rounded-lg transition-all duration-300 shadow-sm hover:shadow"
+                                  className="bg-gradient-to-r from-red-400 to-red-500 hover:from-red-500 hover:to-red-600 text-white p-2 rounded-lg transition-all duration-300 shadow-sm hover:shadow"
                                   title="Manage Participants"
                                 >
                                   <Users className="w-5 h-5" />
@@ -748,7 +748,7 @@ const EligibleHackathons = () => {
 
                                 <button
                                   onClick={() => handleViewTeams(registration)}
-                                  className="bg-purple-100 hover:bg-purple-200 text-purple-700 p-2 rounded-lg transition-all duration-300"
+                                  className="bg-red-100 hover:bg-red-200 text-red-700 p-2 rounded-lg transition-all duration-300"
                                   title="View Teams"
                                 >
                                   <Eye className="w-5 h-4" />

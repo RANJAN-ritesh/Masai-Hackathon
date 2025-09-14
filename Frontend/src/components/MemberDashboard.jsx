@@ -119,9 +119,9 @@ const MemberDashboard = () => {
     const end = new Date(hackathon.endDate);
 
     if (now < start) {
-      return { label: 'Upcoming', color: 'bg-blue-100 text-blue-800' };
+      return { label: 'Upcoming', color: 'bg-red-100 text-red-800' };
     } else if (now >= start && now <= end) {
-      return { label: 'Active', color: 'bg-green-100 text-green-800' };
+      return { label: 'Active', color: 'bg-red-100 text-red-800' };
     } else {
       return { label: 'Completed', color: 'bg-gray-100 text-gray-800' };
     }

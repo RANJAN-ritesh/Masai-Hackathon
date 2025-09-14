@@ -44,7 +44,7 @@ const HackathonConclusion = ({ hackathon, currentTeam, userId }) => {
                       currentTeam?.members?.some(member => member._id === userId && member.role === 'leader');
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-red-900 via-gray-900 to-black text-white">
       {/* Celebration Header */}
       <div className="text-center py-16 px-4">
         <div className="max-w-4xl mx-auto">

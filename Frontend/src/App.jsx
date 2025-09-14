@@ -81,7 +81,7 @@ function App() {
     <>
       <ToastContainer />
       <WebSocketProvider>
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen" style={{ backgroundColor: '#F9FAFB' }}>
           {!isMeetingRoom && <Navbar />}
         {isAuth &&
           !isDashboard &&
