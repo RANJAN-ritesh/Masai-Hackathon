@@ -99,13 +99,13 @@ const MyTeam = () => {
   useEffect(() => {
     // Register team update callback
     const unregisterTeamUpdate = registerTeamUpdateCallback((update) => {
-      console.log('🔄 Team update received, refreshing data...');
+      console.log('Team update received, refreshing data...');
       loadData(); // Refresh all team data
     });
 
     // Register problem statement callback
     const unregisterProblemStatement = registerProblemStatementCallback((update) => {
-      console.log('🎯 Problem statement update received, refreshing data...');
+      console.log('Problem statement update received, refreshing data...');
       loadData(); // Refresh all team data
     });
 
@@ -579,7 +579,7 @@ const MyTeam = () => {
   const respondToInvitation = async (requestId, response) => {
     try {
       const token = localStorage.getItem('authToken') || userId;
-      console.log('🔍 Responding to invitation:', { requestId, response });
+      console.log('Responding to invitation:', { requestId, response });
       
       const res = await fetch(`${baseURL}/participant-team/respond-request/${requestId}`, {
         method: 'PUT',
@@ -595,7 +595,7 @@ const MyTeam = () => {
 
       if (res.ok) {
         if (response === 'accepted') {
-          toast.success('Invitation accepted! You are now part of the team! 🎉');
+          toast.success('Invitation accepted! You are now part of the team!');
           // Redirect to overview tab after acceptance
           setActiveTab('overview');
         } else {

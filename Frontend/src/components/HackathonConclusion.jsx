@@ -51,7 +51,7 @@ const HackathonConclusion = ({ hackathon, currentTeam, userId }) => {
           <div className="mb-8">
             <Trophy className="w-24 h-24 mx-auto text-yellow-400 mb-6 animate-bounce" />
             <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">
-              🎉 Hackathon Complete! 🎉
+              Hackathon Complete!
             </h1>
             <h2 className="text-3xl font-semibold mb-2">{hackathon?.title}</h2>
             <p className="text-xl text-blue-200">
@@ -83,7 +83,7 @@ const HackathonConclusion = ({ hackathon, currentTeam, userId }) => {
           {/* Team Achievement */}
           {currentTeam && (
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-8 border border-white/20 mb-8">
-              <h3 className="text-2xl font-bold mb-6 text-center">🏆 Team Achievement</h3>
+              <h3 className="text-2xl font-bold mb-6 text-center">Team Achievement</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h4 className="text-lg font-semibold mb-2 flex items-center gap-2">

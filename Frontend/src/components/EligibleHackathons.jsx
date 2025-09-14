@@ -67,7 +67,7 @@ const EligibleHackathons = () => {
   };
 
   const handleRefresh = () => {
-    console.log("🔄 Manual refresh triggered");
+    console.log("Manual refresh triggered");
     setLoading(true);
     fetchHackathons(userData).then(() => {
       // Show success message after refresh
@@ -103,7 +103,7 @@ const EligibleHackathons = () => {
         
         // Show notification if count increased (new hackathon detected)
         if (data.length > previousCount && previousCount > 0) {
-          toast.info(`🎉 New hackathon detected! Total: ${data.length}`, {
+          toast.info(`New hackathon detected! Total: ${data.length}`, {
             position: "top-center",
             autoClose: 3000,
             hideProgressBar: false,
@@ -204,7 +204,7 @@ const EligibleHackathons = () => {
     }
 
     const hackathonId = hackathon._id;
-    console.log('🎯 Creating teams for:', hackathon.title, 'ID:', hackathonId);
+    console.log('Creating teams for:', hackathon.title, 'ID:', hackathonId);
 
     try {
       setLoading(true);
@@ -218,7 +218,7 @@ const EligibleHackathons = () => {
       const participantsData = await participantsResponse.json();
       const allParticipants = participantsData.participants || [];
       
-      console.log('📊 Participants found:', allParticipants.length);
+      console.log('Participants found:', allParticipants.length);
       
       if (allParticipants.length === 0) {
         toast.error('No participants found in this hackathon. Please add participants first.');
@@ -235,7 +235,7 @@ const EligibleHackathons = () => {
         return;
       }
       
-      console.log('✅ Eligible participants:', eligibleParticipants.length);
+      console.log('Eligible participants:', eligibleParticipants.length);
       
       // 3. Simple team creation - 4 people per team
       const teamSize = 4;
@@ -256,7 +256,7 @@ const EligibleHackathons = () => {
         teams.push(currentTeam);
       }
       
-      console.log('🏗️ Creating', teams.length, 'teams');
+      console.log('Creating', teams.length, 'teams');
       
       // 4. Create teams
       const createdTeams = [];
@@ -287,10 +287,10 @@ const EligibleHackathons = () => {
         if (teamResponse.ok) {
           const newTeam = await teamResponse.json();
           createdTeams.push(newTeam);
-          console.log(`✅ Team ${i + 1} created:`, newTeam.teamName);
+          console.log(`Team ${i + 1} created:`, newTeam.teamName);
         } else {
           const error = await teamResponse.json();
-          console.error(`❌ Failed to create team ${i + 1}:`, error);
+          console.error(`Failed to create team ${i + 1}:`, error);
         }
       }
       
@@ -300,7 +300,7 @@ const EligibleHackathons = () => {
           autoClose: 5000
         });
         
-        console.log('🎉 Team creation complete:', createdTeams.length, 'teams created');
+        console.log('Team creation complete:', createdTeams.length, 'teams created');
       } else {
         toast.error('Failed to create any teams. Please check the console for errors.');
       }
@@ -330,7 +330,7 @@ const EligibleHackathons = () => {
     if (selectedHackathon) {
       // Update the context with the selected hackathon
       setHackathon(selectedHackathon);
-      console.log("🔍 Setting hackathon in context:", selectedHackathon);
+      console.log("Setting hackathon in context:", selectedHackathon);
     }
     
     navigate(`/hackathon`);
@@ -936,7 +936,7 @@ const EligibleHackathons = () => {
                       onClick={() => handleViewTeams(selectedHackathonForTeams)}
                       className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
                     >
-                      🔄 Refresh Teams
+                      Refresh Teams
                     </button>
                   </div>
                 ) : (
