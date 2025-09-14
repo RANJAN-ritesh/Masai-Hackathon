@@ -12,7 +12,7 @@ router.get('/data/:hackathonId', authenticateUser, async (req, res) => {
     const { hackathonId } = req.params;
     const userId = req.user?.id;
 
-    console.log('📊 Fetching hackathon data:', { hackathonId, userId });
+    console.log('Fetching hackathon data:', { hackathonId, userId });
 
     // Find hackathon
     const hackathon = await Hackathon.findById(hackathonId);
@@ -32,8 +32,8 @@ router.get('/data/:hackathonId', authenticateUser, async (req, res) => {
       currentHackathon: hackathonId 
     }).populate('currentTeamId');
 
-    console.log('📊 Found teams:', teams.length);
-    console.log('📊 Found participants:', participants.length);
+    console.log('Found teams:', teams.length);
+    console.log('Found participants:', participants.length);
 
     // Build the data table
     const dataTable = [];
@@ -41,18 +41,18 @@ router.get('/data/:hackathonId', authenticateUser, async (req, res) => {
     // Process each participant
     for (const participant of participants) {
       const team = teams.find(t => 
-        t.teamMembers.some(member => member._id.toString() === participant._id.toString()) ||
-        t.createdBy?.toString() === participant._id.toString()
+        t.teamMembers.some((member: any) => member._id.toString() === (participant._id as any).toString()) ||
+        t.createdBy?.toString() === (participant._id as any).toString()
       );
 
       const isLeader = team ? (
-        team.createdBy?.toString() === participant._id.toString() ||
-        team.teamLeader?.toString() === participant._id.toString() ||
-        team.members?.some(member => member._id.toString() === participant._id.toString() && member.role === 'leader')
+        team.createdBy?.toString() === (participant._id as any).toString() ||
+        team.teamLeader?.toString() === (participant._id as any).toString() ||
+        (team as any).members?.some((member: any) => member._id.toString() === (participant._id as any).toString() && member.role === 'leader')
       ) : false;
 
       // Find participation date (when user was added to hackathon)
-      const participationDate = participant.currentHackathonJoinedAt || 
+      const participationDate = (participant as any).currentHackathonJoinedAt || 
                                participant.createdAt || 
                                new Date();
 
@@ -71,7 +71,7 @@ router.get('/data/:hackathonId', authenticateUser, async (req, res) => {
       });
     }
 
-    console.log('📊 Generated data table with', dataTable.length, 'rows');
+    console.log('Generated data table with', dataTable.length, 'rows');
 
     res.json({
       success: true,
@@ -92,10 +92,10 @@ router.get('/data/:hackathonId', authenticateUser, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Error fetching hackathon data:', error);
+    console.error('Error fetching hackathon data:', error);
     res.status(500).json({ 
       message: 'Internal server error',
-      error: error.message 
+      error: (error as Error).message 
     });
   }
 });
@@ -124,14 +124,14 @@ router.get('/status/:hackathonId', authenticateUser, async (req, res) => {
       isEnded,
       chatLocked,
       chatEndDate: chatEndDate.toISOString(),
-      timeUntilChatLock: chatLocked ? 0 : Math.max(0, chatEndDate - now)
+      timeUntilChatLock: chatLocked ? 0 : Math.max(0, chatEndDate.getTime() - now.getTime())
     });
 
   } catch (error) {
-    console.error('❌ Error checking hackathon status:', error);
+    console.error('Error checking hackathon status:', error);
     res.status(500).json({ 
       message: 'Internal server error',
-      error: error.message 
+      error: (error as Error).message 
     });
   }
 });
