@@ -699,7 +699,7 @@ const EligibleHackathons = () => {
                               ) : (
                                 <>
                                   {/* Only show Create Teams button for admin-based team selection */}
-                                  {registration.teamCreationMode === 'admin' && (
+                                  {(registration.teamCreationMode === 'admin' || !registration.teamCreationMode) && (
                                     <button
                                       onClick={() => openModal("create", registration)}
                                       className="bg-gradient-to-r from-purple-300 to-indigo-400 hover:from-purple-600 hover:to-indigo-700 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm hover:shadow flex items-center"
