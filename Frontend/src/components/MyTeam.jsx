@@ -1006,10 +1006,12 @@ const MyTeam = () => {
                         ) : (
                           <div className="p-3 rounded-lg" style={{ backgroundColor: '#fef3c7' }}>
                             <p className="text-sm" style={{ color: '#92400e' }}>
-                              {now < startDate 
-                                ? `Submission period starts: ${startDate.toLocaleDateString()}`
-                                : `Submission period ended: ${endDate.toLocaleDateString()}`
-                              }
+                              {(() => {
+                                const now = new Date();
+                                return now < startDate 
+                                  ? `Submission period starts: ${startDate.toLocaleDateString()}`
+                                  : `Submission period ended: ${endDate.toLocaleDateString()}`;
+                              })()}
                             </p>
                           </div>
                         );
@@ -1290,10 +1292,12 @@ const MyTeam = () => {
                       ) : (
                         <div className="px-4 py-2 rounded-lg" style={{ backgroundColor: '#fef3c7' }}>
                           <span className="text-sm font-medium" style={{ color: '#92400e' }}>
-                            {now < startDate 
-                              ? `Submission starts: ${startDate.toLocaleDateString()}`
-                              : `Submission ended: ${endDate.toLocaleDateString()}`
-                            }
+                            {(() => {
+                              const now = new Date();
+                              return now < startDate 
+                                ? `Submission starts: ${startDate.toLocaleDateString()}`
+                                : `Submission ended: ${endDate.toLocaleDateString()}`;
+                            })()}
                           </span>
                         </div>
                       );
