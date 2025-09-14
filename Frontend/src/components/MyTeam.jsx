@@ -1008,6 +1008,8 @@ const MyTeam = () => {
                             <p className="text-sm" style={{ color: '#92400e' }}>
                               {(() => {
                                 const now = new Date();
+                                const startDate = new Date(hackathon.submissionStartDate);
+                                const endDate = new Date(hackathon.submissionEndDate);
                                 return now < startDate 
                                   ? `Submission period starts: ${startDate.toLocaleDateString()}`
                                   : `Submission period ended: ${endDate.toLocaleDateString()}`;
@@ -1294,6 +1296,8 @@ const MyTeam = () => {
                           <span className="text-sm font-medium" style={{ color: '#92400e' }}>
                             {(() => {
                               const now = new Date();
+                              const startDate = new Date(hackathon.submissionStartDate);
+                              const endDate = new Date(hackathon.submissionEndDate);
                               return now < startDate 
                                 ? `Submission starts: ${startDate.toLocaleDateString()}`
                                 : `Submission ended: ${endDate.toLocaleDateString()}`;
