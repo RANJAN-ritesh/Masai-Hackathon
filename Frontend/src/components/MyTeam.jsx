@@ -5,6 +5,7 @@ import { useWebSocket } from '../context/WebSocketContextProvider';
 import ParticipantTeamMode from './ParticipantTeamMode';
 import SubmissionTimer from './SubmissionTimer';
 import HackathonConclusion from './HackathonConclusion';
+import TeamChat from './TeamChat';
 import { 
   Users, 
   Search, 
