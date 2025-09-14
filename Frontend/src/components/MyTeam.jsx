@@ -162,6 +162,25 @@ const MyTeam = () => {
           team.teamMembers.some(member => member._id === userId) ||
           team.createdBy?._id === userId
         );
+        
+        if (userTeam && userTeam.selectedProblemStatement) {
+          // Fetch full problem details if a problem is selected
+          try {
+            const problemResponse = await fetch(`${baseURL}/hackathons/problems/${hackathon._id}`);
+            if (problemResponse.ok) {
+              const problemData = await problemResponse.json();
+              const selectedProblem = problemData.problemStatements?.find(
+                p => p.track === userTeam.selectedProblemStatement
+              );
+              if (selectedProblem) {
+                userTeam.selectedProblemDetails = selectedProblem;
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching problem details:', error);
+          }
+        }
+        
         setCurrentTeam(userTeam || null);
       } else {
         console.error('Failed to load current team:', response.status, response.statusText);
