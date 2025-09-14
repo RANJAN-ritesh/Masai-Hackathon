@@ -3,6 +3,7 @@ import { MyContext } from '../context/AuthContextProvider';
 import { useWebSocket } from '../context/WebSocketContextProvider';
 import { useTheme } from '../context/ThemeContextProvider';
 import TeamChat from './TeamChat';
+import SubmissionTimer from './SubmissionTimer';
 import { 
   Users, 
   Search, 
@@ -609,6 +610,11 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
                           <p className="text-sm mb-3" style={{ color: '#166534', opacity: 0.8 }}>
                             Once your team is ready, you can submit your project solution. This is a final submission that cannot be changed.
                           </p>
+                          
+                          {/* Submission Timer */}
+                          <div className="mb-4">
+                            <SubmissionTimer hackathon={hackathon} />
+                          </div>
                           {hackathon?.submissionStartDate && hackathon?.submissionEndDate ? (
                             (() => {
                               const now = new Date();

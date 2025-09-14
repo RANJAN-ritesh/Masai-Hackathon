@@ -112,6 +112,26 @@ router.post('/submit-project', authenticateUser, async (req, res) => {
       return res.status(400).json({ message: 'Please select a problem statement first' });
     }
 
+    // Check submission timing
+    const hackathon = await Hackathon.findById(team.hackathonId);
+    if (hackathon?.submissionStartDate && hackathon?.submissionEndDate) {
+      const now = new Date();
+      const startDate = new Date(hackathon.submissionStartDate);
+      const endDate = new Date(hackathon.submissionEndDate);
+      
+      if (now < startDate) {
+        return res.status(400).json({ 
+          message: `Submissions are not yet open. Submission period starts on ${startDate.toLocaleString()}` 
+        });
+      }
+      
+      if (now > endDate) {
+        return res.status(400).json({ 
+          message: `Submissions are closed. Submission period ended on ${endDate.toLocaleString()}` 
+        });
+      }
+    }
+
     // Check if project is already submitted
     if (team.submissionLink) {
       return res.status(400).json({ message: 'Project already submitted and cannot be changed' });

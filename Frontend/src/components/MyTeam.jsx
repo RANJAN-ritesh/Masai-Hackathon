@@ -3,6 +3,7 @@ import { MyContext } from '../context/AuthContextProvider';
 import { useTheme } from '../context/ThemeContextProvider';
 import { useWebSocket } from '../context/WebSocketContextProvider';
 import ParticipantTeamMode from './ParticipantTeamMode';
+import SubmissionTimer from './SubmissionTimer';
 import { 
   Users, 
   Search, 
@@ -50,9 +51,26 @@ const MyTeam = () => {
   const [submissionLink, setSubmissionLink] = useState('');
   const [showSubmissionModal, setShowSubmissionModal] = useState(false);
 
-  // Check team creation mode
-  const isParticipantTeamMode = hackathon?.allowParticipantTeams && hackathon?.teamCreationMode === 'participant';
-  const isAdminTeamMode = !hackathon?.allowParticipantTeams && hackathon?.teamCreationMode === 'admin';
+  // Check if submissions are currently allowed
+  const isSubmissionAllowed = () => {
+    if (!hackathon?.submissionStartDate || !hackathon?.submissionEndDate) {
+      return false;
+    }
+    
+    const now = new Date();
+    const startDate = new Date(hackathon.submissionStartDate);
+    const endDate = new Date(hackathon.submissionEndDate);
+    
+    return now >= startDate && now <= endDate;
+  };
+
+  // Check if user is team leader
+  const isTeamLeader = () => {
+    if (!currentTeam) return false;
+    return currentTeam.createdBy?._id === userId || 
+           currentTeam.teamLeader?._id === userId ||
+           currentTeam.members?.some(member => member._id === userId && member.role === 'leader');
+  };
 
   useEffect(() => {
     if (hackathon && userId) {
@@ -937,12 +955,14 @@ const MyTeam = () => {
                     <p className="text-sm mb-3" style={{ color: '#166534', opacity: 0.8 }}>
                       Once your team is ready, you can submit your project solution. This is a final submission that cannot be changed.
                     </p>
+                    
+                    {/* Submission Timer */}
+                    <div className="mb-4">
+                      <SubmissionTimer hackathon={hackathon} />
+                    </div>
                     {hackathon?.submissionStartDate && hackathon?.submissionEndDate ? (
                       (() => {
-                        const now = new Date();
-                        const startDate = new Date(hackathon.submissionStartDate);
-                        const endDate = new Date(hackathon.submissionEndDate);
-                        const isSubmissionPeriod = now >= startDate && now <= endDate;
+                        const isSubmissionPeriod = isSubmissionAllowed();
                         
                         return isSubmissionPeriod ? (
                           <button 
@@ -1225,10 +1245,7 @@ const MyTeam = () => {
                   
                   {selectedProblemStatement && !currentTeam.submissionLink && (
                     (() => {
-                      const now = new Date();
-                      const startDate = hackathon?.submissionStartDate ? new Date(hackathon.submissionStartDate) : null;
-                      const endDate = hackathon?.submissionEndDate ? new Date(hackathon.submissionEndDate) : null;
-                      const isSubmissionPeriod = !startDate || !endDate || (now >= startDate && now <= endDate);
+                      const isSubmissionPeriod = !hackathon?.submissionStartDate || !hackathon?.submissionEndDate || isSubmissionAllowed();
                       
                       return isSubmissionPeriod ? (
                         <button
