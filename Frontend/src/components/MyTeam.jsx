@@ -84,6 +84,9 @@ const MyTeam = () => {
 
   // Determine if this is participant team mode
   const isParticipantTeamMode = hackathon?.teamCreationMode === 'participant';
+  
+  // Determine if this is admin team mode
+  const isAdminTeamMode = hackathon?.teamCreationMode === 'admin' || !hackathon?.teamCreationMode;
 
   useEffect(() => {
     if (hackathon && userId) {
