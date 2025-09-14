@@ -14,7 +14,7 @@ import {
   Users
 } from 'lucide-react';
 
-const TeamChat = ({ currentTeam }) => {
+const TeamChat = ({ currentTeam, hackathon }) => {
   const { userId } = useContext(MyContext);
   const { themeConfig } = useTheme();
   const { registerChatMessageCallback } = useWebSocket();
@@ -31,6 +31,15 @@ const TeamChat = ({ currentTeam }) => {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   const messagesContainerRef = useRef(null);
+
+  // Check if chat is locked (1 day after hackathon ends)
+  const isChatLocked = () => {
+    if (!hackathon?.endDate) return false;
+    const now = new Date();
+    const endDate = new Date(hackathon.endDate);
+    const chatEndDate = new Date(endDate.getTime() + 24 * 60 * 60 * 1000); // 1 day after
+    return now > chatEndDate;
+  };
 
   // Scroll to bottom
   const scrollToBottom = () => {
@@ -68,7 +77,7 @@ const TeamChat = ({ currentTeam }) => {
 
   // Send text message
   const sendMessage = async () => {
-    if (!newMessage.trim() || !currentTeam) return;
+    if (!newMessage.trim() || !currentTeam || isChatLocked()) return;
     
     setLoading(true);
     try {
@@ -447,22 +456,35 @@ const TeamChat = ({ currentTeam }) => {
         )}
 
         {/* Input Area */}
-        <div className="flex gap-2">
-          <div className="flex-1 relative">
-            <textarea
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Type a message..."
-              className="w-full p-3 pr-12 rounded-lg border resize-none"
-              style={{ 
-                backgroundColor: themeConfig.backgroundColor,
-                borderColor: themeConfig.borderColor,
-                color: themeConfig.textColor
-              }}
-              rows={1}
-              disabled={loading}
-            />
+        {isChatLocked() ? (
+          <div className="p-4 text-center rounded-lg border-2 border-dashed" style={{ 
+            backgroundColor: themeConfig.backgroundColor,
+            borderColor: themeConfig.borderColor,
+            color: themeConfig.textColor
+          }}>
+            <Users className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+            <p className="text-sm font-medium mb-1">Chat Access Expired</p>
+            <p className="text-xs text-gray-500">
+              Team chat is no longer available. You can still view your team overview and achievements.
+            </p>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <div className="flex-1 relative">
+              <textarea
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Type a message..."
+                className="w-full p-3 pr-12 rounded-lg border resize-none"
+                style={{ 
+                  backgroundColor: themeConfig.backgroundColor,
+                  borderColor: themeConfig.borderColor,
+                  color: themeConfig.textColor
+                }}
+                rows={1}
+                disabled={loading}
+              />
             <div className="absolute right-2 top-2 flex gap-1">
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -491,6 +513,7 @@ const TeamChat = ({ currentTeam }) => {
             <Send className="w-4 h-4" />
           </button>
         </div>
+        )}
 
         {/* Hidden file input */}
         <input

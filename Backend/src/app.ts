@@ -27,6 +27,7 @@ import chatRoutes from "./routes/chatRoutes";
 import teamReportingRoutes from "./routes/teamReportingRoutes";
 import submissionRoutes from "./routes/submissionRoutes";
 import adminRoutes from "./routes/adminRoutes";
+import hackathonDataRoutes from "./routes/hackathonDataRoutes";
 
 // Load environment variables
 dotenv.config();
@@ -105,6 +106,7 @@ app.use("/chat", chatRoutes); // Team chat routes
 app.use("/team-reporting", teamReportingRoutes); // Team member reporting routes
 app.use("/submission", submissionRoutes); // Project submission routes
 app.use("/admin", adminRoutes); // Admin functionality routes
+app.use("/hackathon-data", hackathonDataRoutes); // Hackathon data export routes
 
 // EMERGENCY DEBUG ROUTE - NO AUTHENTICATION
 app.get("/debug-participants/:hackathonId", async (req, res) => {

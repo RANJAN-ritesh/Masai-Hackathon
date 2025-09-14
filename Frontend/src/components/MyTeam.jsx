@@ -4,6 +4,7 @@ import { useTheme } from '../context/ThemeContextProvider';
 import { useWebSocket } from '../context/WebSocketContextProvider';
 import ParticipantTeamMode from './ParticipantTeamMode';
 import SubmissionTimer from './SubmissionTimer';
+import HackathonConclusion from './HackathonConclusion';
 import { 
   Users, 
   Search, 
@@ -64,12 +65,21 @@ const MyTeam = () => {
     return now >= startDate && now <= endDate;
   };
 
-  // Check if user is team leader
-  const isTeamLeader = () => {
-    if (!currentTeam) return false;
-    return currentTeam.createdBy?._id === userId || 
-           currentTeam.teamLeader?._id === userId ||
-           currentTeam.members?.some(member => member._id === userId && member.role === 'leader');
+  // Check if hackathon has ended
+  const isHackathonEnded = () => {
+    if (!hackathon?.endDate) return false;
+    const now = new Date();
+    const endDate = new Date(hackathon.endDate);
+    return now > endDate;
+  };
+
+  // Check if chat is locked (1 day after hackathon ends)
+  const isChatLocked = () => {
+    if (!hackathon?.endDate) return false;
+    const now = new Date();
+    const endDate = new Date(hackathon.endDate);
+    const chatEndDate = new Date(endDate.getTime() + 24 * 60 * 60 * 1000); // 1 day after
+    return now > chatEndDate;
   };
 
   useEffect(() => {
@@ -628,6 +638,17 @@ const MyTeam = () => {
           <p style={{ color: themeConfig.textColor }}>Loading team data...</p>
         </div>
       </div>
+    );
+  }
+
+  // Show hackathon conclusion if hackathon has ended
+  if (isHackathonEnded()) {
+    return (
+      <HackathonConclusion 
+        hackathon={hackathon}
+        currentTeam={currentTeam}
+        userId={userId}
+      />
     );
   }
 
@@ -1291,7 +1312,7 @@ const MyTeam = () => {
                 Team Chat
               </h3>
               <div className="h-96 rounded-lg border" style={{ borderColor: themeConfig.borderColor }}>
-                <TeamChat currentTeam={currentTeam} />
+                <TeamChat currentTeam={currentTeam} hackathon={hackathon} />
               </div>
             </div>
           </div>

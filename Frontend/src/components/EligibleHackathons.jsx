@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { MyContext } from "../context/AuthContextProvider";
 import { useTheme } from "../context/ThemeContextProvider";
+import HackathonDataView from './HackathonDataView';
 import {
   ArrowRight,
   CalendarRange,
@@ -34,6 +35,8 @@ const EligibleHackathons = () => {
   const baseURL = import.meta.env.VITE_BASE_URL || 'https://masai-hackathon.onrender.com';
   const [hackathons, setHackathons] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hackathonData, setHackathonData] = useState(null);
+  const [showHackathonData, setShowHackathonData] = useState(false);
   const userId = localStorage.getItem("userId");
   const { setCurrentHackathonId, userData, role, setHackathon } = useContext(MyContext);
   const { themeConfig, applyGlobalTheme } = useTheme();
@@ -391,7 +394,37 @@ const EligibleHackathons = () => {
     setIsModalOpen(true);
   };
 
+  // Check if hackathon has ended
+  const isHackathonEnded = (hackathon) => {
+    if (!hackathon?.endDate) return false;
+    const now = new Date();
+    const endDate = new Date(hackathon.endDate);
+    return now > endDate;
+  };
 
+  // Fetch hackathon data for admin
+  const fetchHackathonData = async (hackathonId) => {
+    try {
+      const token = localStorage.getItem('authToken') || localStorage.getItem('userId');
+      const response = await fetch(`${baseURL}/hackathon-data/data/${hackathonId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setHackathonData(data);
+        setShowHackathonData(true);
+      } else {
+        toast.error('Failed to fetch hackathon data');
+      }
+    } catch (error) {
+      console.error('Error fetching hackathon data:', error);
+      toast.error('Failed to fetch hackathon data');
+    }
+  };
 
   // View teams for a hackathon
   const handleViewTeams = async (hackathon) => {
@@ -654,25 +687,38 @@ const EligibleHackathons = () => {
 
                           <div className="pt-4 border-t border-gray-100 mt-auto">
                             <div className="flex flex-wrap gap-3 items-center justify-between">
-                              {/* Only show Create Teams button for admin-based team selection */}
-                              {registration.teamCreationMode === 'admin' && (
+                              {/* Show hackathon data button if hackathon has ended */}
+                              {isHackathonEnded(registration) ? (
                                 <button
-                                  onClick={() => openModal("create", registration)}
-                                  className="bg-gradient-to-r from-purple-300 to-indigo-400 hover:from-purple-600 hover:to-indigo-700 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm hover:shadow flex items-center"
+                                  onClick={() => fetchHackathonData(registration._id)}
+                                  className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm hover:shadow flex items-center"
                                 >
-                                  <Users className="w-4 h-4 mr-2" />
-                                  Create Teams
+                                  <Trophy className="w-4 h-4 mr-2" />
+                                  See Hackathon Data
                                 </button>
-                              )}
-                              
-                              {/* Show message for participant-based team selection */}
-                              {registration.teamCreationMode === 'participant' && (
-                                <div className="px-4 py-2 rounded-lg bg-blue-50 border border-blue-200">
-                                  <span className="text-blue-700 text-sm font-medium">
-                                    <Users className="w-4 h-4 mr-2 inline" />
-                                    Participant Team Selection
-                                  </span>
-                                </div>
+                              ) : (
+                                <>
+                                  {/* Only show Create Teams button for admin-based team selection */}
+                                  {registration.teamCreationMode === 'admin' && (
+                                    <button
+                                      onClick={() => openModal("create", registration)}
+                                      className="bg-gradient-to-r from-purple-300 to-indigo-400 hover:from-purple-600 hover:to-indigo-700 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm hover:shadow flex items-center"
+                                    >
+                                      <Users className="w-4 h-4 mr-2" />
+                                      Create Teams
+                                    </button>
+                                  )}
+                                  
+                                  {/* Show message for participant-based team selection */}
+                                  {registration.teamCreationMode === 'participant' && (
+                                    <div className="px-4 py-2 rounded-lg bg-blue-50 border border-blue-200">
+                                      <span className="text-blue-700 text-sm font-medium">
+                                        <Users className="w-4 h-4 mr-2 inline" />
+                                        Participant Team Selection
+                                      </span>
+                                    </div>
+                                  )}
+                                </>
                               )}
 
                               <div className="flex space-x-2">
@@ -1025,6 +1071,30 @@ const EligibleHackathons = () => {
           currentTheme={hackathons.find((h) => h._id === selectedHackathonId)?.theme}
           currentFont={hackathons.find((h) => h._id === selectedHackathonId)?.fontFamily}
         />
+        {/* Hackathon Data Modal */}
+        {showHackathonData && hackathonData && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl w-full max-w-7xl max-h-[90vh] overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b">
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Hackathon Data - {hackathonData.hackathon?.title}
+                </h2>
+                <button
+                  onClick={() => setShowHackathonData(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <div className="p-6 overflow-auto max-h-[calc(90vh-120px)]">
+                <HackathonDataView 
+                  hackathon={hackathonData.hackathon}
+                  hackathonData={hackathonData.data}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
