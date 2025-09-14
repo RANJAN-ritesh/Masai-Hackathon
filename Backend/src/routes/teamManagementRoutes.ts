@@ -64,7 +64,7 @@ router.post('/select-problem-statement', authenticateUser, async (req, res) => {
           title: 'Problem Statement Selected! 🎯',
           message: `Your team leader has selected "${problemStatement}" as your problem statement.`,
           isRead: false,
-          metadata: { teamId: team._id.toString(), problemStatement },
+          metadata: { teamId: teamId, problemStatement },
           createdAt: new Date(),
           updatedAt: new Date()
         });
@@ -181,7 +181,7 @@ router.get('/status/:teamId', authenticateUser, async (req, res) => {
     }
 
     res.json({
-      teamId: team._id,
+      teamId: teamId,
       selectedProblemStatement: team.selectedProblemStatement,
       problemStatementSelectedAt: team.problemStatementSelectedAt,
       submissionLink: team.submissionLink,
