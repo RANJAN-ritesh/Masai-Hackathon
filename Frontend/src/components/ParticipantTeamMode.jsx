@@ -613,7 +613,7 @@ const ParticipantTeamMode = ({ hackathon, userId, baseURL }) => {
                           
                           {/* Submission Timer */}
                           <div className="mb-4">
-                            <SubmissionTimer hackathon={hackathon} />
+                            <SubmissionTimer hackathon={hackathon} userRole={currentTeam?.role || 'member'} />
                           </div>
                           {hackathon?.submissionStartDate && hackathon?.submissionEndDate ? (
                             (() => {
