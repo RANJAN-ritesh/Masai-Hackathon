@@ -663,7 +663,7 @@ const EligibleHackathons = () => {
                         key={registration._id}
                         className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all border border-gray-100 group flex flex-col h-full"
                       >
-                        <div className="h-2 bg-gradient-to-r from-indigo-500 to-purple-600"></div>
+                        <div className="h-2 bg-gradient-to-r from-red-500 to-red-600"></div>
                         <div className="p-6 flex flex-col flex-grow">
                           <div
                             className="flex justify-between items-start mb-4 cursor-pointer"
@@ -774,7 +774,7 @@ const EligibleHackathons = () => {
                                     setSelectedHackathonId(registration._id);
                                     setCustomizationModalOpen(true);
                                   }}
-                                  className="bg-gradient-to-r from-pink-400 to-purple-500 hover:from-pink-500 hover:to-purple-600 text-white p-2 rounded-lg transition-all duration-300 shadow-sm hover:shadow"
+                                  className="bg-gradient-to-r from-red-400 to-red-500 hover:from-red-500 hover:to-red-600 text-white p-2 rounded-lg transition-all duration-300 shadow-sm hover:shadow"
                                   title="Customize Theme"
                                 >
                                   <Palette className="w-5 h-5" />
@@ -782,7 +782,7 @@ const EligibleHackathons = () => {
 
                                 <Link to={`/edithackathon/${registration._id}`}>
                                   <button 
-                                    className="bg-blue-100 hover:bg-blue-200 text-blue-700 p-2 rounded-lg transition-all duration-300"
+                                    className="bg-red-100 hover:bg-red-200 text-red-700 p-2 rounded-lg transition-all duration-300"
                                     title="Edit Hackathon"
                                   >
                                     <Pencil className="w-5 h-5" />
@@ -834,7 +834,7 @@ const EligibleHackathons = () => {
                         className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all cursor-pointer border border-gray-100 group flex flex-col h-full"
                         onClick={() => handleCardClick(registration?.hackathonId?._id)}
                       >
-                        <div className="h-2 bg-gradient-to-r from-indigo-500 to-purple-600"></div>
+                        <div className="h-2 bg-gradient-to-r from-red-500 to-red-600"></div>
                         <div className="p-6 flex flex-col flex-grow">
                           <div className="flex justify-between items-start mb-4">
                             <h3 className="text-xl font-bold text-gray-800 leading-tight group-hover:text-indigo-600 transition-colors">
@@ -903,21 +903,21 @@ const EligibleHackathons = () => {
           <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden border border-gray-200">
               {/* Modal Header */}
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 border-b">
+              <div className="bg-gradient-to-r from-red-600 to-red-700 text-white p-6 border-b">
                 <div className="flex justify-between items-center">
                   <div>
                     <h2 className="text-2xl font-bold flex items-center">
                       <Users className="w-6 h-6 mr-3" />
                       Teams Overview
                     </h2>
-                    <p className="text-blue-100 mt-1">
+                    <p className="text-red-100 mt-1">
                       {selectedHackathonForTeams?.title} - {teamsData.length} Teams Created
                     </p>
                   </div>
                   <div className="flex space-x-3">
                     <button
                       onClick={copyAllTeamsToClipboard}
-                      className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-bold transition-all duration-300 flex items-center border-2 border-green-400 hover:border-green-300 shadow-xl"
+                      className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-bold transition-all duration-300 flex items-center border-2 border-red-400 hover:border-red-300 shadow-xl"
                       title="Copy all teams to clipboard in CSV format"
                     >
                       <Copy className="w-4 h-4 mr-2 stroke-2" />
@@ -964,7 +964,7 @@ const EligibleHackathons = () => {
                     {teamsData.map((team, index) => (
                       <div key={team._id} className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300">
                         {/* Team Header */}
-                        <div className="bg-gradient-to-r from-gray-50 to-blue-50 p-4 border-b border-gray-200 rounded-t-xl">
+                        <div className="bg-gradient-to-r from-red-50 to-gray-50 p-4 border-b border-gray-200 rounded-t-xl">
                           <div className="flex justify-between items-start">
                             <div className="flex-1">
                               <h3 className="text-lg font-bold text-gray-800 mb-1">{team.teamName}</h3>
@@ -972,7 +972,7 @@ const EligibleHackathons = () => {
                                 <span className="text-sm text-gray-600 bg-white px-2 py-1 rounded border">
                                   {team.teamMembers.length} members
                                 </span>
-                                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
+                                <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">
                                   {team.status || 'Active'}
                                 </span>
                               </div>
@@ -1027,7 +1027,7 @@ const EligibleHackathons = () => {
                                 team.teamMembers.map((member, memberIndex) => (
                                   <div key={member._id || memberIndex} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
                                     <div className="flex items-center space-x-3">
-                                      <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm">
+                                      <div className="w-8 h-8 bg-gradient-to-r from-red-500 to-red-600 rounded-full flex items-center justify-center text-white text-xs font-bold shadow-sm">
                                         {member.name?.charAt(0)?.toUpperCase() || '?'}
                                       </div>
                                       <div className="flex-1">
