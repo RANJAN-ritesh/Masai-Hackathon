@@ -157,7 +157,7 @@ const NotificationCenter = ({ isOpen, onClose }) => {
 
       if (res.ok) {
         if (response === 'accepted') {
-          toast.success('Invitation accepted! You are now part of the team! 🎉');
+          toast.success('Invitation accepted! You are now part of the team!');
         } else {
           toast.success('Invitation declined successfully.');
         }

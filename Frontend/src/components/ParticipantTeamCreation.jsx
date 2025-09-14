@@ -85,7 +85,7 @@ const ParticipantTeamCreation = () => {
       const data = await response.json();
 
       if (response.ok) {
-        toast.success('Team created successfully! 🎉');
+        toast.success('Team created successfully!');
         setFormData({ teamName: '', description: '' });
         setShowCreateForm(false);
         setSelectedParticipantId('');
@@ -161,7 +161,7 @@ const ParticipantTeamCreation = () => {
       const data = await response.json();
 
       if (response.ok) {
-        toast.success(`Invitation sent to ${participantName}! 🎉`);
+        toast.success(`Invitation sent to ${participantName}!`);
         console.log('Invitation sent successfully:', data);
 
         // Refresh participants list to show updated status
@@ -213,7 +213,7 @@ const ParticipantTeamCreation = () => {
       const data = await response.json();
 
       if (response.ok) {
-        toast.success(`Join request sent to ${teamName}! 🎉`);
+        toast.success(`Join request sent to ${teamName}!`);
         console.log('Join request sent successfully:', data);
 
         // Mark this team as having a pending request
