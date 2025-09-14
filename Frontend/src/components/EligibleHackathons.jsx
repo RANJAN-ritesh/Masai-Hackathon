@@ -402,6 +402,12 @@ const EligibleHackathons = () => {
     return now > endDate;
   };
 
+  // Check if teams already exist for this hackathon
+  const hasTeamsCreated = (hackathonId) => {
+    // Check if we have teams data for this hackathon
+    return hackathonTeams.some(team => team.hackathonId === hackathonId);
+  };
+
   // Fetch hackathon data for admin
   const fetchHackathonData = async (hackathonId) => {
     try {
@@ -699,7 +705,7 @@ const EligibleHackathons = () => {
                               ) : (
                                 <>
                                   {/* Only show Create Teams button for admin-based team selection */}
-                                  {(registration.teamCreationMode === 'admin' || !registration.teamCreationMode) && (
+                                  {(registration.teamCreationMode === 'admin' || !registration.teamCreationMode) && !hasTeamsCreated(registration._id) && (
                                     <button
                                       onClick={() => openModal("create", registration)}
                                       className="bg-gradient-to-r from-purple-300 to-indigo-400 hover:from-purple-600 hover:to-indigo-700 text-white px-4 py-2 rounded-lg font-semibold transition-all duration-300 shadow-sm hover:shadow flex items-center"
@@ -707,6 +713,16 @@ const EligibleHackathons = () => {
                                       <Users className="w-4 h-4 mr-2" />
                                       Create Teams
                                     </button>
+                                  )}
+                                  
+                                  {/* Show "Teams Created" message if teams already exist */}
+                                  {(registration.teamCreationMode === 'admin' || !registration.teamCreationMode) && hasTeamsCreated(registration._id) && (
+                                    <div className="px-4 py-2 rounded-lg bg-green-50 border border-green-200">
+                                      <span className="text-green-700 text-sm font-medium">
+                                        <Users className="w-4 h-4 mr-2 inline" />
+                                        Teams Already Created
+                                      </span>
+                                    </div>
                                   )}
                                   
                                   {/* Show message for participant-based team selection */}

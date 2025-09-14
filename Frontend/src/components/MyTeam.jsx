@@ -82,6 +82,9 @@ const MyTeam = () => {
     return now > chatEndDate;
   };
 
+  // Determine if this is participant team mode
+  const isParticipantTeamMode = hackathon?.teamCreationMode === 'participant';
+
   useEffect(() => {
     if (hackathon && userId) {
       loadData();
