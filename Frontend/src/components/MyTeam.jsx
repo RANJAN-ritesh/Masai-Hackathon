@@ -986,7 +986,7 @@ const MyTeam = () => {
                     
                     {/* Submission Timer */}
                     <div className="mb-4">
-                      <SubmissionTimer hackathon={hackathon} userRole={currentTeam?.role || 'member'} />
+                      <SubmissionTimer hackathon={hackathon} userRole="leader" />
                     </div>
                     {hackathon?.submissionStartDate && hackathon?.submissionEndDate ? (
                       (() => {
@@ -1033,9 +1033,17 @@ const MyTeam = () => {
                   </div>
                 ) : (
                   <div className="border-t pt-4" style={{ borderColor: '#22c55e' }}>
-                    <p className="text-sm" style={{ color: '#166534', opacity: 0.8 }}>
+                    <h4 className="font-medium mb-2" style={{ color: '#166534' }}>
+                      Project Submission
+                    </h4>
+                    <p className="text-sm mb-3" style={{ color: '#166534', opacity: 0.8 }}>
                       <strong>Note:</strong> Only your team leader can submit the final project. Stay coordinated with them for submission timing.
                     </p>
+                    
+                    {/* Submission Timer for Team Members */}
+                    <div className="mb-4">
+                      <SubmissionTimer hackathon={hackathon} userRole="member" />
+                    </div>
                   </div>
                 )}
               </div>
